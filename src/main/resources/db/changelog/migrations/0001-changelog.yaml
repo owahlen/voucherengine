@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 1766147250372-1
+      id: 1766355519094-1
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -13,6 +13,12 @@ databaseChangeLog:
                     primaryKeyName: pk_campaign
                   name: id
                   type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
               - column:
                   constraints:
                     nullable: false
@@ -33,15 +39,9 @@ databaseChangeLog:
               - column:
                   name: join_once
                   type: BOOLEAN
-              - column:
-                  name: created_at
-                  type: DATETIME
-              - column:
-                  name: updated_at
-                  type: DATETIME
             tableName: campaign
   - changeSet:
-      id: 1766147250372-2
+      id: 1766355519094-2
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -55,20 +55,20 @@ databaseChangeLog:
                   name: id
                   type: UUID
               - column:
-                  name: name
-                  type: VARCHAR(255)
-              - column:
-                  name: hierarchy
-                  type: INT
-              - column:
                   name: created_at
                   type: DATETIME
               - column:
                   name: updated_at
                   type: DATETIME
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+              - column:
+                  name: hierarchy
+                  type: INT
             tableName: category
   - changeSet:
-      id: 1766147250372-3
+      id: 1766355519094-3
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -82,20 +82,53 @@ databaseChangeLog:
                   name: id
                   type: UUID
               - column:
-                  name: source_id
-                  type: VARCHAR(255)
-              - column:
-                  name: metadata
-                  type: jsonb
-              - column:
                   name: created_at
                   type: DATETIME
               - column:
                   name: updated_at
                   type: DATETIME
+              - column:
+                  name: source_id
+                  type: VARCHAR(255)
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+              - column:
+                  name: phone
+                  type: VARCHAR(255)
+              - column:
+                  name: birthdate
+                  type: DATE
+              - column:
+                  name: metadata
+                  type: jsonb
+              - column:
+                  name: city
+                  type: VARCHAR(255)
+              - column:
+                  name: state
+                  type: TEXT
+              - column:
+                  name: line_1
+                  type: VARCHAR(255)
+              - column:
+                  name: line_2
+                  type: VARCHAR(255)
+              - column:
+                  name: country
+                  type: VARCHAR(255)
+              - column:
+                  name: postal_code
+                  type: TEXT
             tableName: customer
   - changeSet:
-      id: 1766147250372-4
+      id: 1766355519094-4
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -108,6 +141,12 @@ databaseChangeLog:
                     primaryKeyName: pk_order
                   name: id
                   type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
               - column:
                   name: source_id
                   type: VARCHAR(255)
@@ -129,106 +168,9 @@ databaseChangeLog:
               - column:
                   name: customer_id
                   type: UUID
-              - column:
-                  name: created_at
-                  type: DATETIME
-              - column:
-                  name: updated_at
-                  type: DATETIME
             tableName: order
   - changeSet:
-      id: 1766147250372-5
-      author: owahlen
-      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
-      changes:
-        - createTable:
-            columns:
-              - column:
-                  constraints:
-                    nullable: false
-                    primaryKey: true
-                    primaryKeyName: pk_orderitem
-                  name: id
-                  type: UUID
-              - column:
-                  name: product_id
-                  type: VARCHAR(255)
-              - column:
-                  name: sku_id
-                  type: VARCHAR(255)
-              - column:
-                  name: quantity
-                  type: INT
-              - column:
-                  name: amount
-                  type: BIGINT
-              - column:
-                  name: price
-                  type: BIGINT
-              - column:
-                  name: discount_amount
-                  type: BIGINT
-              - column:
-                  name: subtotal_amount
-                  type: BIGINT
-              - column:
-                  name: order_id
-                  type: UUID
-            tableName: order_item
-  - changeSet:
-      id: 1766147250372-6
-      author: owahlen
-      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
-      changes:
-        - createTable:
-            columns:
-              - column:
-                  constraints:
-                    nullable: false
-                    primaryKey: true
-                    primaryKeyName: pk_product
-                  name: id
-                  type: UUID
-              - column:
-                  name: source_id
-                  type: VARCHAR(255)
-              - column:
-                  name: name
-                  type: VARCHAR(255)
-              - column:
-                  name: price
-                  type: BIGINT
-              - column:
-                  name: metadata
-                  type: jsonb
-              - column:
-                  name: image_url
-                  type: TEXT
-              - column:
-                  name: created_at
-                  type: DATETIME
-              - column:
-                  name: updated_at
-                  type: DATETIME
-            tableName: product
-  - changeSet:
-      id: 1766147250372-7
-      author: owahlen
-      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
-      changes:
-        - createTable:
-            columns:
-              - column:
-                  constraints:
-                    nullable: false
-                  name: product_id
-                  type: UUID
-              - column:
-                  name: attributes
-                  type: VARCHAR(255)
-            tableName: product_attributes
-  - changeSet:
-      id: 1766147250372-8
+      id: 1766355519094-5
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -242,7 +184,10 @@ databaseChangeLog:
                   name: id
                   type: UUID
               - column:
-                  name: date
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
                   type: DATETIME
               - column:
                   name: tracking_id
@@ -276,7 +221,7 @@ databaseChangeLog:
                   type: UUID
             tableName: redemption
   - changeSet:
-      id: 1766147250372-9
+      id: 1766355519094-6
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -315,52 +260,7 @@ databaseChangeLog:
                   type: UUID
             tableName: redemption_rollback
   - changeSet:
-      id: 1766147250372-10
-      author: owahlen
-      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
-      changes:
-        - createTable:
-            columns:
-              - column:
-                  constraints:
-                    nullable: false
-                    primaryKey: true
-                    primaryKeyName: pk_sku
-                  name: id
-                  type: UUID
-              - column:
-                  name: source_id
-                  type: VARCHAR(255)
-              - column:
-                  name: sku
-                  type: VARCHAR(255)
-              - column:
-                  name: price
-                  type: BIGINT
-              - column:
-                  name: currency
-                  type: VARCHAR(8)
-              - column:
-                  name: attributes
-                  type: jsonb
-              - column:
-                  name: image_url
-                  type: TEXT
-              - column:
-                  name: metadata
-                  type: jsonb
-              - column:
-                  name: product_id
-                  type: UUID
-              - column:
-                  name: created_at
-                  type: DATETIME
-              - column:
-                  name: updated_at
-                  type: DATETIME
-            tableName: sku
-  - changeSet:
-      id: 1766147250372-11
+      id: 1766355519094-7
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -373,6 +273,12 @@ databaseChangeLog:
                     primaryKeyName: pk_validationrule
                   name: id
                   type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
               - column:
                   name: name
                   type: VARCHAR(255)
@@ -400,15 +306,9 @@ databaseChangeLog:
               - column:
                   name: object_type
                   type: VARCHAR(255)
-              - column:
-                  name: created_at
-                  type: DATETIME
-              - column:
-                  name: updated_at
-                  type: DATETIME
             tableName: validation_rule
   - changeSet:
-      id: 1766147250372-12
+      id: 1766355519094-8
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -422,6 +322,12 @@ databaseChangeLog:
                   name: id
                   type: UUID
               - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
                   name: rule_id
                   type: UUID
               - column:
@@ -433,15 +339,9 @@ databaseChangeLog:
               - column:
                   name: validation_status
                   type: VARCHAR(255)
-              - column:
-                  name: created_at
-                  type: DATETIME
-              - column:
-                  name: updated_at
-                  type: DATETIME
             tableName: validation_rules_assignment
   - changeSet:
-      id: 1766147250372-13
+      id: 1766355519094-9
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -457,7 +357,7 @@ databaseChangeLog:
                   type: VARCHAR(255)
             tableName: validation_rules_assignment_omitted_rules
   - changeSet:
-      id: 1766147250372-14
+      id: 1766355519094-10
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -471,20 +371,17 @@ databaseChangeLog:
                   name: id
                   type: UUID
               - column:
-                  name: code
-                  type: VARCHAR(255)
+                  name: created_at
+                  type: DATETIME
               - column:
-                  name: campaign_name
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  name: code
                   type: VARCHAR(255)
               - column:
                   name: campaign_id
                   type: UUID
-              - column:
-                  name: category
-                  type: VARCHAR(255)
-              - column:
-                  name: category_id
-                  type: VARCHAR(255)
               - column:
                   name: type
                   type: VARCHAR(255)
@@ -519,12 +416,6 @@ databaseChangeLog:
                   name: holder_id
                   type: UUID
               - column:
-                  name: created_at
-                  type: DATETIME
-              - column:
-                  name: updated_at
-                  type: DATETIME
-              - column:
                   name: qr_id
                   type: VARCHAR(255)
               - column:
@@ -538,7 +429,7 @@ databaseChangeLog:
                   type: TEXT
             tableName: voucher
   - changeSet:
-      id: 1766147250372-15
+      id: 1766355519094-11
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -560,25 +451,7 @@ databaseChangeLog:
                   type: UUID
             tableName: voucher_categories
   - changeSet:
-      id: 1766147250372-16
-      author: owahlen
-      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
-      changes:
-        - addUniqueConstraint:
-            columnNames: source_id
-            constraintName: uc_product_sourceid
-            tableName: product
-  - changeSet:
-      id: 1766147250372-17
-      author: owahlen
-      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
-      changes:
-        - addUniqueConstraint:
-            columnNames: source_id
-            constraintName: uc_sku_sourceid
-            tableName: sku
-  - changeSet:
-      id: 1766147250372-18
+      id: 1766355519094-12
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -587,7 +460,7 @@ databaseChangeLog:
             constraintName: uc_voucher_code
             tableName: voucher
   - changeSet:
-      id: 1766147250372-19
+      id: 1766355519094-13
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -600,18 +473,7 @@ databaseChangeLog:
             indexName: idx_vra_related_object
             tableName: validation_rules_assignment
   - changeSet:
-      id: 1766147250372-21
-      author: owahlen
-      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
-      changes:
-        - addForeignKeyConstraint:
-            baseColumnNames: order_id
-            baseTableName: order_item
-            constraintName: FK_ORDERITEM_ON_ORDER
-            referencedColumnNames: id
-            referencedTableName: order
-  - changeSet:
-      id: 1766147250372-22
+      id: 1766355519094-15
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -622,7 +484,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766147250372-23
+      id: 1766355519094-16
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -633,7 +495,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766147250372-24
+      id: 1766355519094-17
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -644,7 +506,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: redemption
   - changeSet:
-      id: 1766147250372-25
+      id: 1766355519094-18
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -655,7 +517,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766147250372-26
+      id: 1766355519094-19
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -666,7 +528,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: order
   - changeSet:
-      id: 1766147250372-27
+      id: 1766355519094-20
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -677,18 +539,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: voucher
   - changeSet:
-      id: 1766147250372-28
-      author: owahlen
-      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
-      changes:
-        - addForeignKeyConstraint:
-            baseColumnNames: product_id
-            baseTableName: sku
-            constraintName: FK_SKU_ON_PRODUCT
-            referencedColumnNames: id
-            referencedTableName: product
-  - changeSet:
-      id: 1766147250372-29
+      id: 1766355519094-21
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -705,7 +556,7 @@ databaseChangeLog:
             indexName: idx_vra_rule_id
             tableName: validation_rules_assignment
   - changeSet:
-      id: 1766147250372-30
+      id: 1766355519094-22
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -716,7 +567,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: campaign
   - changeSet:
-      id: 1766147250372-31
+      id: 1766355519094-23
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -727,18 +578,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766147250372-32
-      author: owahlen
-      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
-      changes:
-        - addForeignKeyConstraint:
-            baseColumnNames: product_id
-            baseTableName: product_attributes
-            constraintName: fk_product_attributes_on_product
-            referencedColumnNames: id
-            referencedTableName: product
-  - changeSet:
-      id: 1766147250372-33
+      id: 1766355519094-24
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -749,7 +589,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: validation_rules_assignment
   - changeSet:
-      id: 1766147250372-34
+      id: 1766355519094-25
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -760,7 +600,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: category
   - changeSet:
-      id: 1766147250372-35
+      id: 1766355519094-26
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:

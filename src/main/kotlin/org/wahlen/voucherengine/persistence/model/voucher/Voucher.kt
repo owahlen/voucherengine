@@ -3,6 +3,9 @@ package org.wahlen.voucherengine.persistence.model.voucher
 import jakarta.persistence.*
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
+import org.wahlen.voucherengine.api.dto.DiscountDto
+import org.wahlen.voucherengine.api.dto.GiftDto
+import org.wahlen.voucherengine.api.dto.LoyaltyCardDto
 import org.wahlen.voucherengine.persistence.model.campaign.Campaign
 import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
 import org.wahlen.voucherengine.persistence.model.customer.Customer
@@ -49,7 +52,7 @@ class Voucher(
      */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
-    var discountJson: Map<String, Any?>? = null,
+    var discountJson: DiscountDto? = null,
 
     /**
      * Contains information about gift.
@@ -57,7 +60,7 @@ class Voucher(
      */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
-    var giftJson: Map<String, Any?>? = null,
+    var giftJson: GiftDto? = null,
 
     /**
      * Contains information about loyalty card.
@@ -66,7 +69,7 @@ class Voucher(
      */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
-    var loyaltyCardJson: Map<String, Any?>? = null,
+    var loyaltyCardJson: LoyaltyCardDto? = null,
 
     /**
      * Activation timestamp defines when the code starts to be active in ISO 8601 format.
