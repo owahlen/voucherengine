@@ -9,19 +9,19 @@ import org.wahlen.voucherengine.api.dto.RedemptionDto
 
 data class VoucherCreateRequest(
     @field:NotBlank
-    val code: String? = null,
+    var code: String? = null,
     @field:NotBlank
-    val type: String? = null,
+    var type: String? = null,
     @field:Valid
-    val discount: DiscountDto? = null,
+    var discount: DiscountDto? = null,
     @field:Valid
-    val gift: GiftDto? = null,
+    var gift: GiftDto? = null,
     @field:Valid
-    val loyalty_card: LoyaltyCardDto? = null,
+    var loyalty_card: LoyaltyCardDto? = null,
     @field:Valid
-    val redemption: RedemptionDto? = null,
+    var redemption: RedemptionDto? = null,
     @field:Valid
-    val customer: CustomerReferenceDto? = null,
-    val metadata: Map<String, Any?>? = null,
-    val active: Boolean? = null,
+    var customer: CustomerReferenceDto? = null,
+    var metadata: Map<String, Any?>? = null,
+    var active: Boolean? = null,
 )

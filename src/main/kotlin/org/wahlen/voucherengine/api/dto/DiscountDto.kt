@@ -8,10 +8,10 @@ import jakarta.validation.constraints.Positive
  */
 data class DiscountDto(
     @field:NotNull
-    val type: DiscountType,
+    var type: DiscountType,
     @field:Positive
-    val percent_off: Int? = null,
+    var percent_off: Int? = null,
     @field:Positive
-    val amount_off: Long? = null,
-    val amount_off_type: AmountOffType? = null,
+    var amount_off: Long? = null,
+    var amount_off_type: AmountOffType? = null,
 )

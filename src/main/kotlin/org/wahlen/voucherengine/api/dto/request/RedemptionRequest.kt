@@ -6,9 +6,9 @@ import jakarta.validation.constraints.NotEmpty
 data class RedemptionRequest(
     @field:NotEmpty
     @field:Valid
-    val redeemables: List<RedeemableDto>,
+    var redeemables: List<RedeemableDto>,
     @field:Valid
-    val customer: CustomerReferenceDto? = null,
+    var customer: CustomerReferenceDto? = null,
     @field:Valid
-    val order: OrderRequest? = null
+    var order: OrderRequest? = null
 )

@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank
 
 data class RedeemableDto(
     @field:NotBlank
-    val `object`: String,
+    var `object`: String,
     @field:NotBlank
-    val id: String
+    var id: String
 )

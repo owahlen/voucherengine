@@ -44,7 +44,8 @@ class CustomerService(
     @Transactional
     fun ensureCustomer(ref: CustomerReferenceDto?): Customer? {
         if (ref == null || ref.source_id == null) return null
-        val existing = customerRepository.findBySourceId(ref.source_id)
+        val sourceId = ref.source_id
+        val existing = sourceId?.let { customerRepository.findBySourceId(it) }
         if (existing != null) {
             if (ref.email != null) existing.email = ref.email
             if (ref.name != null) existing.name = ref.name

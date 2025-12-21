@@ -4,8 +4,8 @@ import jakarta.validation.constraints.NotBlank
 
 data class ValidationRuleCreateRequest(
     @field:NotBlank
-    val name: String? = null,
+    var name: String? = null,
     @field:NotBlank
-    val type: String? = null,
-    val conditions: Map<String, Any?>? = null
+    var type: String? = null,
+    var conditions: Map<String, Any?>? = null
 )

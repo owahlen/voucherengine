@@ -5,9 +5,9 @@ import jakarta.validation.constraints.NotBlank
 
 data class CustomerReferenceDto(
     @field:NotBlank
-    val source_id: String? = null,
+    var source_id: String? = null,
     @field:Email
-    val email: String? = null,
-    val name: String? = null,
-    val phone: String? = null
+    var email: String? = null,
+    var name: String? = null,
+    var phone: String? = null
 )

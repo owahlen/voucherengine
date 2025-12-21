@@ -6,19 +6,19 @@ import jakarta.validation.constraints.Positive
 
 data class OrderRequest(
     @field:NotBlank
-    val id: String? = null,
+    var id: String? = null,
     @field:Positive
-    val amount: Long? = null,
-    val currency: String? = null,
+    var amount: Long? = null,
+    var currency: String? = null,
     @field:Valid
-    val items: List<OrderItemDto>? = null
+    var items: List<OrderItemDto>? = null
 )
 
 data class OrderItemDto(
     @field:NotBlank
-    val product_id: String? = null,
+    var product_id: String? = null,
     @field:Positive
-    val quantity: Int? = null,
+    var quantity: Int? = null,
     @field:Positive
-    val price: Long? = null
+    var price: Long? = null
 )

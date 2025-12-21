@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank
 
 data class ValidationRuleAssignmentRequest(
     @field:NotBlank
-    val `object`: String? = null,
+    var `object`: String? = null,
     @field:NotBlank
-    val id: String? = null
+    var id: String? = null
 )

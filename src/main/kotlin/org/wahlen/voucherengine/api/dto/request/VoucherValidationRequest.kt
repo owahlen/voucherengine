@@ -4,7 +4,7 @@ import jakarta.validation.Valid
 
 data class VoucherValidationRequest(
     @field:Valid
-    val customer: CustomerReferenceDto? = null,
+    var customer: CustomerReferenceDto? = null,
     @field:Valid
-    val order: OrderRequest? = null
+    var order: OrderRequest? = null
 )
