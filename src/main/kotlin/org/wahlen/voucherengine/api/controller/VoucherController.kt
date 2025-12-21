@@ -25,8 +25,7 @@ class VoucherController(
         operationId = "createVoucher",
         responses = [
             ApiResponse(responseCode = "201", description = "Voucher created"),
-            ApiResponse(responseCode = "400", description = "Validation error"),
-            ApiResponse(responseCode = "501", description = "Not implemented")
+            ApiResponse(responseCode = "400", description = "Validation error")
         ]
     )
     @PostMapping("/vouchers")
@@ -48,8 +47,7 @@ class VoucherController(
         responses = [
             ApiResponse(responseCode = "200", description = "Validation result"),
             ApiResponse(responseCode = "400", description = "Validation error"),
-            ApiResponse(responseCode = "404", description = "Voucher not found"),
-            ApiResponse(responseCode = "501", description = "Not implemented")
+            ApiResponse(responseCode = "404", description = "Voucher not found")
         ]
     )
     @PostMapping("/vouchers/{code}/validate")
@@ -60,12 +58,56 @@ class VoucherController(
         ResponseEntity.ok(voucherService.validateVoucher(code, body))
 
     @Operation(
+        summary = "Get voucher by code",
+        operationId = "getVoucher",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Voucher found"),
+            ApiResponse(responseCode = "404", description = "Voucher not found")
+        ]
+    )
+    @GetMapping("/vouchers/{code}")
+    fun getVoucher(@PathVariable code: String): ResponseEntity<VoucherResponse> {
+        val voucher = voucherService.getByCode(code) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(
+            VoucherResponse(
+                id = voucher.id,
+                code = voucher.code,
+                type = voucher.type,
+                redemption = voucher.redemptionJson
+            )
+        )
+    }
+
+    @Operation(
+        summary = "Update voucher",
+        operationId = "updateVoucher",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Voucher updated"),
+            ApiResponse(responseCode = "404", description = "Voucher not found")
+        ]
+    )
+    @PutMapping("/vouchers/{code}")
+    fun updateVoucher(
+        @PathVariable code: String,
+        @Valid @RequestBody body: VoucherCreateRequest
+    ): ResponseEntity<VoucherResponse> {
+        val updated = voucherService.updateVoucher(code, body) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(
+            VoucherResponse(
+                id = updated.id,
+                code = updated.code,
+                type = updated.type,
+                redemption = updated.redemptionJson
+            )
+        )
+    }
+
+    @Operation(
         summary = "Validate multiple redeemables (stackable discounts)",
         operationId = "validateStack",
         responses = [
             ApiResponse(responseCode = "200", description = "Stack validation result"),
-            ApiResponse(responseCode = "400", description = "Validation error"),
-            ApiResponse(responseCode = "501", description = "Not implemented")
+            ApiResponse(responseCode = "400", description = "Validation error")
         ]
     )
     @PostMapping("/validations")
@@ -78,8 +120,7 @@ class VoucherController(
         responses = [
             ApiResponse(responseCode = "200", description = "Redemption result"),
             ApiResponse(responseCode = "400", description = "Validation error"),
-            ApiResponse(responseCode = "404", description = "Voucher not found"),
-            ApiResponse(responseCode = "501", description = "Not implemented")
+            ApiResponse(responseCode = "404", description = "Voucher not found")
         ]
     )
     @PostMapping("/redemptions")

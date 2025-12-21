@@ -11,5 +11,8 @@ spring:
       ddl-auto: none
     properties:
       hibernate.type.json_format_mapper: org.wahlen.voucherengine.config.ToolsJacksonJsonFormatMapper
+  threads:
+    virtual:
+      enabled: true
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml

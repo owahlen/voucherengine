@@ -7,7 +7,10 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
@@ -48,5 +51,32 @@ class ValidationRuleControllerIntegrationTest @Autowired constructor(
                 .content(assignBody)
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.id").exists())
+
+        val updateBody = """
+            { "name": "Updated Rule", "type": "redemptions", "conditions": { "redemptions": { "per_customer": 2 } } }
+        """.trimIndent()
+
+        mockMvc.perform(
+            put("/v1/validation-rules/$createdId")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateBody)
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.name").value("Updated Rule"))
+
+        // get rule
+        mockMvc.perform(get("/v1/validation-rules/$createdId"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(createdId))
+
+        // list rules
+        mockMvc.perform(get("/v1/validation-rules"))
+            .andExpect(status().isOk)
+
+        // delete rule
+        mockMvc.perform(delete("/v1/validation-rules/$createdId"))
+            .andExpect(status().isNoContent)
+
+        mockMvc.perform(get("/v1/validation-rules/$createdId"))
+            .andExpect(status().isNotFound)
     }
 }

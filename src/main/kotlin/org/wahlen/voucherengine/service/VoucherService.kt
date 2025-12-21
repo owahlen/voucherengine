@@ -44,6 +44,33 @@ class VoucherService(
         return voucherRepository.save(voucher)
     }
 
+    @Transactional
+    fun updateVoucher(code: String, request: VoucherCreateRequest): Voucher? {
+        val existing = voucherRepository.findByCode(code) ?: return null
+        existing.type = request.type?.let { VoucherType.valueOf(it) } ?: existing.type
+        existing.discountJson = request.discount ?: existing.discountJson
+        existing.giftJson = request.gift ?: existing.giftJson
+        existing.loyaltyCardJson = request.loyalty_card ?: existing.loyaltyCardJson
+        existing.metadata = request.metadata ?: existing.metadata
+        existing.active = request.active ?: existing.active
+        existing.redemptionJson = existing.redemptionJson?.copy(
+            quantity = request.redemption?.quantity ?: existing.redemptionJson?.quantity,
+            per_customer = request.redemption?.per_customer ?: existing.redemptionJson?.per_customer
+        ) ?: RedemptionDto(
+            quantity = request.redemption?.quantity,
+            per_customer = request.redemption?.per_customer,
+            redeemed_quantity = 0
+        )
+        val holder = customerService.ensureCustomer(request.customer)
+        if (holder != null) {
+            existing.holder = holder
+        }
+        return voucherRepository.save(existing)
+    }
+
+    @Transactional(readOnly = true)
+    fun getByCode(code: String): Voucher? = voucherRepository.findByCode(code)
+
     @Transactional(readOnly = true)
     fun validateVoucher(code: String, request: VoucherValidationRequest): ValidationResponse {
         val voucher = voucherRepository.findByCode(code)

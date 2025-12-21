@@ -6,7 +6,11 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -21,15 +25,71 @@ class CustomerController(
 ) {
 
     @Operation(
-        summary = "Create or update a customer",
-        operationId = "createOrUpdateCustomer",
+        summary = "Create a customer",
+        operationId = "createCustomer",
         responses = [
-            ApiResponse(responseCode = "200", description = "Customer created or updated"),
-            ApiResponse(responseCode = "400", description = "Validation error"),
-            ApiResponse(responseCode = "501", description = "Not implemented")
+            ApiResponse(responseCode = "200", description = "Customer created"),
+            ApiResponse(responseCode = "400", description = "Validation error")
         ]
     )
     @PostMapping("/customers")
     fun createCustomer(@Valid @RequestBody body: CustomerCreateRequest): ResponseEntity<Any> =
         ResponseEntity.status(HttpStatus.OK).body(customerService.upsert(body))
+
+    @Operation(
+        summary = "List customers",
+        operationId = "listCustomers",
+        responses = [
+            ApiResponse(responseCode = "200", description = "List of customers")
+        ]
+    )
+    @GetMapping("/customers")
+    fun listCustomers(): ResponseEntity<Any> = ResponseEntity.ok(customerService.list())
+
+    @Operation(
+        summary = "Get customer",
+        operationId = "getCustomer",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Customer found"),
+            ApiResponse(responseCode = "404", description = "Customer not found")
+        ]
+    )
+    @GetMapping("/customers/{id}")
+    fun getCustomer(@PathVariable id: String): ResponseEntity<Any> {
+        val customer = customerService.getByIdOrSource(id) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(customer)
+    }
+
+    @Operation(
+        summary = "Update customer",
+        operationId = "updateCustomer",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Customer updated"),
+            ApiResponse(responseCode = "404", description = "Customer not found")
+        ]
+    )
+    @PutMapping("/customers/{id}")
+    fun updateCustomer(
+        @PathVariable id: String,
+        @Valid @RequestBody body: CustomerCreateRequest
+    ): ResponseEntity<Any> {
+        val existing = customerService.getByIdOrSource(id) ?: return ResponseEntity.notFound().build()
+        val merged = body.copy(source_id = existing.sourceId ?: body.source_id)
+        return ResponseEntity.ok(customerService.upsert(merged))
+    }
+
+    @Operation(
+        summary = "Delete customer",
+        operationId = "deleteCustomer",
+        responses = [
+            ApiResponse(responseCode = "204", description = "Customer deleted"),
+            ApiResponse(responseCode = "404", description = "Customer not found")
+        ]
+    )
+    @DeleteMapping("/customers/{id}")
+    fun deleteCustomer(@PathVariable id: String): ResponseEntity<Void> {
+        val existing = customerService.getByIdOrSource(id) ?: return ResponseEntity.notFound().build()
+        customerService.delete(existing.id?.toString() ?: existing.sourceId!!)
+        return ResponseEntity.noContent().build()
+    }
 }

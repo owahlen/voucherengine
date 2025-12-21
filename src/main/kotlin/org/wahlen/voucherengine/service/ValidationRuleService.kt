@@ -36,4 +36,24 @@ class ValidationRuleService(
         )
         return validationRulesAssignmentRepository.save(assignment)
     }
+
+    @Transactional(readOnly = true)
+    fun getRule(id: UUID): ValidationRule? = validationRuleRepository.findById(id).orElse(null)
+
+    @Transactional(readOnly = true)
+    fun listRules(): List<ValidationRule> = validationRuleRepository.findAll()
+
+    @Transactional
+    fun deleteRule(id: UUID) {
+        validationRuleRepository.findById(id).ifPresent { validationRuleRepository.delete(it) }
+    }
+
+    @Transactional
+    fun updateRule(id: UUID, request: ValidationRuleCreateRequest): ValidationRule? {
+        val existing = validationRuleRepository.findById(id).orElse(null) ?: return null
+        existing.name = request.name ?: existing.name
+        existing.type = existing.type
+        existing.rules = request.conditions ?: existing.rules
+        return validationRuleRepository.save(existing)
+    }
 }

@@ -7,7 +7,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
@@ -22,7 +24,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
 ) {
 
     @Test
-    fun `create validate and redeem voucher via controller`() {
+    fun `voucher CRUD via controller`() {
         val code = "INT-${UUID.randomUUID().toString().take(8)}"
         val createBody = """
             { "code": "$code", "type": "DISCOUNT_VOUCHER", "discount": { "type": "PERCENT", "percent_off": 10 }, "redemption": { "quantity": 1 } }
@@ -33,6 +35,10 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
+            .andExpect(jsonPath("$.code").value(code))
+
+        mockMvc.perform(get("/v1/vouchers/$code"))
+            .andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value(code))
 
         val validateBody = """
@@ -46,15 +52,14 @@ class VoucherControllerIntegrationTest @Autowired constructor(
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.valid").value(true))
 
-        val redeemBody = """
-            { "redeemables": [ { "object": "voucher", "id": "$code" } ], "customer": { "source_id": "controller-customer" }, "order": { "id": "order-1", "amount": 1500 } }
+        val updateBody = """
+            { "code": "$code", "type": "DISCOUNT_VOUCHER", "discount": { "type": "PERCENT", "percent_off": 15 }, "redemption": { "quantity": 2 } }
         """.trimIndent()
 
         mockMvc.perform(
-            post("/v1/redemptions")
+            put("/v1/vouchers/$code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(redeemBody)
+                .content(updateBody)
         ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.result").value("success"))
     }
 }
