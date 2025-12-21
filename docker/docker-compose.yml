@@ -1,0 +1,16 @@
+services:
+  voucherengine_db:
+    image: postgres
+    restart: always
+    networks:
+      - voucherengine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: voucherengine
+      POSTGRES_PASSWORD: voucherengine
+      POSTGRES_DB: voucherengine
+
+networks:
+  voucherengine:
+    name: "voucherengine"

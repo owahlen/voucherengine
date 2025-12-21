@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: voucherengine
+  datasource:
+    url: jdbc:postgresql://localhost:5432/voucherengine
+    username: voucherengine
+    password: voucherengine
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
