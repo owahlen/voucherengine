@@ -11,11 +11,14 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.CustomerCreateRequest
+import org.wahlen.voucherengine.service.CustomerService
 
 @RestController
 @RequestMapping("/v1")
 @Validated
-class CustomerController {
+class CustomerController(
+    private val customerService: CustomerService
+) {
 
     @Operation(
         summary = "Create or update a customer",
@@ -28,5 +31,5 @@ class CustomerController {
     )
     @PostMapping("/customers")
     fun createCustomer(@Valid @RequestBody body: CustomerCreateRequest): ResponseEntity<Any> =
-        ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(mapOf("status" to "not_implemented"))
+        ResponseEntity.status(HttpStatus.OK).body(customerService.upsert(body))
 }

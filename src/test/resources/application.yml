@@ -11,3 +11,4 @@ spring:
       hibernate.type.json_format_mapper: org.wahlen.voucherengine.config.ToolsJacksonJsonFormatMapper
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true

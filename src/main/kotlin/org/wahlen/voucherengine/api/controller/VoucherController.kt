@@ -2,17 +2,23 @@ package org.wahlen.voucherengine.api.controller
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import org.wahlen.voucherengine.api.dto.request.*
-import jakarta.validation.Valid
+import org.wahlen.voucherengine.api.dto.VoucherResponse
+import org.wahlen.voucherengine.service.VoucherService
+import org.wahlen.voucherengine.service.dto.RedemptionResponse
+import org.wahlen.voucherengine.service.dto.ValidationResponse
 
 @RestController
 @RequestMapping("/v1")
 @Validated
-class VoucherController {
+class VoucherController(
+    private val voucherService: VoucherService
+) {
 
     @Operation(
         summary = "Create a voucher (discount/gift/loyalty)",
@@ -24,8 +30,17 @@ class VoucherController {
         ]
     )
     @PostMapping("/vouchers")
-    fun createVoucher(@Valid @RequestBody body: VoucherCreateRequest): ResponseEntity<Any> =
-        ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(mapOf("status" to "not_implemented"))
+    fun createVoucher(@Valid @RequestBody body: VoucherCreateRequest): ResponseEntity<VoucherResponse> {
+        val voucher = voucherService.createVoucher(body)
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            VoucherResponse(
+                id = voucher.id,
+                code = voucher.code,
+                type = voucher.type,
+                redemption = voucher.redemptionJson
+            )
+        )
+    }
 
     @Operation(
         summary = "Validate a voucher code in a checkout context",
@@ -41,8 +56,8 @@ class VoucherController {
     fun validateVoucher(
         @PathVariable code: String,
         @Valid @RequestBody body: VoucherValidationRequest
-    ): ResponseEntity<Any> =
-        ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(mapOf("status" to "not_implemented"))
+    ): ResponseEntity<ValidationResponse> =
+        ResponseEntity.ok(voucherService.validateVoucher(code, body))
 
     @Operation(
         summary = "Validate multiple redeemables (stackable discounts)",
@@ -68,6 +83,9 @@ class VoucherController {
         ]
     )
     @PostMapping("/redemptions")
-    fun redeem(@Valid @RequestBody body: RedemptionRequest): ResponseEntity<Any> =
-        ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(mapOf("status" to "not_implemented"))
+    fun redeem(@Valid @RequestBody body: RedemptionRequest): ResponseEntity<RedemptionResponse> {
+        val result = voucherService.redeem(body)
+        val status = if (result.error == null) HttpStatus.OK else HttpStatus.BAD_REQUEST
+        return ResponseEntity.status(status).body(result)
+    }
 }

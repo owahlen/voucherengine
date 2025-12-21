@@ -143,4 +143,11 @@ class Voucher(
 
     @OneToMany(mappedBy = "voucher", fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
     var redemptions: MutableList<Redemption> = mutableListOf()
+
+    /**
+     * Redemption settings for the voucher (quantity and per-customer limits).
+     */
+    @Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    var redemptionJson: org.wahlen.voucherengine.api.dto.RedemptionDto? = null
 }

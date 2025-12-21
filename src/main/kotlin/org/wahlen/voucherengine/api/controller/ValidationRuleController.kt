@@ -13,11 +13,15 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleAssignmentRequest
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleCreateRequest
+import org.wahlen.voucherengine.service.ValidationRuleService
+import java.util.UUID
 
 @RestController
 @RequestMapping("/v1")
 @Validated
-class ValidationRuleController {
+class ValidationRuleController(
+    private val validationRuleService: ValidationRuleService
+) {
 
     @Operation(
         summary = "Create a validation rule",
@@ -30,7 +34,7 @@ class ValidationRuleController {
     )
     @PostMapping("/validation-rules")
     fun createValidationRule(@Valid @RequestBody body: ValidationRuleCreateRequest): ResponseEntity<Any> =
-        ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(mapOf("status" to "not_implemented"))
+        ResponseEntity.status(HttpStatus.CREATED).body(validationRuleService.createRule(body))
 
     @Operation(
         summary = "Assign a validation rule to an object (voucher or campaign)",
@@ -47,5 +51,6 @@ class ValidationRuleController {
         @PathVariable id: String,
         @Valid @RequestBody body: ValidationRuleAssignmentRequest
     ): ResponseEntity<Any> =
-        ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(mapOf("status" to "not_implemented"))
+        ResponseEntity.status(HttpStatus.OK)
+            .body(validationRuleService.assignRule(UUID.fromString(id), body))
 }
