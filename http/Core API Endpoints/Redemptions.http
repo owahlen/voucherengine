@@ -1,0 +1,151 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### Redeem Stackable Discounts
+# @name redeem_stackable_discounts
+< {%
+    const body = {
+        "redeemables": [
+            {
+                "object": "voucher",
+                "id": "{{voucher_code}}" // Discount Code, Gift Voucher, Referral  Code, Loyalty Card
+            },
+            {
+                "object": "voucher",
+                "id": "{{gift_voucher}}",
+                "gift": {
+                    "credits": 100 // Optional
+                }
+            },
+            {
+                "object": "voucher",
+                "id": "{{loyalty_card}}",
+                "reward": {
+                    "points": 10, // Optional - Number of points to redeem for the Pay With Points reward
+                    "id": "{{reward_id}}" // Optional - The ID of the reward to exchange the points to
+                }
+            },
+            {
+                "object": "promotion_tier",
+                "id": "{{promotion_tier_id}}"
+            },
+            {
+                "object": "promotion_stack",
+                "id": "{{promotion_stack_id}}"
+            }
+        ],
+        "customer": {
+            "source_id": "{{external_customer_id}}", // The ID you use to identify the customer
+            "name": "John Doe",
+            "email": "{{customer_email}}",
+            "metadata": {
+                "metadata_key": "{{metadata_value}}",
+                "customer_location": "geo:37.786971,-122.399677",
+                "subscribed": true
+            }
+        },
+        "order": {
+            "amount": {{amount}}, // Amount to pay for the order in cents
+            "status": "PAID",
+            "source_id": "{{external_order_id}}",
+            "metadata": {
+                "channel": "web",
+                "currency": "USD",
+                "restaurant": "Freddy's",
+                "any_key": "{{any_value}}"
+            },
+            "items": [
+                {
+                    "quantity": 1,
+                    "price": 2500,
+                    "amount": 2500,
+                    "source_id": "BBQ_meal",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "meal",
+                            "meal_type": "dinner",
+                            "star_rating": 4,
+                            "vegetarian": false,
+                            "vegan": false
+                        }
+                    }
+                },
+                {
+                    "quantity": 1,
+                    "price": 700,
+                    "amount": 700,
+                    "source_id": "Refreshing_Cola",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "beverage",
+                            "star_rating": 4,
+                            "vegetarian": true,
+                            "vegan": false
+                        }
+                    }
+                }
+            ]
+        },
+        "options": {
+            "expand": [
+                "order",
+                "redeemable"
+            ]
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/redemptions
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Get Redemption
+# @name get_redemption
+GET {{voucherengine_base_url}}/v1/redemptions/{{redemption_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Voucher's Redemptions
+# @name get_voucher_s_redemptions
+GET {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/redemption
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Redemptions
+# @name list_redemptions
+GET {{voucherengine_base_url}}/v1/redemptions?limit=15
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Rollback Redemption
+# @name rollback_redemption
+POST {{voucherengine_base_url}}/v1/redemptions/{{redemption_id}}/rollback?reason=Product malfunction
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Rollback Stackable Redemptions
+# @name rollback_stackable_redemptions
+POST {{voucherengine_base_url}}/v1/redemptions/{{parent_redemption_id}}/rollbacks
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

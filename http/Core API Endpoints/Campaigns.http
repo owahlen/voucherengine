@@ -1,0 +1,439 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+# Create Campaign
+### Create Campaign (unique discount coupons)
+# @name create_campaign_create_campaign_unique_discount_coupons
+< {%
+    const body = {
+        "name": "CAMPAIGN_001", // Campaign name.
+        "campaign_type": "DISCOUNT_COUPONS", // Type of campaign.
+        "join_once": true, // If this value is set to true, customers will be able to join the campaign only once.
+        "type": "AUTO_UPDATE", // Defines whether the campaign can be updated with new vouchers after campaign creation. AUTO_UPDATE: By choosing the auto update option you will create a campaign that can be enhanced by new vouchers after the time of creation (e.g. by publish vouchers method).STATIC: vouchers need to be manually published.
+        "vouchers_count": 3, // Total number of unique vouchers in campaign (size of campaign).
+        "voucher": {
+            "type": "DISCOUNT_VOUCHER", // Type of voucher.
+            "discount": {
+                "percent_off": 10, // The percent discount that the customer will receive.
+                "type": "PERCENT" // Defines the type of the voucher.
+            },
+            "redemption": {
+                "quantity": 10 // How many times a voucher can be redeemed. A null value means unlimited.
+            },
+            "code_config": { //Schema containing information about config used for voucher. Defines code's pattern (prefix, suffix, length, charset, etc).
+                "pattern": "CODE_###" // A pattern for codes where hashes (#) will be replaced with random characters. Overrides length.
+            }
+        },
+        "validity_timeframe": { // Set recurrent time periods when the campaign is valid. For example, valid for 1 hour every other day.start_date required when including the validity_timeframe.
+            "interval": "P2D", // Defines the intervening time between two time points in ISO 8601 format, expressed as a duration. For example, a campaign with an interval of P2D will be active every other day.
+            "duration": "P1D" // Defines the amount of time the campaign will be active in ISO 8601 format. For example, a campaign with a duration of P1D will be valid for a duration of one day.
+        },
+        "validity_day_of_week": [ // Integer array corresponding to the particular days of the week in which the campaign is valid. Sunday - 0, Monday - 1, Tuesday - 2, Wednesday - 3, Thursday - 4, Friday - 5, Saturday - 6.
+            0,
+            1,
+            2
+        ],
+        "activity_duration_after_publishing": "P24D", // Defines the amount of time the campaign will be active in ISO 8601 format after publishing. For example, a campaign with a duration of P24D will be valid for a duration of 24 days.
+        "use_voucher_metadata_schema": false, // Flag indicating whether the campaign is to use the voucher's metadata schema instead of the campaign metadata schema.
+        "metadata": { // The metadata object stores all custom attributes assigned to the campaign. A set of key/value pairs that you can attach to a campaign object. It can be useful for storing additional information about the campaign in a structured format.
+            "region": "EU"
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/campaigns
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Campaign (gift cards)
+# @name create_campaign_create_campaign_gift_cards
+< {%
+    const body = {
+        "name": "CAMPAIGN_001", // Campaign name.
+        "campaign_type": "GIFT_VOUCHERS", // Type of campaign.
+        "join_once": true, // If this value is set to true, customers will be able to join the campaign only once.
+        "type": "AUTO_UPDATE", // Defines whether the campaign can be updated with new vouchers after campaign creation. AUTO_UPDATE: By choosing the auto update option you will create a campaign that can be enhanced by new vouchers after the time of creation (e.g. by publish vouchers method).STATIC: vouchers need to be manually published.
+        "vouchers_count": 3, // Total number of unique vouchers in campaign (size of campaign).
+        "voucher": {
+            "type": "GIFT_VOUCHER", // Type of voucher.
+            "gift": {
+                "amount": 1000,
+                "effect": "APPLY_TO_ORDER"
+            },
+            "redemption": {
+                "quantity": null // How many times a voucher can be redeemed. A null value means unlimited.
+            },
+            "code_config": { //Schema containing information about config used for voucher. Defines code's pattern (prefix, suffix, length, charset, etc).
+                "pattern": "CODE_###" // A pattern for codes where hashes (#) will be replaced with random characters. Overrides length.
+            }
+        },
+        "validity_timeframe": { // Set recurrent time periods when the campaign is valid. For example, valid for 1 hour every other day.start_date required when including the validity_timeframe.
+            "interval": "P2D", // Defines the intervening time between two time points in ISO 8601 format, expressed as a duration. For example, a campaign with an interval of P2D will be active every other day.
+            "duration": "P1D" // Defines the amount of time the campaign will be active in ISO 8601 format. For example, a campaign with a duration of P1D will be valid for a duration of one day.
+        },
+        "validity_day_of_week": [ // Integer array corresponding to the particular days of the week in which the campaign is valid. Sunday - 0, Monday - 1, Tuesday - 2, Wednesday - 3, Thursday - 4, Friday - 5, Saturday - 6.
+            0,
+            1,
+            2
+        ],
+        "activity_duration_after_publishing": "P24D", // Defines the amount of time the campaign will be active in ISO 8601 format after publishing. For example, a campaign with a duration of P24D will be valid for a duration of 24 days.
+        "use_voucher_metadata_schema": false, // Flag indicating whether the campaign is to use the voucher's metadata schema instead of the campaign metadata schema.
+        "metadata": { // The metadata object stores all custom attributes assigned to the campaign. A set of key/value pairs that you can attach to a campaign object. It can be useful for storing additional information about the campaign in a structured format.
+            "region": "AMER"
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/campaigns
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Campaign (loyalty)
+# @name create_campaign_create_campaign_loyalty
+< {%
+    const body = {
+        "name": "CAMPAIGN_001", // Campaign name.
+        "campaign_type": "LOYALTY_PROGRAM", // Type of campaign.
+        "join_once": true, // If this value is set to true, customers will be able to join the campaign only once.
+        "type": "AUTO_UPDATE", // Defines whether the campaign can be updated with new vouchers after campaign creation. AUTO_UPDATE: By choosing the auto update option you will create a campaign that can be enhanced by new vouchers after the time of creation (e.g. by publish vouchers method).STATIC: vouchers need to be manually published.
+        "vouchers_count": 3, // Total number of unique vouchers in campaign (size of campaign).
+        "voucher": {
+            "type": "LOYALTY_CARD", // Type of voucher.
+            "loyalty_card": {
+                "points": 0,
+                "expiration_rules": {
+                    "period_type": "MONTH",
+                    "period_value": 3,
+                    "rounding_type": "END_OF_YEAR"
+                },
+                "redemption": {
+                    "quantity": null // How many times a voucher can be redeemed. A null value means unlimited.
+                }
+            },
+            "use_voucher_metadata_schema": false, // Flag indicating whether the campaign is to use the voucher's metadata schema instead of the campaign metadata schema.
+            "metadata": { // The metadata object stores all custom attributes assigned to the campaign. A set of key/value pairs that you can attach to a campaign object. It can be useful for storing additional information about the campaign in a structured format.
+                "region": "APAC"
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/campaigns
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Campaign (promotion)
+# @name create_campaign_create_campaign_promotion
+< {%
+    const body = {
+        "name": "CAMPAIGN_001", // Campaign name.
+        "campaign_type": "PROMOTION", // Type of campaign.
+        "join_once": true, // If this value is set to true, customers will be able to join the campaign only once.
+        "type": "AUTO_UPDATE", // Defines whether the campaign can be updated with new vouchers after campaign creation. AUTO_UPDATE: By choosing the auto update option you will create a campaign that can be enhanced by new vouchers after the time of creation (e.g. by publish vouchers method).STATIC: vouchers need to be manually published.
+        "promotion": {
+            "tiers": [
+                {
+                    "name": "Percent Discount",
+                    "banner": "Get 15% off",
+                    "action": {
+                        "discount": {
+                            "type": "PERCENT",
+                            "percent_off": 15,
+                            "effect": "APPLY_TO_ORDER"
+                        }
+                    }
+                }
+            ]
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/campaigns
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Campaign (referral)
+# @name create_campaign_create_campaign_referral
+< {%
+    const body = {
+        "name": "CAMPAIGN_001", // Campaign name.
+        "campaign_type": "REFERRAL_PROGRAM", // Type of campaign.
+        "join_once": true, // If this value is set to true, customers will be able to join the campaign only once.
+        "type": "AUTO_UPDATE", // Defines whether the campaign can be updated with new vouchers after campaign creation. AUTO_UPDATE: By choosing the auto update option you will create a campaign that can be enhanced by new vouchers after the time of creation (e.g. by publish vouchers method).STATIC: vouchers need to be manually published.
+        "vouchers_count": 3, // Total number of unique vouchers in campaign (size of campaign).
+        "referral_program": {
+            "conversion_event_type": "redemption" // Define how a referral is triggered.
+        },
+        "voucher": {
+            "type": "DISCOUNT_VOUCHER", // Type of voucher.
+            "discount": {
+                "percent_off": 20, // The percent discount that the customer will receive.
+                "type": "PERCENT", // Defines the type of the voucher.
+                "effect": "APPLY_TO_ORDER",
+                "amount_limit": 15
+            },
+            "redemption": {
+                "quantity": 1 // How many times a voucher can be redeemed. A null value means unlimited.
+            },
+            "code_config": { //Schema containing information about config used for voucher. Defines code's pattern (prefix, suffix, length, charset, etc).
+                "pattern": "{{code_pattern}}" // A pattern for codes where hashes (#) will be replaced with random characters. Overrides length.
+            },
+            "is_referral_code": true // Flag indicating whether this voucher is a referral code; true for campaign type REFERRAL_PROGRAM.
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/campaigns
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### List Campaigns
+# @name list_campaigns
+GET {{voucherengine_base_url}}/v1/campaigns?limit=5&campaign_type=PROMOTION&expand=category
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Campaign
+# @name get_campaign
+< {%
+    request.variables.set("campaign_name_or_id", "CAMPAIGN_001");
+%}
+GET {{voucherengine_base_url}}/v1/campaigns/{{campaign_name_or_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Update Campaign
+# @name update_campaign
+< {%
+    const body = {
+        "description": "update-test", // An optional field to keep any extra textual information about the campaign such as a campaign description and details.
+        "validity_day_of_week": [ //Integer array corresponding to the particular days of the week in which the campaign is valid. Sunday - 0, Monday - 1, Tuesday - 2, Wednesday - 3, Thursday - 4, Friday - 5, Saturday - 6.
+            4
+        ]
+    };
+    request.variables.set("campaign_name_or_id", "CAMPAIGN_001");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/campaigns/{{campaign_name_or_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Campaign
+# @name delete_campaign
+< {%
+    request.variables.set("campaign_name_or_id", "CAMPAIGN_001");
+%}
+DELETE {{voucherengine_base_url}}/v1/campaigns/{{campaign_name_or_id}}?force=true
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Campaign Transactions
+# @name list_campaign_transactions
+< {%
+    request.variables.set("campaignId", "CAMPAIGN_001");
+%}
+GET {{voucherengine_base_url}}/v1/campaigns/{{campaignId}}/transactions
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Export Campaign Transactions
+# @name export_campaign_transactions
+< {%
+    const body = {
+        "parameters": { // List of available parameters containing fields and filters that can be exported for transactions in a gift card or loyalty card campaign, along with the sorting order of the returned data.
+            "filters": { // Data filters and their conditions to narrow down the returned data.
+                "created_at": { // Data filters used to narrow down the data records to be returned in the result.
+                    "conditions": {
+                        "$after": [ // Value is after this date. The value for this parameter is shown in the ISO 8601 format.
+                            "2024-10-01T00:00:00.000Z"
+                        ]
+                    }
+                }
+            },
+            "fields": [ // Data fields that will be exported for the transactions that are associated with balance movements on cards in a campaign.
+                "id", // Unique transaction ID.	
+                "type", // Transaction type.
+                "source_id", // Unique transaction source ID.
+                "reason", // Contains the reason for the transaction if one was included originally.
+                "balance", // The gift card or loyalty card balance after the transaction.
+                "amount", // The amount of gift card or loyalty card credits being allocated during the transaction. This value can either be negative or positive depending on the nature of the transaction.
+                "created_at", // Timestamp in ISO 8601 format representing the date and time when the transaction was created.
+                "voucher_id", // Unique voucher ID.
+                "source", // Channel through which the transaction was initiated.
+                "details", // More detailed information stored in the form of JSON.
+                "related_transaction_id" // Unique transaction ID related to a receiver/donor card in the case of a points transfer from/to another card.
+            ]
+        },
+        "order": "-created_at" // How the export is ordered, where the dash - preceding a sorting option means sorting in descending order.
+    };
+    request.variables.set("campaignId", "CAMPAIGN_001");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaignId}}/transactions/export
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Get Campaign Summary
+# @name get_campaign_summary
+< {%
+    request.variables.set("campaignId", "CAMPAIGN_001");
+%}
+GET {{voucherengine_base_url}}/v1/campaigns/{{campaignId}}/summary
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Add Voucher to Campaign
+# @name add_voucher_to_campaign
+< {%
+    const body = {
+        "start_date": "2024-02-08T00:00:00Z", // Activation timestamp defines when the voucher starts to be active in ISO 8601 format. Voucher is inactive before this date.
+        "expiration_date": "2025-09-25T23:59:59Z", // Expiration timestamp defines when the voucher expires in ISO 8601 format. Voucher is inactive after this date.
+        "active": false, // Flag value defining whether the voucher is active or not.
+        "redemption": {
+            "quantity": null // How many times a voucher can be redeemed. A null value means unlimited.
+        },
+        "code_config": {
+            "charset": "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", // Characters that can appear in the code. Examples: Alphanumeric - 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ, Alphabetic - abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ, Alphabetic Lowercase - abcdefghijklmnopqrstuvwxyz, Alphabetic Uppercase - ABCDEFGHIJKLMNOPQRSTUVWXYZ, Numbers - 0123456789, Custom - a custom character set.
+            "length": 8, // Number of characters in a generated code (excluding prefix and postfix).
+            "prefix": "Add-", // A text appended before the code.
+            "pattern": null, // A pattern for codes where hashes (#) will be replaced with random characters. Overrides length.
+            "postfix": "-API" // A text appended after the code.
+        },
+        "additional_info": "Voucher added using API",
+        "metadata": { // The metadata object stores all custom attributes assigned to the voucher. A set of key/value pairs that you can attach to a voucher object. It can be useful for storing additional information about the voucher in a structured format.
+            "Season": "Fall"
+        }
+    };
+    request.variables.set("campaign_name_or_id", "CAMPAIGN_001");
+    request.variables.set("vouchers_count", "10");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaign_name_or_id}}/vouchers?vouchers_count={{vouchers_count}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Add Voucher with Specific Code to Campaign
+# @name add_voucher_with_specific_code_to_campaign
+< {%
+    const body = {
+        "category_id": "{{category_id}}", // The category assigned to the campaign. Either pass this parameter OR the category_id.
+        "start_date": "2024-02-14T00:00:00Z", // Activation timestamp defines when the voucher starts to be active in ISO 8601 format. Voucher is inactive before this date.
+        "expiration_date": "2024-02-15T23:59:59Z", // Expiration timestamp defines when the voucher expires in ISO 8601 format. Voucher is inactive after this date.
+        "active": false, // Flag value defining whether the voucher is active or not.
+        "redemption": { // Stores the quantity of redemptions that can be applied to the voucher.
+            "quantity": null // How many times a voucher can be redeemed. A null value means unlimited.
+        },
+        "additional_info": "Voucher added using API", // An optional field to keep any extra textual information about the code such as a code description and details.
+        "metadata": { // The metadata object stores all custom attributes assigned to the voucher. A set of key/value pairs that you can attach to a voucher object. It can be useful for storing additional information about the voucher in a structured format.
+            "Season": "Fall"
+        }
+    };
+    request.variables.set("campaign_name_or_id", "CAMPAIGN_001");
+    request.variables.set("voucher_code", "VOUCHER_001");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaign_name_or_id}}/vouchers/{{voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Import Vouchers to Campaign
+# @name import_vouchers_to_campaign
+< {%
+    const body = [
+        {
+            "code": "{{voucher_code}}"
+        },
+        {
+            "code": "{{voucher_code}}"
+        },
+        {
+            "code": "{{voucher_code}}"
+        }
+    ];
+    request.variables.set("campaign_name_or_id", "CAMPAIGN_001");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaign_name_or_id}}/import
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Import Vouchers to Campaign by CSV
+# @name import_vouchers_to_campaign_by_csv
+< {%
+    request.variables.set("campaign_name_or_id", "CAMPAIGN_001");
+%}
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaign_name_or_id}}/importCSV
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="replace-with-file.csv"
+Content-Type: text/csv
+
+< ./path/to/file.csv
+--boundary--
+
+### Enable Campaign
+# @name enable_campaign
+< {%
+    request.variables.set("campaign_name_or_id", "CAMPAIGN_001");
+%}
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaign_name_or_id}}/enable
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Disable Campaign
+# @name disable_campaign
+< {%
+    request.variables.set("campaign_name_or_id", "CAMPAIGN_001");
+%}
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaign_name_or_id}}/disable
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

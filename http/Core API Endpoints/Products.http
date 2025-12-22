@@ -1,0 +1,255 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Products
+# @name list_products
+GET {{voucherengine_base_url}}/v1/products?limit=100&page=1&order=created_at
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Product
+# @name get_product
+GET {{voucherengine_base_url}}/v1/products/{{product_id_or_source_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Product
+# @name create_product
+< {%
+    const body = {
+        "source_id": "{{source_id}}", // Unique product source ID.
+        "name": "Samsung Phone", // Unique user-defined product name.
+        "price": 200000, // Unit price. It is represented by a value multiplied by 100 to accurately reflect 2 decimal places, such as $100.00 being expressed as 10000.
+        "attributes": [ // A list of product attributes whose values you can customize for given SKUs: ["color","size","ranking"]. Each child SKU can have a unique value for a given attribute.
+            "color",
+            "memory",
+            "processor"
+        ],
+        "metadata": { // The metadata object stores all custom attributes assigned to the product. A set of key/value pairs that you can attach to a product object. It can be useful for storing additional information about the product in a structured format.
+            "test": true,
+            "vendor": "Online Store"
+        },
+        "image_url": "https://www.website.com/image.png" // The HTTPS URL pointing to the .png or .jpg file that will be used to render the product image.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/products
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Import Products Using CSV
+# @name import_products_using_csv
+POST {{voucherengine_base_url}}/v1/products/importCSV
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="replace-with-file.csv"
+Content-Type: text/csv
+
+< ./path/to/file.csv
+--boundary--
+
+### Update Product
+# @name update_product
+< {%
+    const body = {
+        "source_id": "{{source_id}}", // Unique product source ID.
+        "name": "Samsung Phone", // Unique user-defined product name.
+        "price": 190000, // Unit price. It is represented by a value multiplied by 100 to accurately reflect 2 decimal places, such as $100.00 being expressed as 10000.
+        "attributes": [ // A list of product attributes whose values you can customize for given SKUs: ["color","size","ranking"]. Each child SKU can have a unique value for a given attribute.
+            "color",
+            "memory",
+            "processor"
+        ],
+        "metadata": { // The metadata object stores all custom attributes assigned to the product. A set of key/value pairs that you can attach to a product object. It can be useful for storing additional information about the product in a structured format.
+            "test": true,
+            "vendor": "Online Store"
+        },
+        "image_url": "https://www.website.com/image.png" // The HTTPS URL pointing to the .png or .jpg file that will be used to render the product image.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/products/{{product_id_or_source_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Products in Bulk
+# @name update_products_in_bulk
+< {%
+    const body = [
+        {
+            "source_id": "first_product", // Unique product source ID from your inventory system.
+            "name": "Samsung Phone 1", // Unique user-defined product name.
+            "price": 220000, // Unit price. It is represented by a value multiplied by 100 to accurately reflect 2 decimal places, such as $100.00 being expressed as 10000.
+            "attributes": [ // A list of product attributes whose values you can customize for given SKUs: ["color","size","ranking"]. Each child SKU can have a unique value for a given attribute.
+                "color",
+                "memory",
+                "processor"
+            ],
+            "metadata": { // The metadata object stores all custom attributes assigned to the product. A set of key/value pairs that you can attach to a product object. It can be useful for storing additional information about the product in a structured format.
+                "test": true,
+                "vendor": "Online Store - 3"
+            },
+            "image_url": "{{image_url}}" // The HTTPS URL pointing to the .png or .jpg file that will be used to render the product image.
+        },
+        {
+            "source_id": "second_product", // Unique product source ID from your inventory system.
+            "name": "Samsung Phone 2", // Unique user-defined product name.
+            "price": 230000, // Unit price. It is represented by a value multiplied by 100 to accurately reflect 2 decimal places, such as $100.00 being expressed as 10000.
+            "attributes": [ // A list of product attributes whose values you can customize for given SKUs: ["color","size","ranking"]. Each child SKU can have a unique value for a given attribute.
+                "color",
+                "memory",
+                "processor"
+            ],
+            "metadata": { // The metadata object stores all custom attributes assigned to the product. A set of key/value pairs that you can attach to a product object. It can be useful for storing additional information about the product in a structured format.
+                "test": true,
+                "vendor": "Online Store - 4"
+            },
+            "image_url": "{{image_url}}" // The HTTPS URL pointing to the .png or .jpg file that will be used to render the product image.
+        }
+    ];
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/products/bulk/async
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Products' Metadata in bulk
+# @name update_products_metadata_in_bulk
+< {%
+    const body = {
+        "metadata": { // Metadata to be updated
+            "test": "true",
+            "brand": "Voucherify"
+        },
+        "source_ids": [ // List of products' source ids that will be affected by the update
+            "first_product",
+            "second_product"
+        ]
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/products/metadata/async
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Product
+# @name delete_product
+DELETE {{voucherengine_base_url}}/v1/products/{{product_id_or_source_id}}?force={{true or false}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List SKUs in Product
+# @name list_skus_in_product
+GET {{voucherengine_base_url}}/v1/products/{{product_id_or_source_id}}/skus?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get SKU
+# @name get_sku
+GET {{voucherengine_base_url}}/v1/skus/{{sku_id_or_source_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create SKU
+# @name create_sku
+< {%
+    const body = {
+        "source_id": "first_product_sku_1", // A unique SKU identifier from your inventory system.
+        "sku": "Samsung phone 256GB", // Unique user-defined SKU name.
+        "price": 130000, // SKU unit price. Value is multiplied by 100 to precisely represent 2 decimal places. For example 10000 cents for $100.00.
+        "currency": "USD", // SKU price currency.
+        "attributes": { // The attributes object stores values for all custom attributes inherited by the SKU from the parent product. A set of key/value pairs that are attached to a SKU object and are unique to each SKU within a product family.
+            "color": "vintage-black",
+            "memory": "256",
+            "processor": "Intel"
+        },
+        "image_url": "{{image_url}}", // The HTTPS URL pointing to the .png or .jpg file that will be used to render the SKU image.
+        "metadata": { // The metadata object stores all custom attributes assigned to the SKU. A set of key/value pairs that you can attach to a SKU object. It can be useful for storing additional information about the SKU in a structured format.
+            "imported": true
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/products/{{product_id_or_source_id}}/skus
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Import SKUs Using CSV
+# @name import_skus_using_csv
+POST {{voucherengine_base_url}}/v1/skus/importCSV
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="replace-with-file.csv"
+Content-Type: text/csv
+
+< ./path/to/file.csv
+--boundary--
+
+### Update SKU
+# @name update_sku
+< {%
+    const body = {
+        "source_id": "first_product_sku_1", // A unique SKU identifier from your inventory system.
+        "sku": "Samsung phone 256GB", // Unique user-defined SKU name.
+        "price": 135000, // SKU unit price. Value is multiplied by 100 to precisely represent 2 decimal places. For example 10000 cents for $100.00.
+        "currency": "USD", // SKU price currency.
+        "attributes": { // The attributes object stores values for all custom attributes inherited by the SKU from the parent product. A set of key/value pairs that are attached to a SKU object and are unique to each SKU within a product family.
+            "color": "rusty-brown",
+            "memory": "256",
+            "processor": "Intel"
+        },
+        "image_url": "{{image_url}}", // The HTTPS URL pointing to the .png or .jpg file that will be used to render the SKU image.
+        "metadata": { // The metadata object stores all custom attributes assigned to the SKU. A set of key/value pairs that you can attach to a SKU object. It can be useful for storing additional information about the SKU in a structured format.
+            "imported": true
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/products/{{product_id_or_source_id}}/skus/{{sku_id_or_source_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete SKU
+# @name delete_sku
+DELETE {{voucherengine_base_url}}/v1/products/{{product_id_or_source_id}}/skus/{{sku_id_or_source_id}}?force={{true or false}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

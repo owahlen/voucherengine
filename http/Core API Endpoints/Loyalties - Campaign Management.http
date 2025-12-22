@@ -1,0 +1,440 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Loyalty Campaigns
+# @name list_loyalty_campaigns
+GET {{voucherengine_base_url}}/v1/loyalties?limit=20&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Loyalty Campaign
+# @name get_loyalty_campaign
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Loyalty Campaign Transactions
+# @name list_loyalty_campaign_transactions
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaignId}}/transactions
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Export Loyalty Campaign Transactions
+# @name export_loyalty_campaign_transactions
+< {%
+    const body = {
+        "parameters": { // List of available parameters containing fields and filters that can be exported for transactions in a gift card or loyalty card campaign, along with the sorting order of the returned data.
+            "filters": { // Data filters and their conditions to narrow down the returned data.
+                "created_at": { // Data filters used to narrow down the data records to be returned in the result.
+                    "conditions": {
+                        "$after": [ // Value is after this date. The value for this parameter is shown in the ISO 8601 format.
+                            "2024-10-01T00:00:00.000Z"
+                        ]
+                    }
+                }
+            },
+            "fields": [ // Data fields that will be exported for the transactions that are associated with balance movements on cards in a campaign.
+                "id", // Unique transaction ID.	
+                "type", // Transaction type.
+                "source_id", // Unique transaction source ID.
+                "reason", // Contains the reason for the transaction if one was included originally.
+                "balance", // The gift card or loyalty card balance after the transaction.
+                "amount", // The amount of gift card or loyalty card credits being allocated during the transaction. This value can either be negative or positive depending on the nature of the transaction.
+                "created_at", // Timestamp in ISO 8601 format representing the date and time when the transaction was created.
+                "voucher_id", // Unique voucher ID.
+                "source", // Channel through which the transaction was initiated.
+                "details", // More detailed information stored in the form of JSON.
+                "related_transaction_id" // Unique transaction ID related to a receiver/donor card in the case of a points transfer from/to another card.
+            ]
+        },
+        "order": "-created_at" // How the export is ordered, where the dash - preceding a sorting option means sorting in a descending order.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaignId}}/transactions/export
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Loyalty Campaign
+# @name create_loyalty_campaign
+< {%
+    const body = {
+        "name": "{{Loyalty_Campaign_Name}}", // Campaign name.
+        "description": "This is a campaign description.", // An optional field to keep any extra textual information about the campaign such as a campaign description and details.
+        "auto_join": true, // Indicates whether customers will be able to auto-join a loyalty campaign if any earning rule is fulfilled.
+        "join_once": true, // If this value is set to true, customers will be able to join the campaign only once.
+        "use_voucher_metadata_schema": true, // Flag indicating whether the campaign is to use the voucher's metadata schema instead of the campaign metadata schema.
+        "start_date": "2024-02-12T00:00:00Z", // Activation timestamp defines when the campaign starts to be active in ISO 8601 format. Campaign is inactive before this date.
+        "expiration_date": null, // Expiration timestamp defines when the campaign expires in ISO 8601 format. Campaign is inactive after this date.
+        "activity_duration_after_publishing": "P24D", // Defines the amount of time the campaign will be active in ISO 8601 format after publishing. For example, a campaign with a duration of P24D will be valid for a duration of 24 days.
+        "vouchers_count": 1, // Total number of unique vouchers in campaign during campaign creation (size of campaign).
+        "voucher": { // Schema model for a loyalty card.
+            "type": "LOYALTY_CARD", // Type of voucher.
+            "loyalty_card": { // Defines the loyalty card details.
+                "points": 0, // Initial loyalty card income in points to be applied to the loyalty card at voucher generation.
+                "expiration_rules": { // Defines point expiration rules.
+                    "period_type": "MONTH", // The expiration period. Default: MONTH
+                    "period_value": 3, // How many periods should pass before the expiration occurs.
+                    "rounding_type": "END_OF_QUARTER" // Round up expiration till the end of the given period type.
+                }
+            },
+            "redemption": { // Defines the redemption limits on vouchers.
+                "quantity": null // How many times a voucher can be redeemed. A null value means unlimited.
+            },
+            "code_config": { // Defines code's pattern (prefix, suffix, length, charset, etc).
+                "pattern": "L-CARD-#######" // A pattern for codes where hashes (#) will be replaced with random characters. Overrides length.
+            }
+        },
+        "metadata": { // The metadata object stores all custom attributes assigned to the campaign. A set of key/value pairs that you can attach to a campaign object. It can be useful for storing additional information about the campaign in a structured format.
+            "test": true
+        },
+        "type": "AUTO_UPDATE", // Defines whether the campaign can be updated with new vouchers after campaign creation. AUTO_UPDATE: By choosing the auto update option you will create a campaign that can be enhanced by new vouchers after the time of creation (e.g. by publish vouchers method). STATIC: vouchers need to be manually published.
+        "loyalty_tiers_expiration": { // Defines the expiration mechanism for loyalty tiers.
+            "qualification_type": "BALANCE", // Tier qualification. BALANCE: Points balance is based on the customer's current points balance. Customers qualify for the tier if their points balance is in the points range of the tier. Default: BALANCE.
+            "start_date": { // Defines the conditions for the start date of the tier.
+                "type": "IMMEDIATE" // What triggers the tier to be valid for a customer. IMMEDIATE: After reaching the minimum required points. Default: IMMEDIATE.
+            },
+            "expiration_date": { // Defines the conditions for the expiration date of a tier.
+                "type": "CUSTOM", // Defines the custom conditions for the expiration date of a tier.
+                "extend": "P3M", // Defines the amount of time the tier will remain active in ISO 8601 format. The expiration date counter starts at the moment when the customer reaches the minimum required points that are required to be in the tier. For example, a tier with a duration of P3M will be valid for a duration of 3 months.
+                "rounding": { // Defines the rounding mechanism for tier expiration.
+                    "type": "MONTH", // Period to which the expiration will be rounded to. MONTH: The expiration date will be rounded to the end of the month. QUARTER: The expiration date will be rounded to the end of the quarter. HALF_YEAR: The expiration date will be rounded to the half year. YEAR: The expiration date will be rounded to the end of the year.
+                    "strategy": "END" // Rounds up the expiration to the end of the above-chosen period. Only END is available.
+                }
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Loyalty Campaign
+# @name update_loyalty_campaign
+< {%
+    const body = {    // The update endpoint can use the same payload as the Create Loyalty Campaign endpoint. In this example we are changing only one parameter.
+    
+        "auto_join": false // Indicates whether customers will be able to auto-join a loyalty campaign if any earning rule is fulfilled.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Loyalty Campaign
+# @name delete_loyalty_campaign
+DELETE {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}?force=true
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Members
+# @name list_members
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/members?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Points Expiration Export
+# @name create_points_expiration_export
+< {%
+    const body = {
+        "parameters": { // List of fields and filters that were passed in the request body to create the export.
+            "fields": [
+                "id", // Loyalty points bucket ID.
+                "campaign_id", // Campaign ID of the parent loyalty campaign.	
+                "voucher_id", // Voucher ID of the parent loyalty card.	
+                "status", // Status of the loyalty points bucket.	
+                "expires_at", // Timestamp in ISO 8601 format representing the date when the points expire.	
+                "points" // Number of points.	
+            ],
+            "order": "-expires_at", // How the export is filtered, where the dash - preceding a sorting option means sorting in a descending order.
+            "filters": { // Filter conditions set on the campaign ID.
+                "junction": "and", // Filter by conditions set on the junction parameter indicating how the conditions should be accounted for in the query. An and is an all-inclusive logical operator, meaning the and operator displays a record if ALL the conditions separated by AND are TRUE, while an or operator displays a record if ANY of the conditions separated by OR is TRUE.
+                "campaign_id": { // Data filters used to narrow the data records to be returned in the result.
+                    "conditions": { // Data filters used to narrow the data records to be returned in the result.
+                        "$is": "{{campaign_id}}" // Specify the exact resource value.
+                    }
+                }
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/points-expiration/export
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### List Earning Rules
+# @name list_earning_rules
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/earning-rules?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Earning Rule
+# @name get_earning_rule
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/earning-rules/{{earning_rule_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Earning Rule
+# @name create_earning_rule
+< {%
+    const body = [
+        {
+            "event": "order.paid", // Defines the event which triggers the earning rule to add points to a loyalty card - order.paid an event defined by the Voucherify API corresponding to an order status PAID. Default: order.paid
+            "validation_rule_id": "{{validation_rule_ID}}", // A unique validation rule identifier assigned by the Voucherify API. The validation rule is verified before points are added to the balance.
+            "source": { // Contains the custom earning rule name and parent campaign.
+                "banner": "5 points for 10 USD spent - subscribers only" // Name of the earning rule. This is displayed as a header for the earning rule in the Dashboard.
+            },
+            "loyalty": { // An object that defines the number of points that will be added to a loyalty card and how the points will be added. FIXED adds a fixed number of points. PROPORTIONAL adds points proportionally based on a pre-defined ratio.
+                "type": "PROPORTIONAL",
+                "calculation_type": "ORDER_TOTAL_AMOUNT",
+                "order": {
+                    "total_amount": {
+                        "every": 1000,
+                        "points": 5
+                    }
+                },
+                "active": true, // A flag to toggle the earning rule on or off. You can disable an earning rule even though it's within the active period defined by the start_date and expiration_date of the campaign or the earning rule's own start_date and expiration_date. True indicates an active earning rule and false indicates an inactive earning rule.
+                "start_date": null, // Start date defines when the earning rule starts to be active. Activation timestamp in ISO 8601 format. Earning rule is inactive before this date. If you don't define the start date for an earning rule, it'll inherit the campaign start date by default.
+                "expiration_date": null, // Expiration date defines when the earning rule expires. Expiration timestamp in ISO 8601 format. Earning rule is inactive after this date.If you don't define the expiration date for an earning rule, it'll inherit the campaign expiration date by default.
+                "metadata": { // The metadata object stores all custom attributes assigned to the earning rule. A set of key/value pairs that you can attach to an earning rule object. It can be useful for storing additional information about the earning rule in a structured format.
+                    "terms_and_conditions": "For subscribers only"
+                }
+            }
+        }
+    ];
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/earning-rules
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Earning Rule
+# @name update_earning_rule
+< {%
+    const body = {    // The update endpoint can use the same payload as the Create Earning Rule endpoint. In this example we are changing only one parameter.
+        "loyalty": {
+            "type": "PROPORTIONAL",
+            "calculation_type": "ORDER_TOTAL_AMOUNT",
+            "order": {
+                "total_amount": {
+                    "every": 1000,
+                    "points": 10 // Changed the number of points the customer will receive
+                }
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/earning-rules/{{earning_rule_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Earning Rule
+# @name delete_earning_rule
+DELETE {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/earning-rules/{{earning_rule_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Enable Earning Rule
+# @name enable_earning_rule
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/earning-rules/{{earning_rule_id}}/enable
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Disable Earning Rule
+# @name disable_earning_rule
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/earning-rules/{{earning_rule_id}}/disable
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Reward Details
+# @name get_reward_details
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/reward-assignments/{{assignment_id}}/reward
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Reward Assignments - alternative
+# @name list_reward_assignments_alternative
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/reward-assignments?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Reward Assignments
+# @name list_reward_assignments
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/rewards?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Reward Assignment - alternative
+# @name get_reward_assignment_alternative
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/reward-assignments/{{assignment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Reward Assignment
+# @name get_reward_assignment
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/rewards/{{assignment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Reward Assignment
+# @name create_reward_assignment
+< {%
+    const body = [
+        {
+            "reward": "{{reward_id}}", // Unique reward ID.
+            "parameters": { // An object that defines the price of the reward in loyalty points.
+                "loyalty": { // Stores the points parameter.
+                    "points": 5 // Defines how many points are required to obtain the reward.
+                }
+            }
+        },
+        {
+            "reward": "{{reward_id}}",
+            "parameters": {
+                "loyalty": {
+                    "points": 10
+                }
+            }
+        }
+    ];
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/rewards
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Reward Assignment
+# @name update_reward_assignment
+< {%
+    const body = {
+        "parameters": { // An object that defines the price of the reward in loyalty points.
+            "loyalty": { // Stores the points parameter.
+                "points": 15 // Defines how many points are required to obtain the reward.
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/rewards/{{assignment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Reward Assignment
+# @name delete_reward_assignment
+DELETE {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/rewards/{{assignment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Loyalty Tiers
+# @name list_loyalty_tiers
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/tiers
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Loyalty Tiers
+# @name create_loyalty_tiers
+< {%
+    const body = [
+        {
+            "name": "{{tier_name}}", // Loyalty Tier name.
+            "earning_rules": { // Contains a list of earning rule IDs and their points mapping for the given earning rule.
+                "{{earning_rule_ID}}": {
+                    "type": "MULTIPLY",
+                    "multiplier": 2
+                }
+            },
+            "rewards": { // Contains a list of reward IDs and their points mapping for the given reward.
+                "{{reward_assignment_ID}}": {
+                    "type": "MULTIPLY",
+                    "multiplier": 0.5
+                }
+            },
+            "points": {
+                "from": 0,
+                "to": 0
+            }
+        }
+    ];
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/tiers
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Get Loyalty Tier
+# @name get_loyalty_tier
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/tiers/{{tier_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Loyalty Tier Earning Rules
+# @name list_loyalty_tier_earning_rules
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/tiers/{{tier_id}}/earning-rules
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Loyalty Tier Rewards
+# @name list_loyalty_tier_rewards
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/tiers/{{tier_id}}/rewards
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

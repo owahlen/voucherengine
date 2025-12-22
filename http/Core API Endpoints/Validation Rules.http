@@ -1,0 +1,341 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Validation Rules
+# @name list_validation_rules
+GET {{voucherengine_base_url}}/v1/validation-rules?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Validation Rule
+# @name get_validation_rule
+< {%
+    request.variables.set("validation_rule_id", "VALIDATION_RULE_001");
+%}
+GET {{voucherengine_base_url}}/v1/validation-rules/{{validation_rule_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Validation Rule
+# @name create_validation_rule
+< {%
+    const body = {
+        // This is an example of a Validation Rule that will give a discount to a specific product collection only when the customer is paying in USD.
+        // The customer will get the discount if he pays for the collection at least $200 if he's not subscribed or $100 otherwise.
+        // The example shows the flexibility of creating the earning rules. Due to the huge number of different rules we recommed using the Dashboard for creating complex conditions.
+        "name": "Discount for jeans with different rules for subscribers and non-subscribers",
+        "rules": { // Contains all the rule definitions for the validation rule. It is a set of key value pairs representing the rules and logic between the rules. The keys are numbered consecutively beginning from 1. The values are objects containing the rule conditions.
+            "1": {
+                "name": "order.metadata",
+                "property": "currency",
+                "conditions": {
+                    "$is": [
+                        "USD" // The customer must pay in USD
+                    ]
+                },
+                "rules": {},
+                "error": {
+                    "message": "You need to pay in USD."
+                }
+            },
+            "2": {
+                "name": "order.items.any",
+                "conditions": {
+                    "$is": [
+                        {
+                            "id": "PRODUCT_COLLECTION_001",
+                            "type": "products_collection",
+                            "object": "products_collection"
+                        }
+                    ]
+                },
+                "rules": {
+                    "1": {
+                        "name": "order.items.aggregated_amount",
+                        "conditions": {
+                            "$more_than_or_equal": [
+                                20000
+                            ]
+                        },
+                        "rules": {},
+                        "error": {
+                            "message": "As a customer who is not subscribed, you need to pay more than $200 to get a discount."
+                        }
+                    },
+                    "logic": " 1"
+                },
+                "error": {
+                    "message": "You need to have jeans in the cart."
+                }
+            },
+            "3": {
+                "name": "customer.metadata",
+                "property": "subscribed",
+                "conditions": {
+                    "$is": [
+                        false
+                    ]
+                },
+                "rules": {}
+            },
+            "4": {
+                "name": "order.items.any",
+                "conditions": {
+                    "$is": [
+                        {
+                            "id": "PRODUCT_COLLECTION_001",
+                            "type": "products_collection",
+                            "object": "products_collection"
+                        }
+                    ]
+                },
+                "rules": {
+                    "1": {
+                        "name": "order.items.aggregated_amount",
+                        "conditions": {
+                            "$more_than_or_equal": [
+                                10000
+                            ]
+                        },
+                        "rules": {},
+                        "error": {
+                            "message": "As a subscribed customer, you need to pay more than $100 to get a discount."
+                        }
+                    },
+                    "logic": " 1"
+                },
+                "error": {
+                    "message": "You need to have jeans in the cart."
+                }
+            },
+            "5": {
+                "name": "customer.metadata",
+                "property": "subscribed",
+                "conditions": {
+                    "$is": [
+                        true
+                    ]
+                },
+                "rules": {}
+            },
+            "logic": " 1 AND (  (  2 AND 3 ) AND (  4 AND 5 ) )" // Condition logic that depends on the subscribed attribute and the value of the items.
+        },
+        "applicable_to": {
+            "excluded": [],
+            "included": [
+                {
+                    "object": "products_collection",
+                    "id": "PRODUCT_COLLECTION_001", // This collection will receive a discount
+                    "strict": false,
+                    "effect": "APPLY_TO_EVERY"
+                }
+            ],
+            "included_all": false
+        },
+        "type": "expression"
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/validation-rules
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Validation Rule
+# @name update_validation_rule
+< {%
+    const body = {
+        // This is an example of a Validation Rule that will give a discount to a specific product collection only when the customer is paying in USD.
+        // The customer will get the discount if he pays for the collection at least $200 if he's not subscribed or $100 otherwise.
+        // The example shows the flexibility of creating the earning rules. Due to the huge number of different rules we recommed using the Dashboard for creating complex conditions.
+        "name": "Discount for jeans with different rules for subscribers and non-subscribers",
+        "rules": { // Contains all the rule definitions for the validation rule. It is a set of key value pairs representing the rules and logic between the rules. The keys are numbered consecutively beginning from 1. The values are objects containing the rule conditions.
+            "1": {
+                "name": "order.metadata",
+                "property": "currency",
+                "conditions": {
+                    "$is": [
+                        "USD" // The customer must pay in USD
+                    ]
+                },
+                "rules": {},
+                "error": {
+                    "message": "You need to pay in USD."
+                }
+            },
+            "2": {
+                "name": "order.items.any",
+                "conditions": {
+                    "$is": [
+                        {
+                            "id": "PRODUCT_COLLECTION_001",
+                            "type": "products_collection",
+                            "object": "products_collection"
+                        }
+                    ]
+                },
+                "rules": {
+                    "1": {
+                        "name": "order.items.aggregated_amount",
+                        "conditions": {
+                            "$more_than_or_equal": [
+                                20000
+                            ]
+                        },
+                        "rules": {},
+                        "error": {
+                            "message": "As a customer who is not subscribed, you need to pay more than $200 to get a discount."
+                        }
+                    },
+                    "logic": " 1"
+                },
+                "error": {
+                    "message": "You need to have jeans in the cart."
+                }
+            },
+            "3": {
+                "name": "customer.metadata",
+                "property": "subscribed",
+                "conditions": {
+                    "$is": [
+                        false
+                    ]
+                },
+                "rules": {}
+            },
+            "4": {
+                "name": "order.items.any",
+                "conditions": {
+                    "$is": [
+                        {
+                            "id": "PRODUCT_COLLECTION_001",
+                            "type": "products_collection",
+                            "object": "products_collection"
+                        }
+                    ]
+                },
+                "rules": {
+                    "1": {
+                        "name": "order.items.aggregated_amount",
+                        "conditions": {
+                            "$more_than_or_equal": [
+                                10000
+                            ]
+                        },
+                        "rules": {},
+                        "error": {
+                            "message": "As a subscribed customer, you need to pay more than $100 to get a discount."
+                        }
+                    },
+                    "logic": " 1"
+                },
+                "error": {
+                    "message": "You need to have jeans in the cart."
+                }
+            },
+            "5": {
+                "name": "customer.metadata",
+                "property": "subscribed",
+                "conditions": {
+                    "$is": [
+                        true
+                    ]
+                },
+                "rules": {}
+            },
+            "logic": " 1 AND (  (  2 AND 3 ) AND (  4 AND 5 ) )" // Condition logic that depends on the subscribed attribute and the value of the items.
+        },
+        "applicable_to": {
+            "excluded": [],
+            "included": [
+                {
+                    "object": "products_collection",
+                    "id": "PRODUCT_COLLECTION_001", // This collection will receive a discount
+                    "strict": false,
+                    "effect": "APPLY_TO_EVERY"
+                }
+            ],
+            "included_all": false
+        },
+        "type": "expression"
+    };
+    request.variables.set("validation_rule_id", "VALIDATION_RULE_001");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/validation-rules/{{validation_rule_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Validation Rule
+# @name delete_validation_rule
+< {%
+    request.variables.set("validation_rule_id", "VALIDATION_RULE_001");
+%}
+DELETE {{voucherengine_base_url}}/v1/validation-rules/{{validation_rule_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Validation Rules' Assignment(s)
+# @name list_validation_rules_assignment_s
+< {%
+    request.variables.set("validation_rule_id", "VALIDATION_RULE_001");
+%}
+GET {{voucherengine_base_url}}/v1/validation-rules-assignments?rule={{validation_rule_id}}&page=1&limit=100
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Validation Rule Assignments
+# @name list_validation_rule_assignments
+< {%
+    request.variables.set("validation_rule_id", "VALIDATION_RULE_001");
+%}
+GET {{voucherengine_base_url}}/v1/validation-rules/{{validation_rule_id}}/assignments?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Validation Rule Assignment
+# @name create_validation_rule_assignment
+< {%
+    const body = {
+    	"related_object_type": "campaign", // Defines the related object. You can choose between voucher, promotion_tier, campaign, earning_rule, distribution, and reward_assignment.
+    	"related_object_id": "{{campaignId}}" // Unique related object ID assigned by Voucherify, e.g v_lfZi4rcEGe0sN9gmnj40bzwK2FH6QUno for a voucher.
+    };
+    request.variables.set("validation_rule_id", "VALIDATION_RULE_001");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/validation-rules/{{validation_rule_id}}/assignments
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Validation Rule Assignment
+# @name delete_validation_rule_assignment
+< {%
+    request.variables.set("assignment_id", "ASSIGNMENT_001");
+    request.variables.set("validation_rule_id", "VALIDATION_RULE_001");
+%}
+DELETE {{voucherengine_base_url}}/v1/validation-rules/{{validation_rule_id}}/assignments/{{assignment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

@@ -5,7 +5,8 @@ import authenticate.http
 ### obtain the access_token
 run #authenticate_tenant
 
-### Initialize shared identifiers
+### Initialize shared identifiers and create customer1
+# @name create_customer_1
 < {%
     const now = Date.now();
     client.global.set("campaign_name", `Welcome-30D-${now}`);
@@ -20,9 +21,6 @@ run #authenticate_tenant
     client.global.set("voucher_1", `WELCOME-${now}-A`);
     client.global.set("voucher_2", `WELCOME-${now}-B`);
 %}
-
-### Create customer 1
-# @name create_customer_1
 POST {{voucherengine_base_url}}/v1/customers
 Authorization: Bearer {{tenant_access_token}}
 Content-Type: application/json

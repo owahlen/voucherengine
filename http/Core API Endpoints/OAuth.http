@@ -1,0 +1,38 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### Generate OAuth 2.0 Token
+# @name generate_oauth_2_0_token
+POST {{voucherengine_base_url}}/v1/oauth/token
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&scope={{scope}}
+
+### Introspect OAuth 2.0 Token
+# @name introspect_oauth_2_0_token
+POST {{voucherengine_base_url}}/v1/oauth/introspect
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/x-www-form-urlencoded
+
+access_token={{token}}
+
+### Revoke OAuth 2.0 Token
+# @name revoke_oauth_2_0_token
+POST {{voucherengine_base_url}}/v1/oauth/token/revoke
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/x-www-form-urlencoded
+
+access_token={{token}}
+

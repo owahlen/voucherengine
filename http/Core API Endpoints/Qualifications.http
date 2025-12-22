@@ -1,0 +1,220 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### Qualifications - ALL Scenario
+# @name qualifications_all_scenario
+< {%
+    const body = {
+        "scenario": "ALL", // Returns all redeemables available for the customer in one API request.
+        "customer": {
+            "source_id": "{{external_customer_id}}", // The ID you use to identify the customer.
+            "name": "John Doe",
+            "email": "{{customer_email}}",
+            "metadata": {
+                "metadata_key": "{{value}}",
+                "customer_location": "geo:37.786971,-122.399677",
+                "subscribed": true
+            }
+        },
+        "order": {
+            "amount": {{amount}}, // Amount to pay for the order in cents.
+            "status": "CREATED",
+            "source_id": "{{external_order_id}}",
+            "metadata": {
+                "channel": "web",
+                "currency": "USD",
+                "restaurant": "Freddy's",
+                "any_key": "{{any_value}}"
+            },
+            "items": [
+                {
+                    "quantity": 1,
+                    "price": 2500,
+                    "amount": 2500,
+                    "source_id": "BBQ_meal",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "meal",
+                            "meal_type": "dinner",
+                            "star_rating": 4,
+                            "vegetarian": false,
+                            "vegan": false
+                        }
+                    }
+                },
+                {
+                    "quantity": 1,
+                    "price": 700,
+                    "amount": 700,
+                    "source_id": "Refreshing_Cola",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "beverage",
+                            "star_rating": 4,
+                            "vegetarian": true,
+                            "vegan": false
+                        }
+                    }
+                }
+            ]
+        },
+        "options": {
+            "limit": 30,
+            "expand": [
+                "redeemable"
+            ],
+            "starting_after": null, // Cursor used for paging.
+            "sorting_rule": "DEFAULT",
+            "filters": { // Filters allow you to limit the returned results. Optional.
+                "resource_type": {
+                    "conditions": {
+                        "$in": [
+                            "voucher",
+                            "campaign",
+                            "promotion_tier"
+                        ]
+                    }
+                },
+                "category_id": {
+                    "conditions": {
+                        "$is": [
+                            "{{category_id}}"
+                        ]
+                    }
+                }
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/qualifications
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Qualifications - AUDIENCE_ONLY Scenario
+# @name qualifications_audience_only_scenario
+< {%
+    const body = {
+        "scenario": "AUDIENCE_ONLY", // Returns all vouchers, promotion tiers, and campaigns available to the customer. Voucherify validates the rules based on the customer profile only.
+        "customer": {
+            "source_id": "{{external_customer_id}}", // The ID you use to identify the customer
+            "name": "John Doe",
+            "email": "{{customer_email}}",
+            "metadata": {
+                "metadata_key": "{{metadata_value}}",
+                "customer_location": "geo:37.786971,-122.399677",
+                "subscribed": true
+            }
+        },
+        "options": {
+            "limit": 30,
+            "expand": [
+                "redeemable"
+            ],
+            "starting_after": null, // Cursor used for paging.
+            "sorting_rule": "DEFAULT"
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/qualifications
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Qualifications - CUSTOMER_WALLET Scenario
+# @name qualifications_customer_wallet_scenario
+< {%
+    const body = {
+        "scenario": "CUSTOMER_WALLET", // Returns vouchers applicable to the customer's cart based on the vouchers assigned to the customer's profile.
+        "customer": {
+            "source_id": "{{external_customer_id}}", // The ID you use to identify the customer
+            "name": "John Doe",
+            "email": "{{customer_email}}",
+            "metadata": {
+                "metadata_key": "{{metadata_value}}",
+                "customer_location": "geo:37.786971,-122.399677",
+                "subscribed": true
+            }
+        },
+        "order": {
+            "amount": {{amount}}, // Amount to pay for the order in cents
+            "status": "CREATED",
+            "source_id": "{{external_order_id}}",
+            "metadata": {
+                "channel": "web",
+                "currency": "USD",
+                "restaurant": "Freddy's",
+                "any_key": "{{any_value}}"
+            },
+            "items": [
+                {
+                    "quantity": 1,
+                    "price": 2500,
+                    "amount": 2500,
+                    "source_id": "BBQ_meal",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "meal",
+                            "meal_type": "dinner",
+                            "star_rating": 4,
+                            "vegetarian": false,
+                            "vegan": false
+                        }
+                    }
+                },
+                {
+                    "quantity": 1,
+                    "price": 700,
+                    "amount": 700,
+                    "source_id": "Refreshing_Cola",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "beverage",
+                            "star_rating": 4,
+                            "vegetarian": true,
+                            "vegan": false
+                        }
+                    }
+                }
+            ]
+        },
+        "options": {
+            "limit": 30,
+            "expand": [
+                "redeemable"
+            ],
+            "starting_after": null, // Cursor used for paging.
+            "sorting_rule": "DEFAULT"
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/qualifications
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+

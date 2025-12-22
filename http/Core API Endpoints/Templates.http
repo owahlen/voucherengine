@@ -1,0 +1,141 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Campaign Templates
+# @name list_campaign_templates
+GET {{voucherengine_base_url}}/v1/templates/campaigns?limit=100
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Campaign Template
+# @name get_campaign_template
+GET {{voucherengine_base_url}}/v1/templates/campaigns/{{campaignTemplateId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Campaign Template
+# @name create_campaign_template
+< {%
+    const body = {
+    	"campaign_id": "string", // Unique identifier of the campaign that will create a template. It must be an ID of an existing discount or gift card campaign. It cannot be passed when promotion_tier_id has value. Required when the promotion_tier_id is not passed or it is null.
+    	"promotion_tier_id": "string", // Unique identifier of the promotion tier that will create a template. It cannot be passed when campaign_id has value. Required when the campaign_id is not passed or it is null.
+    	"name": "string", // User-defined name of the campaign template. It must be unique.
+    	"description": "string" // User-defined description of the campaign template.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/templates/campaigns
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Campaign Template
+# @name update_campaign_template
+< {%
+    const body = {
+        "name": "string", // User-defined name of the campaign template. It must be unique.
+        "description": "string" // User-defined description of the campaign template.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/templates/campaigns/{{campaignTemplateId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Campaign Template
+# @name delete_campaign_template
+DELETE {{voucherengine_base_url}}/v1/templates/campaigns/{{campaignTemplateId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Campaign From Template
+# @name create_campaign_from_template
+< {%
+    const body = {
+        "name": "string", // Campaign name.
+        "description": "Created out of the template", // An optional field to keep any extra textual information about the campaign such as a campaign description and details.
+        "type": "AUTO_UPDATE", // Defines whether the campaign can be updated with new vouchers after campaign creation. AUTO_UPDATE: By choosing the auto update option you will create a campaign that can be enhanced by new vouchers after the time of creation (e.g. by publish vouchers method). STATIC: vouchers need to be manually published.
+        "start_date": "2022-09-23T00:00:00.000Z", // Activation timestamp defines when the campaign starts to be active in ISO 8601 format. Campaign is inactive before this date.
+        "expiration_date": "2022-09-26T00:00:00.000Z", // Expiration timestamp defines when the campaign expires in ISO 8601 format. Campaign is inactive after this date.
+        "validity_timeframe": { // Set recurrent time periods when the earning rule is valid. For example, valid for 1 hour every other day.start_date required when including the validity_timeframe.
+            "duration": "PT1H", // Defines the amount of time an earning rule will be active in ISO 8601 format. For example, an earning rule with a duration of PT1H will be valid for a duration of one hour.
+            "interval": "P2D" // Defines the intervening time between two time points in ISO 8601 format, expressed as a duration. For example, an earning rule with an interval of P2D will be valid every other day.
+        },
+        "validity_day_of_week": [ // Integer array corresponding to the particular days of the week in which the voucher is valid. 0 Sunday, 1 Monday, 2 Tuesday, 3 Wednesday, 4 Thursday, 5 Friday, 6 Saturday.
+            0
+        ],
+        "validity_hours": { // Determines the hours of validity, e.g. to create a happy hours scenario.
+            "daily": [ // Defines the reccuring period(s) when the resource is active. The periods should not overlap.
+                {
+                    "start_time": "12:00", // Defines the starting hour of validity in the HH:mm format. The resource is inactive before this time.
+                    "days_of_week": [ // Integer array corresponding to the particular days of the week in which the voucher is valid. 0 Sunday, 1 Monday, 2 Tuesday, 3 Wednesday, 4 Thursday, 5 Friday, 6 Saturday.
+                        0
+                    ],
+                    "expiration_time": "14:00" // Defines the ending hour of validity in the HH:mm format. The resource is inactive after this time.
+                }
+            ]
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/templates/campaigns/{{campaignTemplateId}}/campaign-setup
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Add Promotion Tier From Template
+# @name add_promotion_tier_from_template
+< {%
+    const body = {
+        "campaign_id": "string", // Unique campaign identifier, assigned by Voucherify. Defines the promotion campaign to which the promotion tier will be added.
+        "name": "string", // Campaign name.
+        "banner": "string", // Text to be displayed to your customers on your website.
+        "hierarchy": 0, // The promotions hierarchy defines the order in which the discounts from different tiers will be applied to a customer's order. If a customer qualifies for discounts from more than one tier, discounts will be applied in the order defined in the hierarchy.
+        "start_date": "2022-09-23T00:00:00.000Z", // Activation timestamp defines when the campaign starts to be active in ISO 8601 format. Campaign is inactive before this date.
+        "expiration_date": "2022-09-26T00:00:00.000Z", // Expiration timestamp defines when the campaign expires in ISO 8601 format. Campaign is inactive after this date.
+        "validity_timeframe": { // Set recurrent time periods when the earning rule is valid. For example, valid for 1 hour every other day.start_date required when including the validity_timeframe.
+            "duration": "PT1H", // Defines the amount of time an earning rule will be active in ISO 8601 format. For example, an earning rule with a duration of PT1H will be valid for a duration of one hour.
+            "interval": "P2D" // Defines the intervening time between two time points in ISO 8601 format, expressed as a duration. For example, an earning rule with an interval of P2D will be valid every other day.
+        },
+        "validity_day_of_week": [ // Integer array corresponding to the particular days of the week in which the voucher is valid. 0 Sunday, 1 Monday, 2 Tuesday, 3 Wednesday, 4 Thursday, 5 Friday, 6 Saturday.
+            0
+        ],
+        "validity_hours": { // Determines the hours of validity, e.g. to create a happy hours scenario.
+            "daily": [ // Defines the reccuring period(s) when the resource is active. The periods should not overlap.
+                {
+                    "start_time": "12:00", // Defines the starting hour of validity in the HH:mm format. The resource is inactive before this time.
+                    "days_of_week": [ // Integer array corresponding to the particular days of the week in which the voucher is valid. 0 Sunday, 1 Monday, 2 Tuesday, 3 Wednesday, 4 Thursday, 5 Friday, 6 Saturday.
+                        0
+                    ],
+                    "expiration_time": "14:00" // Defines the ending hour of validity in the HH:mm format. The resource is inactive after this time.
+                }
+            ]
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/templates/campaigns/{{campaignTemplateId}}/tier-setup
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+

@@ -1,0 +1,404 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### Create Publication
+# @name create_publication
+< {%
+    const body = {
+        "source_id": "{{source_id}}", // The merchant's publication ID if it is different from the Voucherify publication ID. It's an optional tracking identifier of a publication. It is really useful in case of an integration between multiple systems. It can be a publication ID from a CRM system, database or 3rd-party service. If source_id is provided only 1 voucher can be published per request.
+        "customer": {
+            "source_id": "{{source_id}}", // A unique identifier of the customer who validates a voucher. It can be a customer ID or email from a CRM system, database, or a third-party service. If you also pass a customer ID (unique ID assigned by Voucherify), the source ID will be ignored.
+            "name": "{{customer_name}}",
+            "email": "{{customer_email}}"
+        },
+        "metadata": {
+            "key": "{{value}}"
+        },
+        "campaign": { // You can either use campaign name or voucher code.
+            "name": "{{campaign_name}}",
+            "count": 1 // This is optional and allows you to decide how many vouchers you want to publish.
+        },
+        "voucher": "{{voucher_code}}"
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/publish?join_once=true
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Check Eligibility
+# @name check_eligibility
+< {%
+    const body = {
+        "scenario": "ALL", // Returns all redeemables available for the customer in one API request.
+        "customer": {
+            "source_id": "{{external_customer_id}}", // The ID you use to identify the customer.
+            "name": "John Doe",
+            "email": "{{customer_email}}",
+            "metadata": {
+                "metadata_key": "{{value}}",
+                "customer_location": "geo:37.786971,-122.399677",
+                "subscribed": true
+            }
+        },
+        "order": {
+            "amount": {{amount}}, // Amount to pay for the order in cents.
+            "status": "CREATED",
+            "source_id": "{{external_order_id}}",
+            "metadata": {
+                "channel": "web",
+                "currency": "USD",
+                "restaurant": "Freddy's",
+                "any_key": "{{any_value}}"
+            },
+            "items": [
+                {
+                    "quantity": 1,
+                    "price": 2500,
+                    "amount": 2500,
+                    "source_id": "BBQ_meal",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "meal",
+                            "meal_type": "dinner",
+                            "star_rating": 4,
+                            "vegetarian": false,
+                            "vegan": false
+                        }
+                    }
+                },
+                {
+                    "quantity": 1,
+                    "price": 700,
+                    "amount": 700,
+                    "source_id": "Refreshing_Cola",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "beverage",
+                            "star_rating": 4,
+                            "vegetarian": true,
+                            "vegan": false
+                        }
+                    }
+                }
+            ]
+        },
+        "options": {
+            "limit": 30,
+            "expand": [
+                "redeemable"
+            ],
+            "starting_after": null, // Cursor used for paging.
+            "sorting_rule": "DEFAULT",
+            "filters": { // Filters allow you to limit the returned results. Optional.
+                "resource_type": {
+                    "conditions": {
+                        "$in": [
+                            "voucher",
+                            "campaign",
+                            "promotion_tier"
+                        ]
+                    }
+                },
+                "category_id": {
+                    "conditions": {
+                        "$is": [
+                            "{{category_id}}"
+                        ]
+                    }
+                }
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/qualifications
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Validate Stackable Discounts
+# @name validate_stackable_discounts
+< {%
+    const body = {
+        "redeemables": [
+            {
+                "object": "voucher",
+                "id": "{{voucher_code}}" // Discount Code, Gift Voucher, Referral  Code, Loyalty Card
+            },
+            {
+                "object": "voucher",
+                "id": "{{gift_voucher}}",
+                "gift": {
+                    "credits": 100 // Optional
+                }
+            },
+            {
+                "object": "voucher",
+                "id": "{{loyalty_card}}",
+                "reward": {
+                    "points": 10, // Optional - Number of points to redeem for the Pay With Points reward
+                    "id": "{{reward_id}}" // Optional - The ID of the reward to exchange the points to
+                }
+            },
+            {
+                "object": "promotion_tier",
+                "id": "{{promotion_tier_id}}"
+            },
+            {
+                "object": "promotion_stack",
+                "id": "{{promotion_stack_id}}"
+            }
+        ],
+        "customer": {
+            "source_id": "{{external_customer_id}}", // The ID you use to identify the customer
+            "name": "John Doe",
+            "email": "{{customer_email}}",
+            "metadata": {
+                "metadata_key": "{{metadata_value}}",
+                "customer_location": "geo:37.786971,-122.399677",
+                "subscribed": true
+            }
+        },
+        "order": {
+            "amount": {{amount}}, // Amount to pay for the order in cents
+            "status": "CREATED",
+            "source_id": "{{external_order_id}}",
+            "metadata": {
+                "channel": "web",
+                "currency": "USD",
+                "restaurant": "Freddy's",
+                "any_key": "{{any_value}}"
+            },
+            "items": [
+                {
+                    "quantity": 1,
+                    "price": 2500,
+                    "amount": 2500,
+                    "source_id": "BBQ_meal",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "meal",
+                            "meal_type": "dinner",
+                            "star_rating": 4,
+                            "vegetarian": false,
+                            "vegan": false
+                        }
+                    }
+                },
+                {
+                    "quantity": 1,
+                    "price": 700,
+                    "amount": 700,
+                    "source_id": "Refreshing_Cola",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "beverage",
+                            "star_rating": 4,
+                            "vegetarian": true,
+                            "vegan": false
+                        }
+                    }
+                }
+            ]
+        },
+        "options": {
+            "expand": [
+                "order",
+                "redeemable"
+            ]
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/validations
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Redeem Stackable Discounts
+# @name redeem_stackable_discounts
+< {%
+    const body = {
+        "redeemables": [
+            {
+                "object": "voucher",
+                "id": "{{voucher_code}}" // Discount Code, Gift Voucher, Referral  Code, Loyalty Card
+            },
+            {
+                "object": "voucher",
+                "id": "{{gift_voucher}}",
+                "gift": {
+                    "credits": 100 // Optional
+                }
+            },
+            {
+                "object": "voucher",
+                "id": "{{loyalty_card}}",
+                "reward": {
+                    "points": 10, // Optional - Number of points to redeem for the Pay With Points reward
+                    "id": "{{reward_id}}" // Optional - The ID of the reward to exchange the points to
+                }
+            },
+            {
+                "object": "promotion_tier",
+                "id": "{{promotion_tier_id}}"
+            },
+            {
+                "object": "promotion_stack",
+                "id": "{{promotion_stack_id}}"
+            }
+        ],
+        "customer": {
+            "source_id": "{{external_customer_id}}", // The ID you use to identify the customer
+            "name": "John Doe",
+            "email": "{{customer_email}}",
+            "metadata": {
+                "metadata_key": "{{metadata_value}}",
+                "customer_location": "geo:37.786971,-122.399677",
+                "subscribed": true
+            }
+        },
+        "order": {
+            "amount": {{amount}}, // Amount to pay for the order in cents
+            "status": "PAID",
+            "source_id": "{{external_order_id}}",
+            "metadata": {
+                "channel": "web",
+                "currency": "USD",
+                "restaurant": "Freddy's",
+                "any_key": "{{any_value}}"
+            },
+            "items": [
+                {
+                    "quantity": 1,
+                    "price": 2500,
+                    "amount": 2500,
+                    "source_id": "BBQ_meal",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "meal",
+                            "meal_type": "dinner",
+                            "star_rating": 4,
+                            "vegetarian": false,
+                            "vegan": false
+                        }
+                    }
+                },
+                {
+                    "quantity": 1,
+                    "price": 700,
+                    "amount": 700,
+                    "source_id": "Refreshing_Cola",
+                    "related_object": "product",
+                    "product": {
+                        "metadata": {
+                            "cuisine": "American",
+                            "food_type": "beverage",
+                            "star_rating": 4,
+                            "vegetarian": true,
+                            "vegan": false
+                        }
+                    }
+                }
+            ]
+        },
+        "options": {
+            "expand": [
+                "order",
+                "redeemable"
+            ]
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/redemptions
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### List Promotion Tiers
+# @name list_promotion_tiers
+GET {{voucherengine_base_url}}/v1/promotions/tiers?is_available=true&limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Update Customer's Consents (deprecated)
+# @name update_customer_s_consents_deprecated
+< {%
+    const body = {
+        "{{consent_ID_1}}": true, // Key-value pairs where the key is the consent identifier and value is a boolean that identifies if a customer has given the consent or not.
+        "{{consent_ID_2}}": true,
+        "unsubscribed": false // To deny all consents, use unsubscribed as a consent identifier and true as a value.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/customers/{{customer_id}}/consents
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Track Custom Event
+# @name track_custom_event
+< {%
+    const body = {
+        "customer": {
+            "source_id": "{{customer_source_id}}" // A unique identifier of the customer who validates a voucher. It can be a customer ID or email from a CRM system, database, or a third-party service. If you also pass a customer ID (unique ID assigned by Voucherify), the source ID will be ignored.
+        },
+        "referral": { // If a conversion event for a referral program is set to a custom event, then you need to send the referral code in the payload to make a record of the conversion event.
+            "code": "{{referral_code}}", //A code through which a new visitor has been referred to a service.
+            "referrer_id": "{{customer_id}}" // Unique ID of the referring person - it is optional and not required if the referral code is provided.
+        },
+        "metadata": { // The metadata object stores all custom attributes assigned to the event. A set of key/value pairs that you can attach to an event object. It can be useful for storing additional information about the event in a structured format. Event metadata schema is defined in the Dashboard > Project Settings > Event Schema > Edit particular event > Metadata property definition.
+            "login": "bob",
+            "pricing_plan": "PP1",
+            "volume_number": 4
+        },
+        "event": "user_subscribed" // Event name. This is the same name that you used to define a custom event in the Dashboard > Project Settings > Event Schema.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/events
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### List Consents (deprecated)
+# @name list_consents_deprecated
+GET {{voucherengine_base_url}}/v1/consents
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

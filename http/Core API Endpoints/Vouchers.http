@@ -1,0 +1,372 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+# Create Voucher
+### Create Voucher (discount voucher)
+# @name create_voucher_create_voucher_discount_voucher
+< {%
+    const body = {
+        "type": "DISCOUNT_VOUCHER", //Defines the type of the voucher: DISCOUNT_VOUCHER, GIFT_VOUCHER, LOYALTY_CARD.
+        "discount": {
+            "amount_off": 2000, // Amount taken off the subtotal of a price. Value is multiplied by 100 to precisely represent 2 decimal places. For example, a $10 discount is written as 1000. In case of the amount being calculated by the formula, i.e. the amount_off_formula parameter is present in the amount definition, this value becomes the fallback value. Such that in a case where the formula cannot be calculated due to missing metadata, for example, this value will be used as the amount off.
+            "type": "AMOUNT" // Applies an amount discount.
+        },
+        "redemption": {
+            "quantity": null // How many times a voucher can be redeemed. A null value means unlimited.
+        },
+        "metadata": {}
+    };
+    request.variables.set("voucher_code", "VOUCHER_001");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Voucher (gift voucher)
+# @name create_voucher_create_voucher_gift_voucher
+< {%
+    const body = {
+        "type": "GIFT_VOUCHER", //Defines the type of the voucher: DISCOUNT_VOUCHER, GIFT_VOUCHER, LOYALTY_CARD.
+        "gift": { // Defines gift card; required when type parameter is GIFT_VOUCHER.
+            "amount": 10000, // Define how many credits the gift card should have initially. Value is multiplied by 100 to precisely represent 2 decimal places. For example, $100 amount is written as 10000.
+            "effect": "APPLY_TO_ORDER" // Defines how the credits are applied to the customer's order
+        },
+        "redemption": {
+            "quantity": null // How many times a voucher can be redeemed. A null value means unlimited.
+        },
+        "metadata": {}
+    };
+    request.variables.set("voucher_code", "VOUCHER_002");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Voucher (loyalty card)
+# @name create_voucher_create_voucher_loyalty_card
+< {%
+    const body = {
+        "campaign": "{{campaign name}}", // Identifies the voucher's parent campaign using a unique campaign name. Required for LOYALTY_CARD type.
+        "type": "LOYALTY_CARD", //Defines the type of the voucher: DISCOUNT_VOUCHER, GIFT_VOUCHER, LOYALTY_CARD.
+        "loyalty_card": {
+            "points": 10000 // Point balance of the loyalty card.
+        },
+        "metadata": {}
+    };
+    request.variables.set("voucher_code", "VOUCHER_003");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### List Vouchers
+# @name list_vouchers
+< {%
+    request.variables.set("category", "CATEGORY_001");
+    request.variables.set("campaign_id", "CAMPAIGN_001");
+%}
+GET {{voucherengine_base_url}}/v1/vouchers?limit=50&category={{category}}&campaign_id={{campaign_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Voucher
+# @name get_voucher
+< {%
+    request.variables.set("voucher_code", "VOUCHER_001");
+%}
+GET {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Generate Random Code
+# @name generate_random_code
+< {%
+    const body = {
+        "campaign": "{{campaign name}}", // Identifies the voucher's parent campaign using a unique campaign name. Required for LOYALTY_CARD type.
+        "type": "DISCOUNT_VOUCHER", //Defines the type of the voucher: DISCOUNT_VOUCHER, GIFT_VOUCHER, LOYALTY_CARD.
+        "discount": {
+            "amount_off": "2000", // Amount taken off the subtotal of a price. Value is multiplied by 100 to precisely represent 2 decimal places. For example, a $10 discount is written as 1000. In case of the amount being calculated by the formula, i.e. the amount_off_formula parameter is present in the amount definition, this value becomes the fallback value. Such that in a case where the formula cannot be calculated due to missing metadata, for example, this value will be used as the amount off.
+            "type": "AMOUNT" // Applies an amount discount.
+        },
+        "redemption": {
+            "quantity": "1" // How many times a voucher can be redeemed. A null value means unlimited.
+        },
+        "metadata": {}
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/vouchers
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Voucher
+# @name update_voucher
+< {%
+    const body = {
+        "metadata": {
+            "special_offer": "true" // The metadata object stores all custom attributes assigned to the code. A set of key/value pairs that you can attach to a voucher object. It can be useful for storing additional information about the voucher in a structured format.
+        }
+    };
+    request.variables.set("voucher_code", "VOUCHER_001");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Voucher
+# @name delete_voucher
+< {%
+    request.variables.set("voucher_code", "VOUCHER_003");
+%}
+DELETE {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}?force=true
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Enable Voucher
+# @name enable_voucher
+< {%
+    request.variables.set("voucher_code", "VOUCHER_002");
+%}
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/enable
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Disable Voucher
+# @name disable_voucher
+< {%
+    request.variables.set("voucher_code", "VOUCHER_002");
+%}
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/disable
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Add or Remove Voucher Balance
+# @name add_or_remove_voucher_balance
+< {%
+    const body = {
+        "amount": -10 // The incremental amount to be added to or removed from the current balance on the gift card or loyalty card. Value is multiplied by 100 to precisely represent 2 decimal places. For example, $100 amount is written as 10000. To remove balance, simply add a minus sign before the value, i.e. to remove $20, use -2000.
+    };
+    request.variables.set("voucher_code", "VOUCHER_002");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/balance
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### List Voucher Transactions
+# @name list_voucher_transactions
+< {%
+    request.variables.set("voucher_code", "VOUCHER_002");
+%}
+GET {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/transactions?limit=100&order=id&starting_after_id=id
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Export Voucher Transactions
+# @name export_voucher_transactions
+< {%
+    const body = {
+        "parameters": {
+            "order": "-created_at",
+            "fields": [
+                "id",
+                "type",
+                "source_id",
+                "reason",
+                "balance",
+                "amount",
+                "created_at",
+                "voucher_id",
+                "campaign_id",
+                "details",
+                "source"
+            ]
+        }
+    };
+    request.variables.set("voucher_code", "VOUCHER_002");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/transactions/export
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Import Vouchers
+# @name import_vouchers
+< {%
+    const body = [
+        {
+            "code": "VOUCHER_001",
+            "category": "postman-import", // Tag defining the category that this voucher belongs to. Useful when listing vouchers using the List Vouchers endpoint.
+            "type": "DISCOUNT_VOUCHER",
+            "discount": {
+                "amount_off": 3000,
+                "type": "AMOUNT"
+            },
+            "start_date": "2023-12-01T23:00:00Z",
+            "expiration_date": "2024-12-19T23:00:00Z",
+            "redemption": {
+                "quantity": 1
+            },
+            "metadata": {
+                "unit": "EUR"
+            },
+            "additional_info": "secret-code1"
+        },
+        {
+            "code": "VOUCHER_002",
+            "type": "DISCOUNT_VOUCHER",
+            "category": "postman-import",
+            "discount": {
+                "percent_off": 30,
+                "type": "PERCENT"
+            },
+            "start_date": "2023-12-10T23:00:00Z",
+            "expiration_date": "2024-12-31T23:00:00Z",
+            "redemption": {
+                "quantity": 1
+            },
+            "metadata": {
+                "unit": "EUR"
+            },
+            "additional_info": "secret-code2"
+        }
+    ];
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/vouchers/import
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Import Vouchers Using CSV
+# @name import_vouchers_using_csv
+POST {{voucherengine_base_url}}/v1/vouchers/importCSV
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="replace-with-file.csv"
+Content-Type: text/csv
+
+< ./path/to/file.csv
+--boundary--
+
+### Update Vouchers in Bulk
+# @name update_vouchers_in_bulk
+< {%
+    const body = [
+        {
+            "code": "VOUCHER_001",
+            "metadata": { // The metadata object stores all custom attributes assigned to the code. A set of key/value pairs that you can attach to a voucher object. It can be useful for storing additional information about the voucher in a structured format.
+                "lang": "en",
+                "test": true
+            }
+        },
+        {
+            "code": "VOUCHER_002",
+            "metadata": {
+                "key": "No change"
+            }
+        },
+        {
+            "code": "VOUCHER_003",
+            "metadata": {
+                "key": "New Voucher"
+            }
+        }
+    ];
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/vouchers/bulk/async
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Vouchers' Metadata in Bulk
+# @name update_vouchers_metadata_in_bulk
+< {%
+    const body = {
+        "codes": [
+            "VOUCHER_001",
+            "VOUCHER_002"
+        ],
+        "metadata": {
+            "lang": "en",
+            "authorized_internally": true
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/vouchers/metadata/async
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Release Validation Session
+# @name release_validation_session
+< {%
+    const body = {
+        "customer": {
+            "source_id": "CUSTOMER_SOURCE_001"
+        },
+        "order": {
+            "id": "ORDER_001"
+        }
+    };
+    request.variables.set("voucher_code", "VOUCHER_001");
+    request.variables.set("session_key", "SESSION_001");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+DELETE {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/sessions/{{session_key}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+

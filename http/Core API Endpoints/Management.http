@@ -1,0 +1,835 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_manager
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+# Project Management
+### Create Project
+# @name project_management_create_project
+< {%
+    const body = {
+        "case_sensitive_codes": true, // Determines if the vouchers in the project will be case sensitive (if true, C0dE-cfV is not equal to c0de-cfv) or case insensitive (if false, C0dE-cfV is equal to c0de-cfv).
+        "name": "Test Project5", // The name of the project.
+        "description": "For testing purposes", // A user-defined description of the project, e.g. its purpose, scope, region.
+        "timezone": "UTC", // The time zone in which the project is established. It is equal to one of the allowed values.
+        "currency": "EUR", // The currency used in the project. It is equal to a 3-letter ISO code.
+        "dial_code": "+48", // The dial code for the project. It is equal to one of the allowed values.
+        "webhook_version": "v2024-01-01", // The webhook version used in the project.
+        "client_trusted_domains": [ // An array of URL addresses that allow client requests.
+        ],
+        "client_redeem_enabled": false, // Enables client-side redemption. Value true means the feature is enabled. Value false means the feature is disabled.
+        "client_publish_enabled": false, // Enables client-side publication. Value true means the feature is enabled. Value false means the feature is disabled.
+        "client_list_vouchers_enabled": false, // Enables client-side listing of vouchers. Value true means the feature is enabled. Value false means the feature is disabled.
+        "client_create_customer_enabled": false, // Enables client-side creation of customers. Value true means the feature is enabled. Value false means the feature is disabled.
+        "client_loyalty_events_enabled": false, // Enables client-side events for loyalty and referral programs. Value true means the feature is enabled. Value false means the feature is disabled.
+        "client_set_voucher_expiration_date_enabled": false, // Enables client-side setting of voucher expiration date. Value true means the feature is enabled. Value false means the feature is disabled.
+        "api_usage_notifications": { // Determines the notification settings.
+            "redemptions": { // Determines the notification settings for redemptions. The notification can be used as a warning that a limit will be reached soon.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [ // An array of email addresses which will receive the notification.
+                    "your.email@your.domain"
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            },
+            "messages": { // Determines the notification settings for distributed messages according to the day and month limit. The notification can be used as a warning that a limit will be reached soon.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [
+                    "your.email@your.domain" // An array of email addresses which will receive the notification.
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            },
+            "api_calls": { // Determines the notification settings for API calls made for the hourly limit. The notification can be used as a warning that a limit will be reached soon. It is sent maximum once per hour.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [
+                    "your.email@your.domain" // An array of email addresses which will receive the notification.
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            },
+            "bulk_api_calls": { // Determines the notification settings for bulk API calls made for the hourly limit. The notification can be used as a warning that a limit will be reached soon. It is sent maximum once per hour.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [ // An array of email addresses which will receive the notification.
+                    "your.email@your.domain"
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            },
+            "webhook_calls": { // Determines the notification settings for webhook calls made for the daily limit. The notification can be used as a warning that a limit will be reached soon. It is sent maximum four times a day.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [ // An array of email addresses which will receive the notification.
+                    "your.email@your.domain"
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            },
+            "cycle_calls": { // Determines the notification settings for API calls made for the billing cycle limit. The notification can be used as a warning that a limit will be reached soon. It is sent maximum once per the billing cycle.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [ // An array of email addresses which will receive the notification.
+                    "your.email@your.domain"
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            }
+        },
+        "webhooks_callout_notifications": { // Determines the notification settings for webhook callouts configured in Distributions and Project settings.
+            "distributions": { // Determines the notification settings for webhooks sent through Distributions.
+                "email": true, // Enables the notification through an email. Value true means the feature is enabled. Value false means the feature is disabled.
+                "in_app": true, // Enables the notification through an email. Value true means the feature is enabled. Value false means the feature is disabled.
+                "emails": [
+                    "your.email@your.domain" // An array of email addresses which will receive the notification.
+                ]
+            },
+            "webhooks": { // Determines the notification settings for webhooks sent as set out in the Project settings.
+                "email": true, // Enables the notification through an email. Value true means the feature is enabled. Value false means the feature is disabled.
+                "in_app": true, // Enables the notification through an email. Value true means the feature is enabled. Value false means the feature is disabled.
+                "emails": [
+                    "your.email@your.domain" // An array of email addresses which will receive the notification.
+                ]
+            }
+        },
+        "cluster_id": "eu1", // The identifier of the cluster where the project will be created. The default cluster is eu1 unless otherwise configured.
+        "api_version": "v2018-08-01", // The API version used in the project. Currently, the default and only value is v2018-08-01.
+        "users": [ // The users (their identifiers, logins, and roles) who will be assigned to the project. You can assign only existing Voucherify users.It must be used either in the following combinations: id and role, or login and role.
+            {
+                "id": "id", // The unique identifier of the user who will be assigned to the project. Required with the role string. Do not use with the login string. You can find it in the Team Settings -> Team -> Edit User (3 dots at the end of the row)
+                "login": "login", // The login data of the user who will be assigned to the project. Required with the role string. Do not use with the id string.
+                "role": "role" // The role of the user to be added. It can be one of the following predefined roles: ADMIN, USER, VIEWER, MERCHANT or an ID of a custom role.
+            }
+        ]
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/management/projects
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Project Management
+### List Projects
+# @name project_management_list_projects
+GET {{voucherengine_base_url}}/v1/management/projects
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Project Management
+### Get Project
+# @name project_management_get_project
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectID}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Project Management
+### Update Project
+# @name project_management_update_project
+< {%
+    const body = {
+        "case_sensitive_codes": true, // Determines if the vouchers in the project will be case sensitive (if true, C0dE-cfV is not equal to c0de-cfv) or case insensitive (if false, C0dE-cfV is equal to c0de-cfv).
+        "name": "Name change", // The name of the project.
+        "description": "For testing purposes", // A user-defined description of the project, e.g. its purpose, scope, region.
+        "timezone": "UTC", // The time zone in which the project is established. It is equal to one of the allowed values.
+        "currency": "EUR", // The currency used in the project. It is equal to a 3-letter ISO code.
+        "dial_code": "+48", // The dial code for the project. It is equal to one of the allowed values.
+        "webhook_version": "v2024-01-01", // The webhook version used in the project.
+        "client_trusted_domains": [ // An array of URL addresses that allow client requests.
+        ],
+        "client_redeem_enabled": false, // Enables client-side redemption. Value true means the feature is enabled. Value false means the feature is disabled.
+        "client_publish_enabled": false, // Enables client-side publication. Value true means the feature is enabled. Value false means the feature is disabled.
+        "client_list_vouchers_enabled": false, // Enables client-side listing of vouchers. Value true means the feature is enabled. Value false means the feature is disabled.
+        "client_create_customer_enabled": false, // Enables client-side creation of customers. Value true means the feature is enabled. Value false means the feature is disabled.
+        "client_loyalty_events_enabled": false, // Enables client-side events for loyalty and referral programs. Value true means the feature is enabled. Value false means the feature is disabled.
+        "client_set_voucher_expiration_date_enabled": false, // Enables client-side setting of voucher expiration date. Value true means the feature is enabled. Value false means the feature is disabled.
+        "api_usage_notifications": { // Determines the notification settings.
+            "redemptions": { // Determines the notification settings for redemptions. The notification can be used as a warning that a limit will be reached soon.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [ // An array of email addresses which will receive the notification.
+                    "your.email@your.domain"
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            },
+            "messages": { // Determines the notification settings for distributed messages according to the day and month limit. The notification can be used as a warning that a limit will be reached soon.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [
+                    "your.email@your.domain" // An array of email addresses which will receive the notification.
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            },
+            "api_calls": { // Determines the notification settings for API calls made for the hourly limit. The notification can be used as a warning that a limit will be reached soon. It is sent maximum once per hour.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [
+                    "your.email@your.domain" // An array of email addresses which will receive the notification.
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            },
+            "bulk_api_calls": { // Determines the notification settings for bulk API calls made for the hourly limit. The notification can be used as a warning that a limit will be reached soon. It is sent maximum once per hour.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [ // An array of email addresses which will receive the notification.
+                    "your.email@your.domain"
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            },
+            "webhook_calls": { // Determines the notification settings for webhook calls made for the daily limit. The notification can be used as a warning that a limit will be reached soon. It is sent maximum four times a day.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [ // An array of email addresses which will receive the notification.
+                    "your.email@your.domain"
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            },
+            "cycle_calls": { // Determines the notification settings for API calls made for the billing cycle limit. The notification can be used as a warning that a limit will be reached soon. It is sent maximum once per the billing cycle.
+                "enabled": true, // Enables the notification. Value true means the feature is enabled. Value false means the feature is disabled.
+                "value": 80, // The percent value of the limit which, when reached, triggers the notification.
+                "emails": [ // An array of email addresses which will receive the notification.
+                    "your.email@your.domain"
+                ],
+                "in_app": true // Enables the notification in the application. Value true means the feature is enabled. Value false means the feature is disabled.
+            }
+        },
+        "webhooks_callout_notifications": { // Determines the notification settings for webhook callouts configured in Distributions and Project settings.
+            "distributions": { // Determines the notification settings for webhooks sent through Distributions.
+                "email": true, // Enables the notification through an email. Value true means the feature is enabled. Value false means the feature is disabled.
+                "in_app": true, // Enables the notification through an email. Value true means the feature is enabled. Value false means the feature is disabled.
+                "emails": [
+                    "your.email@your.domain" // An array of email addresses which will receive the notification.
+                ]
+            },
+            "webhooks": { // Determines the notification settings for webhooks sent as set out in the Project settings.
+                "email": true, // Enables the notification through an email. Value true means the feature is enabled. Value false means the feature is disabled.
+                "in_app": true, // Enables the notification through an email. Value true means the feature is enabled. Value false means the feature is disabled.
+                "emails": [
+                    "your.email@your.domain" // An array of email addresses which will receive the notification.
+                ]
+            }
+        },
+        "cluster_id": "staging", // The identifier of the cluster where the project will be created. The default cluster is eu1 unless otherwise configured.
+        "api_version": "v2018-08-01", // The API version used in the project. Currently, the default and only value is v2018-08-01.
+        "users": [ // The users (their identifiers, logins, and roles) who will be assigned to the project. You can assign only existing Voucherify users.It must be used either in the following combinations: id and role, or login and role.
+            {
+                "id": "string", // The unique identifier of the user who will be assigned to the project. Required with the role string. Do not use with the login string. You can find it in the Team Settings -> Team -> Edit User (3 dots at the end of the row)
+                "login": "string", // The login data of the user who will be assigned to the project. Required with the role string. Do not use with the id string.
+                "role": "string" // The role of the user to be added. It can be one of the following predefined roles: ADMIN, USER, VIEWER, MERCHANT or an ID of a custom role.
+            }
+        ]
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/management/projects/{{projectID}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Project Management
+### Delete Project
+# @name project_management_delete_project
+DELETE {{voucherengine_base_url}}/v1/management/projects/{{projectID}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# User Management
+### Invite a New User
+# @name user_management_invite_a_new_user
+< {%
+    const body = {
+        "email": "alex.doe@your-domain-name.com", // Email address to which the invitation will be sent. Must be a valid email address.
+        "first_name": "Alex", // First name of the person who will receive the invitation. The name will be used in the user profile.
+        "last_name": "Doe", // Last name of the person who will receive the invitation. The name will be used in the user profile.
+        "projects": { // In the key, provide the project ID to which the new user will be assigned. In the value, provide the role which the user will have in the project. The predefined Voucherify roles are: ADMIN, USER, VIEWER, MERCHANT, USER_RESTRICTED. Send a custom role ID (Enterprise feature) to assign a custom role.
+            "{{project_id}}": "{{user_role}}"
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/management/projects/users/invite
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# User Management
+### Assign User
+# @name user_management_assign_user
+< {%
+    const body = {
+        "id": "id", // The unique identifier of the user who will be assigned to the project. Required with the role string. Do not use with the login string. You can find it in the Team Settings -> Team -> Edit User (3 dots at the end of the row)
+        "login": "login", // The login data of the user who will be assigned to the project. Required with the role string. Do not use with the id string.
+        "role": "role" // The role of the user to be added. It can be one of the following predefined roles: ADMIN, USER, VIEWER, MERCHANT or an ID of a custom role.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/management/projects/{{projectID}}/users
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# User Management
+### List Users
+# @name user_management_list_users
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectID}}/users
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# User Management
+### Get User
+# @name user_management_get_user
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectID}}/users/{{userID}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# User Management
+### Update User
+# @name user_management_update_user
+< {%
+    const body = {
+        "role": "role" // The role of the user to be added. It can be a custom role or one of following predefined roles: ADMIN, USER, VIEWER, MERCHANT or an ID of a custom role.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/management/projects/{{projectID}}/users/{{userID}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# User Management
+### Unassign User
+# @name user_management_unassign_user
+DELETE {{voucherengine_base_url}}/v1/management/projects/{{projectID}}/users/{{userID}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Metadata Schema Management
+### Create Metadata Schema (String)
+# @name metadata_schema_management_create_metadata_schema_string
+< {%
+    const body = {
+        "related_object": "custom_test", // The resource type. You can define custom metadata schemas, which have a custom "related_object" resource type, or you can use standard resource types: "campaign", "customer", "earning_rule", "loyalty_tier", "order", "order_item", "product", "promotion_tier", "publication", "redemption", "reward", "voucher".
+        "allow_defined_only": true, // Restricts the creation of metadata fields when set to true. In other words, it indicates whether or not you are allowed to create new metadata definitions; for example, in the campaign manager or publication manager. If it is set to true, then only the defined fields will be available for assigning values.
+        "properties": { // Object representing metadata definitions.
+            "region": { // Custom property name. This is also shown in Project Settings > Metadata Schema in the Voucherify Dashboard.
+                "type": "string", // Indicates the type of metadata: string, number, object, date, datetime, geopoint, boolean, image_URL. Note that "geopoint" type is a paid feature.
+                "optional": true, // Indicates if this definition is optional or not for the resource.
+                "array": true, // Indicates if the definition is an array.
+                "deleted": false, // Indicates if the definition has been deleted from the schema.
+                "object_type": null, // The name of the custom resource (i.e. a nested object) if the resource has been previously defined. Otherwise, it is null for other types.
+                // "min_length": 0, // Value indicating the minimum length. Available only for the string type.
+                // "max_length": 0, // Value indicating the maximum length. Available only for the string type.
+                // "exact_length": 6, // Value indicating the exact length. Available only for the string type.
+                "eq": [ // Array of values that are allowed. Available only for the string and number types.
+                    "APAC",
+                    "NA"
+                ]
+            },
+            "minimal_order_value": { // Custom property name. This is also shown in Project Settings > Metadata Schema in the Voucherify Dashboard.
+                "type": "number", // Indicates the type of metadata: string, number, object, date, datetime, geopoint, boolean, image_URL. Note that "geopoint" type is a paid feature.
+                "optional": true, // Indicates if this definition is optional or not for the resource.
+                "array": true, // Indicates if the definition is an array.
+                "deleted": false, // Indicates if the definition has been deleted from the schema.
+                "object_type": null, // The name of the custom resource (i.e. a nested object) if the resource has been previously defined. Otherwise, it is null for other types.
+                // "eq": [ // Array of values that are allowed. Available only for the string and number types.
+                // ]
+                // "ne": [ // Array of values that are not allowed. Available only for the number type.
+                // 0
+                // ]
+                // "lt": 0, // A property of the number type must have less than this value. The value should be up to two decimal places.
+                // "lte": 0, // A property of the number type must be less than or equal to this value. The value should be up to two decimal places.
+                // "gt": 0, // A property of number type must be greater than this value. The value should be up to two decimal places.
+                "gte": 10000 // A property of number type must be greater than or equal to this value. The value should be up to two decimal places.
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/metadata-schemas
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Metadata Schema Management
+### List Metadata Schemas
+# @name metadata_schema_management_list_metadata_schemas
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/metadata-schemas
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Metadata Schema Management
+### Get Metadata Schema
+# @name metadata_schema_management_get_metadata_schema
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/metadata-schemas/{{metadataSchemaId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Metadata Schema Management
+### Update Metadata Schema
+# @name metadata_schema_management_update_metadata_schema
+< {%
+    const body = {
+        "related_object": "reward", // The resource type. You can define custom metadata schemas, which have a custom "related_object" resource type, or you can use standard resource types: "campaign", "customer", "earning_rule", "loyalty_tier", "order", "order_item", "product", "promotion_tier", "publication", "redemption", "reward", "voucher".
+        "allow_defined_only": true, // Restricts the creation of metadata fields when set to true. In other words, it indicates whether or not you are allowed to create new metadata definitions; for example, in the campaign manager or publication manager. If it is set to true, then only the defined fields will be available for assigning values.
+        "properties": { // Object representing metadata definitions.
+            "country": { // Custom property name. This is also shown in Project Settings > Metadata Schema in the Voucherify Dashboard.
+                "type": "string", // Indicates the type of metadata: string, number, object, date, datetime, geopoint, boolean, image_URL. Note that "geopoint" type is a paid feature.
+                "optional": true, // Indicates if this definition is optional or not for the resource.
+                "array": true, // Indicates if the definition is an array.
+                "deleted": false, // Indicates if the definition has been deleted from the schema.
+                "object_type": null, // The name of the custom resource (i.e. a nested object) if the resource has been previously defined. Otherwise, it is null for other types.
+                "min_length": 3, // Value indicating the minimum length. Available only for the string type.
+                "max_length": 3, // Value indicating the maximum length. Available only for the string type.
+                "exact_length": 3, // Value indicating the exact length. Available only for the string type.
+                "eq": [ // Array of values that are allowed. Available only for the string and number types.
+                    "USA"
+                ],
+                "ne": [ // Array of values that are not allowed. Available only for the number type.
+                    0
+                ],
+                "lt": 0, // A property of the number type must have less than this value. The value should be up to two decimal places.
+                "lte": 0, // A property of the number type must be less than or equal to this value. The value should be up to two decimal places.
+                "gt": 0, // A property of number type must be greater than this value. The value should be up to two decimal places.
+                "gte": 0 // A property of number type must be greater than or equal to this value. The value should be up to two decimal places.
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/metadata-schemas/{{metadataSchemaId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Metadata Schema Management
+### Delete Metadata Schema
+# @name metadata_schema_management_delete_metadata_schema
+DELETE {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/metadata-schemas/{{metadataSchemaId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Custom Event Schema Management
+### Create Custom Event Schema
+# @name custom_event_schema_management_create_custom_event_schema
+< {%
+    const body = {
+        "name": "review", // User-defined name of the custom event. This is also shown in Project Settings > Event Schema in the Voucherify Dashboard.
+        "schema": { // Object containing custom event schema and its custom attributes (metadata).
+            "properties": { // Defines custom event custom attributes (metadata).
+                "additionalProp": { // Custom event metadata name.
+                    "type": "boolean", // Indicates the type of the custom event. You can choose between string, number, date, datetime, or boolean.
+                    "optional": true, // Indicates if this property is optional or not for the resource.
+                    "deleted": false // Indicates if the property has been deleted from the schema. A deleted schema is inactive, but it can be restored.
+                }
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/custom-event-schemas
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Custom Event Schema Management
+### List Custom Event Schemas
+# @name custom_event_schema_management_list_custom_event_schemas
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/custom-event-schemas
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Custom Event Schema Management
+### Get Custom Event Schema
+# @name custom_event_schema_management_get_custom_event_schema
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/custom-event-schemas/{{customEventSchemaId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Custom Event Schema Management
+### Update Custom Event Schema
+# @name custom_event_schema_management_update_custom_event_schema
+< {%
+    const body = {
+        "schema": { // Object containing custom event schema and its custom attributes (metadata).
+            "properties": { // Defines custom event custom attributes (metadata).
+                "additionalProp": { // Custom event metadata name.
+                    "type": "boolean", // Indicates the type of the custom event.
+                    "optional": false, // Indicates if this property is optional or not for the resource.
+                    "deleted": false // Indicates if the property has been deleted from the schema. A deleted schema is inactive, but it can be restored.
+                }
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/custom-event-schemas/{{customEventSchemaId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Custom Event Schema Management
+### Delete Custom Event Schema
+# @name custom_event_schema_management_delete_custom_event_schema
+DELETE {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/custom-event-schemas/{{customEventSchemaId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Webhook Management
+### Create Webhook
+# @name webhook_management_create_webhook
+< {%
+    const body = {
+        "target_url": "https://redemption_webhook.com", // URL address that receives webhooks.
+        "events": [ // Lists the events that trigger webhook sendout.
+            "redemption.succeeded",
+            "redemption.failed",
+            "redemption.rollback.succeeded",
+            "redemption.rollback.failed",
+            "publication.succeeded",
+            "voucher.published",
+            "voucher.updated",
+            "voucher.deleted",
+            "voucher.created",
+            "voucher.enabled",
+            "voucher.disabled",
+            "voucher.loyalty_card.points_added",
+            "voucher.gift.balance_added",
+            "campaign.enabled",
+            "campaign.deleted",
+            "campaign.created",
+            "campaign.updated",
+            "campaign.disabled",
+            "campaign.vouchers.generation.completed",
+            "business_validation_rule.assignment.created",
+            "business_validation_rule.assignment.deleted",
+            "business_validation_rule.created",
+            "business_validation_rule.deleted",
+            "business_validation_rule.updated",
+            "customer.created",
+            "customer.deleted",
+            "customer.rewarded",
+            "customer.rewarded.loyalty_points",
+            "customer.consents.revoked",
+            "customer.consents.given"
+        ],
+        "active": true // Determines if the webhook configuration is active.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/webhooks
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Webhook Management
+### List Webhooks
+# @name webhook_management_list_webhooks
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/webhooks
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Webhook Management
+### Get Webhook
+# @name webhook_management_get_webhook
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/webhooks/{{webhookId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Webhook Management
+### Update Webhook
+# @name webhook_management_update_webhook
+< {%
+    const body = {
+        "target_url": "https://redemption_webhook.com", // URL address that receives webhooks.
+        "events": [ // Lists the events that trigger webhook sendout.
+            "redemption.succeeded",
+            "customer.created"
+        ],
+        "active": true // Determines if the webhook configuration is active.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/webhooks/{{webhookId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Webhook Management
+### Delete Webhook
+# @name webhook_management_delete_webhook
+DELETE {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/webhooks/{{webhookId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Stacking Rules Management
+### Create Stacking Rules
+# @name stacking_rules_management_create_stacking_rules
+< {%
+    const body = {
+        "exclusive_categories": [ // Lists the IDs of the categories that are exclusive.
+            "id"
+        ],
+        "joint_categories": [ // Lists the IDs of the categories that are joint.
+            "id"
+        ],
+        "redeemables_limit": 30, // Defines how many redeemables can be sent to Voucherify for validation at the same time.
+        "applicable_redeemables_limit": 15, // Defines how many redeemables can be applied at the same time. The number must be less than or equal to "redeemables_limit".
+        "applicable_redeemables_per_category_limit": 5, // Defines how many redeemables with the same category can be applied at the same time. The number must be less than or equal to "applicable_redeemables_limit".
+        "applicable_exclusive_redeemables_limit": 1, // Defines how many redeemables with an assigned exclusive category can be applied at the same time.
+        "applicable_exclusive_redeemables_per_category_limit": 1, // Defines how many exclusive redeemables with the same category can be applied at the same time. The number must be less than or equal to "applicable_exclusive_redeemables_limit".
+        "discount_calculation_mode": "DISCOUNTED_AMOUNT", // Defines if the discounts are applied by taking into account the initial order amount or the discounted order amount.
+        "initial_amount_mode_categories": [ // Lists the IDs of the categories that apply a discount based on the initial amount.
+            "id"
+        ],
+        "discounted_amount_mode_categories": [ // Lists the IDs of the categories that apply a discount based on the discounted amount.
+            "id"
+        ],
+        "redeemables_application_mode": "ALL", // Defines the application mode for redeemables. "ALL" means that all redeemables must be validated for the redemption to be successful. "PARTIAL" means that only those redeemables that can be validated will be redeemed. The redeemables that fail validaton will be skipped.
+        "redeemables_sorting_rule": "CATEGORY_HIERARCHY" // Defines the sorting rule for redeemables. "CATEGORY_HIERARCHY" means that redeemables are applied with the order established by the hierarchy of the categories. "REQUESTED_ORDER" means that redeemables are applied with the order established in the request.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/stacking-rules
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Stacking Rules Management
+### List Stacking Rules
+# @name stacking_rules_management_list_stacking_rules
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/stacking-rules
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Stacking Rules Management
+### Get Stacking Rules
+# @name stacking_rules_management_get_stacking_rules
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/stacking-rules/{{stackingRulesId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Stacking Rules Management
+### Update Stacking Rules
+# @name stacking_rules_management_update_stacking_rules
+< {%
+    const body = {
+        "exclusive_categories": [ // Lists the IDs of the categories that are exclusive.
+            "id"
+        ],
+        "joint_categories": [ // Lists the IDs of the categories that are joint.
+            "id"
+        ],
+        "redeemables_limit": 15, // Defines how many redeemables can be sent to Voucherify for validation at the same time.
+        "applicable_redeemables_limit": 12, // Defines how many redeemables can be applied at the same time. The number must be less than or equal to "redeemables_limit".
+        "applicable_redeemables_per_category_limit": 4, // Defines how many redeemables with the same category can be applied at the same time. The number must be less than or equal to "applicable_redeemables_limit".
+        "applicable_exclusive_redeemables_limit": 1, // Defines how many redeemables with an assigned exclusive category can be applied at the same time.
+        "applicable_exclusive_redeemables_per_category_limit": 0, // Defines how many exclusive redeemables with the same category can be applied at the same time. The number must be less than or equal to "applicable_exclusive_redeemables_limit".
+        "discount_calculation_mode": "DISCOUNTED_AMOUNT", // Defines if the discounts are applied by taking into account the initial order amount or the discounted order amount.
+        "initial_amount_mode_categories": [ // Lists the IDs of the categories that apply a discount based on the initial amount.
+            "id"
+        ],
+        "discounted_amount_mode_categories": [ // Lists the IDs of the categories that apply a discount based on the discounted amount.
+            "id"
+        ],
+        "redeemables_application_mode": "ALL", // Defines the application mode for redeemables. "ALL" means that all redeemables must be validated for the redemption to be successful. "PARTIAL" means that only those redeemables that can be validated will be redeemed. The redeemables that fail validaton will be skipped.
+        "redeemables_sorting_rule": "CATEGORY_HIERARCHY" // Defines the sorting rule for redeemables. "CATEGORY_HIERARCHY" means that redeemables are applied with the order established by the hierarchy of the categories. "REQUESTED_ORDER" means that redeemables are applied with the order established in the request.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/stacking-rules/{{stackingRulesId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Stacking Rules Management
+### Delete Stacking Rules
+# @name stacking_rules_management_delete_stacking_rules
+DELETE {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/stacking-rules/{{stackingRulesId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Branding Management
+### Create Brand
+# @name branding_management_create_brand
+< {%
+    const body = {
+        "brand": { // Defines basic brand details.
+            "name": "Voucherify PSA", // Defines brand name.
+            "privacy_policy_url": null, // Defines the URL to the brand's privacy policy. It must be a valid URL format.
+            "terms_of_use_url": null, // Defines the URL to the brand's terms of use. It must be a valid URL format.
+            "permission_reminder": "You are receiving this email because you opted in at our website.", // Defines the message that is displayed to customers who opted in an email newsletter.
+            "website_url": "voucherify.io" // Defines the URL to the brand's website. It must be a valid URL format.
+        },
+        "address": { // Defines the address details.
+            "street": "Porcelanowa 23", // Defines the brand's street.
+            "city": "Katowice", // Defines the brand's city.
+            "postal": "43-246", // Defines the brand's postal code.
+            "state": null, // Defines the brand's state or similar administrative area.
+            "country": "Poland" // Defines the brand's country.
+        },
+        "contact": { // Defines contact details.
+            "email": "support@voucherify.io", // Defines the brand's email address. It must be a valid email format.
+            "phone": null // Defines the brand's phone number.
+        },
+        "cockpits": { // Defines customer cockpit details.
+            "campaigns_overview_enabled": false, // Enables the campaign overview for customers.
+            "loyalty_enabled": true, // Enables the loyalty campaign overview for customers.
+            "gift_cards_enabled": true, // Enables the gift card overview for customers.
+            "coupons_enabled": true, // Enables the discount coupon overview for customers.
+            "referrals_enabled": true, // Enables the referral campaign overview for customers.
+            "lucky_draw_enabled": false, // Enables the lucky draw overview for customers.
+            "theme": "default", // Determines the color scheme of the customer cockpit. You can choose between the default theme and several other colours: blue, dark-green, green, grey, orange, purple, and red.
+            "use_custom_double_opt_in_redirect_url": false, // Enables the double opt-in option. It must be a valid URL format.
+            "custom_double_opt_in_redirect_url": null // Defines the URL for the double opt-in consent. It must be a valid URL format.
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/branding
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Branding Management
+### List Brands
+# @name branding_management_list_brands
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/branding
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Branding Management
+### Get Brand
+# @name branding_management_get_brand
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/branding/{{brandingId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Branding Management
+### Update Brand
+# @name branding_management_update_brand
+< {%
+    const body = {
+        "brand": { // Defines basic brand details.
+            "name": "Voucherify PSA", // Defines brand name.
+            "privacy_policy_url": null, // Defines the URL to the brand's privacy policy. It must be a valid URL format.
+            "terms_of_use_url": null, // Defines the URL to the brand's terms of use. It must be a valid URL format.
+            "permission_reminder": "You are receiving this email because you opted in at our website.", // Defines the message that is displayed to customers who opted in an email newsletter.
+            "website_url": "voucherify.io" // Defines the URL to the brand's website. It must be a valid URL format.
+        },
+        "address": { // Defines the address details.
+            "street": "Porcelanowa 23", // Defines the brand's street.
+            "city": "Katowice", // Defines the brand's city.
+            "postal": "43-246", // Defines the brand's postal code.
+            "state": null, // Defines the brand's state or similar administrative area.
+            "country": "Poland" // Defines the brand's country.
+        },
+        "contact": { // Defines contact details.
+            "email": "support@voucherify.io", // Defines the brand's email address. It must be a valid email format.
+            "phone": null // Defines the brand's phone number.
+        },
+        "cockpits": { // Defines customer cockpit details.
+            "campaigns_overview_enabled": true, // Enables the campaign overview for customers.
+            "loyalty_enabled": false, // Enables the loyalty campaign overview for customers.
+            "gift_cards_enabled": true, // Enables the gift card overview for customers.
+            "coupons_enabled": true, // Enables the discount coupon overview for customers.
+            "referrals_enabled": true, // Enables the referral campaign overview for customers.
+            "lucky_draw_enabled": false, // Enables the lucky draw overview for customers.
+            "theme": "dark-green", // Determines the color scheme of the customer cockpit. You can choose between the default theme and several other colours: blue, dark-green, green, grey, orange, purple, and red.
+            "use_custom_double_opt_in_redirect_url": false, // Enables the double opt-in option. It must be a valid URL format.
+            "custom_double_opt_in_redirect_url": null // Defines the URL for the double opt-in consent. It must be a valid URL format.
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/branding/{{brandingId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+# Branding Management
+### Delete Brand
+# @name branding_management_delete_brand
+DELETE {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/branding/{{brandingId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Campaign Templates Management
+### List Campaign Templates
+# @name campaign_templates_management_list_campaign_templates
+GET {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/templates/campaigns
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+# Campaign Templates Management
+### Copy Campaign Template
+# @name campaign_templates_management_copy_campaign_template
+< {%
+    const body = {
+        "name": "string", // User-defined name of the campaign template. It must be unique.
+        "description": "string", // User-defined description of the campaign template.
+        "destination_project_id": "string" // Unique identifier of the project to which the campaign template will be copied.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/management/projects/{{projectId}}/templates/campaigns/{{campaignTemplateId}}/copy
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+

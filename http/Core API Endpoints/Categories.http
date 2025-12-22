@@ -1,0 +1,71 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Categories
+# @name list_categories
+GET {{voucherengine_base_url}}/v1/categories
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Category
+# @name get_category
+< {%
+    request.variables.set("category_id", "CATEGORY_001");
+%}
+GET {{voucherengine_base_url}}/v1/categories/{{category_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Category
+# @name create_category
+< {%
+    const body = {
+        "name": "First",
+        "hierarchy": 1
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/categories
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Category
+# @name update_category
+< {%
+    const body = {
+        "name": "Summer",
+        "hierarchy": 2
+    };
+    request.variables.set("category_id", "CATEGORY_001");
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/categories/{{category_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Category
+# @name delete_category
+< {%
+    request.variables.set("category_id", "CATEGORY_001");
+%}
+DELETE {{voucherengine_base_url}}/v1/categories/{{category_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

@@ -1,0 +1,96 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Exports
+# @name list_exports
+GET {{voucherengine_base_url}}/v1/exports?limit=100&page=1&order=status
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Export
+# @name get_export
+GET {{voucherengine_base_url}}/v1/exports/{{export_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Download Export
+# @name download_export
+GET {{voucherengine_base_url}}/v1/exports/{{export_id}}?token={{token}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Export
+# @name create_export
+< {%
+    const body = {
+        "exported_object": "voucher",
+        "parameters": {
+            "fields": [
+                "code",
+                "voucher_type",
+                "value",
+                "discount_type",
+                "campaign",
+                "category",
+                "start_date",
+                "expiration_date",
+                "gift_balance",
+                "loyalty_balance",
+                "redemption_quantity",
+                "redemption_count",
+                "active",
+                "qr_code",
+                "bar_code",
+                "metadata",
+                "id",
+                "is_referral_code",
+                "created_at",
+                "updated_at",
+                "validity_timeframe_interval",
+                "validity_timeframe_duration",
+                "validity_day_of_week",
+                "discount_amount_limit",
+                "campaign_id",
+                "additional_info",
+                "customer_id",
+                "discount_unit_type",
+                "discount_unit_effect"
+            ],
+            "filters": {
+                "campaign_ids": {
+                    "conditions": {
+                        "$in": [
+                            "{{campaign_id}}"
+                        ]
+                    }
+                }
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/exports
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Export
+# @name delete_export
+DELETE {{voucherengine_base_url}}/v1/exports/{{export_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

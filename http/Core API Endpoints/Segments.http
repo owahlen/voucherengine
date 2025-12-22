@@ -1,0 +1,114 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### Get Segment
+# @name get_segment
+GET {{voucherengine_base_url}}/v1/segments/{{segment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Segment - static example
+# @name create_segment_static_example
+< {%
+    const body = {
+        "name": "{{segment_name}}", // Segment name.
+        "type": "static", // Describes whether the segment is dynamic (customers come in and leave based on set criteria) or static (manually selected customers).
+        "customers": [ // Array of customer ID or IDs.
+            "{{source_id_customer_1}}",
+            "{{source_id_customer_2}}"
+        ]
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/segments
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Segment - passive example
+# @name create_segment_passive_example
+< {%
+    const body = {
+        "name": "{{segment_name}}", // Segment name.
+        "type": "passive", // Describes whether the segment is active (customers come in and leave based on set criteria), passive or static (manually selected customers).
+        "customers": [ // Array of customer ID or IDs.
+            "{{source_id_customer_1}}",
+            "{{source_id_customer_2}}"
+        ]
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/segments
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Segment - dynamic example
+# @name create_segment_dynamic_example
+< {%
+    const body = {
+        "name": "{{segment_name}}", // Segment name.
+        "type": "auto-update", // Describes whether the segment is dynamic (customers come in and leave based on set criteria) or static (manually selected customers).
+        // The following example will create a segment that groups all Gold Loyalty customers from Voucherify who are subscribed and have more than $3,000 worth of orders.
+        // Please note, that the dynamic segments can be complex. Voucherify's Dashboard offers creating even the most complex customer segments.
+        "filter": {
+            "junction": "and",
+            "email": {
+                "conditions": {
+                    "$ends_with": [
+                        "voucherify.io"
+                    ]
+                }
+            },
+            "summary.orders.total_amount": {
+                "conditions": {
+                    "$more_than": [
+                        300000
+                    ]
+                }
+            },
+            "loyalty_tier.campaigns.{{Loyalty_Program_Name}}.loyalty_tier": {
+                "conditions": {
+                    "$in": [
+                        "{{Loyalty_Tier_ID}}"
+                    ]
+                }
+            },
+            "metadata.newsletter_subscribed": {
+                "conditions": {
+                    "$is": [
+                        "true"
+                    ]
+                }
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/segments
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Segment
+# @name delete_segment
+DELETE {{voucherengine_base_url}}/v1/segments/{{segment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

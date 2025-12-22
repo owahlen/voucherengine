@@ -1,0 +1,101 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Referral Code Holders
+# @name list_referral_code_holders
+GET {{voucherengine_base_url}}/v1/referrals/{{campaignId}}/members/{{memberId}}/holders
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Referral Code Holders (alternative)
+# @name list_referral_code_holders_alternative
+GET {{voucherengine_base_url}}/v1/referrals/members/{{memberId}}/holders
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Add Referral Code Holders
+# @name add_referral_code_holders
+< {%
+    const body = {
+       "holders":[ // Array of holders to be added to a referral card as referees. You have to send at least one object in the array up to a maximum of 100 objects. You can send either a source_id or id, or both; however, at least one of them is required. If both are sent, Voucherify checks id to upsert that customer's data.
+          {
+             "source_id":"13082024", // A unique identifier of the customer who validates a voucher. It can be a customer ID or email from a CRM system, database, or a third-party service. If you also pass a customer ID (unique ID assigned by Voucherify), the source ID will be ignored.
+             "name":"Max Sandler", // Customer's first and last name.
+             "email":"max-sandler@your.domain.com", // Customer's email address.
+             "country":"England" // Country.
+          },
+          {
+             "source_id":"14082024",
+             "name":"Alex Joe",
+             "email":"alex-joe@your.domain.com",
+             "country":"Wales"
+          }
+       ],
+       "metadata":{ // A set of custom key/value pairs that you can attach to a customer. The metadata object stores all custom attributes assigned to the customer. It can be useful for storing additional information about the customer in a structured format. This metadata can be used for validating whether the customer qualifies for a discount or it can be used in building customer segments.
+          "influencer_code":true
+       }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/referrals/{{campaignId}}/members/{{memberId}}/holders
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Add Referral Code Holders (alternative)
+# @name add_referral_code_holders_alternative
+< {%
+    const body = {
+       "holders":[ // Array of holders to be added to a referral card as referees. You have to send at least one object in the array up to a maximum of 100 objects. You can send either a source_id or id, or both; however, at least one of them is required. If both are sent, Voucherify checks id to upsert that customer's data.
+          {
+             "source_id":"13082024", // A unique identifier of the customer who validates a voucher. It can be a customer ID or email from a CRM system, database, or a third-party service. If you also pass a customer ID (unique ID assigned by Voucherify), the source ID will be ignored.
+             "name":"Max Sandler", // Customer's first and last name.
+             "email":"max-sandler@your.domain.com", // Customer's email address.
+             "country":"England" // Country.
+          },
+          {
+             "source_id":"14082024",
+             "name":"Alex Joe",
+             "email":"alex-joe@your.domain.com",
+             "country":"Wales"
+          }
+       ],
+       "metadata":{ // A set of custom key/value pairs that you can attach to a customer. The metadata object stores all custom attributes assigned to the customer. It can be useful for storing additional information about the customer in a structured format. This metadata can be used for validating whether the customer qualifies for a discount or it can be used in building customer segments.
+          "influencer_code":true
+       }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/referrals/members/{{memberId}}/holders
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Remove Referral Code Holder
+# @name remove_referral_code_holder
+DELETE {{voucherengine_base_url}}/v1/referrals/{{campaignId}}/members/{{memberId}}/holders/{{holderId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Remove Referral Code Holder (alternative)
+# @name remove_referral_code_holder_alternative
+DELETE {{voucherengine_base_url}}/v1/referrals/members/{{memberId}}/holders/{{holderId}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

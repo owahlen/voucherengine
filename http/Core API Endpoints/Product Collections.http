@@ -1,0 +1,72 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Product Collections
+# @name list_product_collections
+GET {{voucherengine_base_url}}/v1/product-collections?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Product Collection
+# @name create_product_collection
+< {%
+    const body = {
+        "type": "AUTO_UPDATE", // Show that the product collection is dynamic (products come in and leave based on set criteria). Default: AUTO_UPDATE.
+        "name": "Voucherify example collection",
+        "filter": {
+            "junction": "and", // Logical Operator Between Filters. Filter by conditions set on the junction parameter indicating how the conditions should be accounted for in the query. An AND is an all-inclusive logical operator, meaning the AND operator displays a record if ALL the conditions separated by AND are TRUE, while an OR operator displays a record if ANY of the conditions separated by OR is TRUE.
+            "metadata.brand": {
+                "conditions": {
+                    "$is": [
+                        "Voucherify"
+                    ]
+                }
+            },
+            "price": {
+                "conditions": {
+                    "$more_than": [
+                        5000
+                    ]
+                }
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/product-collections
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Get Product Collection
+# @name get_product_collection
+GET {{voucherengine_base_url}}/v1/product-collections/{{product_collection_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Products in Collection
+# @name list_products_in_collection
+GET {{voucherengine_base_url}}/v1/product-collections/{{product_collection_id}}/products?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Delete Product Collection
+# @name delete_product_collection
+DELETE {{voucherengine_base_url}}/v1/product-collections/{{product_collection_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

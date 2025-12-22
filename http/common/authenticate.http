@@ -12,7 +12,7 @@ Content-Type: application/x-www-form-urlencoded
 grant_type=client_credentials&client_id={{encoded_client_id}}&client_secret={{encoded_client_secret}}
 
 > {%
-    import {decodeJwt} from './scripts/jwt-utils';
+    import {decodeJwt} from './jwt-utils';
     const token = response.body.access_token;
     client.global.set("tenant_access_token", token);
     client.global.set("tenant_token_type", response.body.token_type);
@@ -38,7 +38,7 @@ Content-Type: application/x-www-form-urlencoded
 grant_type=client_credentials&client_id={{encoded_client_id}}&client_secret={{encoded_client_secret}}
 
 > {%
-    import {decodeJwt} from './scripts/jwt-utils';
+    import {decodeJwt} from './jwt-utils';
     const token = response.body.access_token;
     client.global.set("tenant_access_token", token);
     client.global.set("tenant_token_type", response.body.token_type);

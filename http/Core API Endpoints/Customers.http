@@ -1,0 +1,249 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Customers
+# @name list_customers
+GET {{voucherengine_base_url}}/v1/customers?limit=100&page=1&city=Paris&segment_id={{segment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Customer
+# @name get_customer
+GET {{voucherengine_base_url}}/v1/customers/{{customer_id_or_source_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Customer Activity
+# @name list_customer_activity
+GET {{voucherengine_base_url}}/v1/customers/{{customerId}}/activity
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Customer's Segments
+# @name list_customer_s_segments
+GET {{voucherengine_base_url}}/v1/customers/{{customer_id}}/segments
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Customer Redeemables
+# @name list_customer_redeemables
+GET {{voucherengine_base_url}}/v1/customers/{{customerId}}/redeemables
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Customer
+# @name create_customer
+< {%
+    const body = {
+        "source_id": "source_123", // A unique identifier of the customer who validates a voucher. It can be a customer ID or email from a CRM system, database, or a third-party service. If you also pass a customer ID (unique ID assigned by Voucherify), the source ID will be ignored.
+        "name": "Bob Smith", // Customer's first and last name.
+        "description": "A frequent customer", // An arbitrary string that you can attach to a customer object.
+        "email": "bob.smith@email.com", // Customer's email address.
+        "phone": "+1 933 222 3333", // Customer's phone number. This parameter is mandatory when you try to send out codes to customers via an SMS channel.
+        "address": { // Customer's address.
+            "city": "New York",
+            "country": "United States",
+            "line_1": "123 Main St.",
+            "line_2": "APT 3 BLG 4",
+            "postal_code": "10001",
+            "state": "NY"
+        },
+        "metadata": { // A set of custom key/value pairs that you can attach to a customer. The metadata object stores all custom attributes assigned to the customer. It can be useful for storing additional information about the customer in a structured format. This metadata can be used for validating whether the customer qualifies for a discount or it can be used in building customer segments.
+            "lang": "en",
+            "test": true
+        },
+        "birthdate": "1991-11-24" // Customer's birthdate; format YYYY-MM-DD.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/customers
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Import and Update Customers Using CSV
+# @name import_and_update_customers_using_csv
+POST {{voucherengine_base_url}}/v1/customers/importCSV
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="replace-with-file.csv"
+Content-Type: text/csv
+
+< ./path/to/file.csv
+--boundary--
+
+### Update Customer
+# @name update_customer
+< {%
+    const body = {
+        "source_id": "source_123", // A unique identifier of the customer who validates a voucher. It can be a customer ID or email from a CRM system, database, or a third-party service. If you also pass a customer ID (unique ID assigned by Voucherify), the source ID will be ignored.
+        "name": "Bob Smith", // Customer's first and last name.
+        "description": "A frequent customer", // An arbitrary string that you can attach to a customer object.
+        "email": "bob.smith@email.com", // Customer's email address.
+        "phone": "+1 933 222 3333", // Customer's phone number. This parameter is mandatory when you try to send out codes to customers via an SMS channel.
+        "address": { // Customer's address.
+            "city": "Quebec",
+            "country": "Canada",
+            "line_1": "123 Main St.",
+            "line_2": "APT 3 BLG 4",
+            "postal_code": "10001"
+        },
+        "metadata": { // A set of custom key/value pairs that you can attach to a customer. The metadata object stores all custom attributes assigned to the customer. It can be useful for storing additional information about the customer in a structured format. This metadata can be used for validating whether the customer qualifies for a discount or it can be used in building customer segments.
+            "lang": "en",
+            "test": true
+        },
+        "birthdate": "1991-11-24" // Customer's birthdate; format YYYY-MM-DD.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/customers/{{customer_id_or_source_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Customer's Consents (deprecated)
+# @name update_customer_s_consents_deprecated
+< {%
+    const body = {
+        "{{consent_ID_1}}": true, // Key-value pairs where the key is the consent identifier and value is a boolean that identifies if a customer has given the consent or not.
+        "{{consent_ID_2}}": true,
+        "unsubscribed": true // To deny all consents, use unsubscribed as a consent identifier and true as a value.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/customers/{{customer_id}}/consents
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Customers in Bulk
+# @name update_customers_in_bulk
+< {%
+    const body = [
+        {
+            "source_id": "source_123", // A unique identifier of the customer who validates a voucher. It can be a customer ID or email from a CRM system, database, or a third-party service. If you also pass a customer ID (unique ID assigned by Voucherify), the source ID will be ignored.
+            "name": "Bob Smith", // Customer's first and last name.
+            "description": "A frequent customer", // An arbitrary string that you can attach to a customer object.
+            "email": "bob.smith@email.com", // Customer's email address.
+            "phone": "+1 933 222 3333", // Customer's phone number. This parameter is mandatory when you try to send out codes to customers via an SMS channel.
+            "address": { // Customer's address.
+                "city": "Quebec",
+                "country": "Canada",
+                "line_1": "123 Main St.",
+                "line_2": "APT 3 BLG 4",
+                "postal_code": "10001"
+            },
+            "metadata": { // A set of custom key/value pairs that you can attach to a customer. The metadata object stores all custom attributes assigned to the customer. It can be useful for storing additional information about the customer in a structured format. This metadata can be used for validating whether the customer qualifies for a discount or it can be used in building customer segments.
+                "lang": "en",
+                "test": true
+            },
+            "birthdate": "1991-11-24" // Customer's birthdate; format YYYY-MM-DD.
+        },
+        {
+            "source_id": "Jane.Smith@email.com",
+            "name": "Jane Smith",
+            "email": "Jane.Smith@email.com",
+            "description": "Updating customer data",
+            "phone": "+1 (132) 222-2222",
+            "address": {
+                "city": "New York",
+                "country": "United States",
+                "line_1": "123 Main St.",
+                "line_2": "APT 3 BLG 4",
+                "postal_code": "10001",
+                "state": "NY"
+            },
+            "metadata": {
+                "lang": "en",
+                "test": true
+            },
+            "birthday": "1962-03-03"
+        },
+        {
+            "source_id": "Sally.Smith@email.com",
+            "name": "Sally Smith",
+            "email": "Sally.Smith@email.com",
+            "description": "Updating customer data",
+            "phone": "+1 (132) 222-2222",
+            "address": {
+                "city": "New York",
+                "country": "United States",
+                "line_1": "123 Main St.",
+                "line_2": "APT 3 BLG 4",
+                "postal_code": "10001",
+                "state": "NY"
+            },
+            "metadata": {
+                "lang": "en",
+                "test": true
+            },
+            "birthdate": "2000-02-02"
+        }
+    ];
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/customers/bulk/async
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Customers' Metadata in Bulk
+# @name update_customers_metadata_in_bulk
+< {%
+    const body = {
+        "source_ids": [ // An array of customer source_id's.
+            "source_123",
+            "source_456"
+        ],
+        "metadata": { // Metadata key value pairs to be updated. A set of custom key/value pairs that you can attach to a customer. The metadata object stores all custom attributes assigned to the customer. It can be useful for storing additional information about the customer in a structured format. This metadata can be used for validating whether the customer qualifies for a discount or it can be used in building customer segments.
+            "lang": "en",
+            "test": false
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/customers/metadata/async
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Customer
+# @name delete_customer
+DELETE {{voucherengine_base_url}}/v1/customers/{{customer_id_or_source_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Delete Customer Permanently
+# @name delete_customer_permanently
+POST {{voucherengine_base_url}}/v1/customers/{{customer_id_or_source_id}}/permanent-deletion
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

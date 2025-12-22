@@ -1,0 +1,100 @@
+{
+	"info": {
+		"_postman_id": "c3a1228f-6849-45a3-bed3-2869e1182591",
+		"name": "Voucherify API - Onboarding",
+		"description": "This collection provides example requests for onboarding to Voucherify. You can use it immediately with the Sandbox project and its API keys.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "15221756",
+		"_collection_link": "https://www.postman.com/voucherify/voucherify-s-public-workspace/collection/iut4une/voucherify-api-onboarding?action=share&source=collection_link&creator=15221756"
+	},
+	"item": [
+		{
+			"name": "Onboarding validation request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-App-Id",
+						"value": "{{X-App-Id}}",
+						"type": "text"
+					},
+					{
+						"key": "X-App-Token",
+						"value": "{{X-App-Token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"redeemables\": [\n        {\n            \"object\": \"voucher\",\n            \"id\": \"BLCKFRDY\" // A generic code that can be used by many customers.\n        }\n    ],\n    \"order\": {\n        \"amount\": 5500 // This is simplified order structure that contains only the amount, without details about products.\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{url}}/validations/",
+					"host": [
+						"{{url}}"
+					],
+					"path": [
+						"validations",
+						""
+					]
+				},
+				"description": "Simple validation request of a generic code for onboarding purposes."
+			},
+			"response": []
+		},
+		{
+			"name": "Onboarding redemption request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-App-Id",
+						"value": "{{X-App-Id}}",
+						"type": "text"
+					},
+					{
+						"key": "X-App-Token",
+						"value": "{{X-App-Token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"redeemables\": [\n        {\n            \"object\": \"voucher\",\n            \"id\": \"BLCKFRDY\" // A generic code that can be used by many customers.\n        }\n    ],\n    \"order\": {\n        \"amount\": 5500 // This is simplified order structure that contains only the amount, without details about products.\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{url}}/redemptions/",
+					"host": [
+						"{{url}}"
+					],
+					"path": [
+						"redemptions",
+						""
+					]
+				},
+				"description": "Simple redemption request of a generic code for onboarding purposes."
+			},
+			"response": []
+		}
+	]
+}

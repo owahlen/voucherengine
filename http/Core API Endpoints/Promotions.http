@@ -1,0 +1,186 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Promotion Tiers
+# @name list_promotion_tiers
+GET {{voucherengine_base_url}}/v1/promotions/tiers?is_available={{true or false}}&limit=10
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Promotion Tiers from Campaign
+# @name list_promotion_tiers_from_campaign
+GET {{voucherengine_base_url}}/v1/promotions/{{campaign_id}}/tiers
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Add Promotion Tier to Campaign
+# @name add_promotion_tier_to_campaign
+< {%
+    const body = {
+        "name": "{{promotion_name}}", // Name of the promotion tier.
+        "banner": "Order more than $100", // Text to be displayed to your customers on your website.
+        "action": { // Contains details about the discount applied by the promotion tier.
+            "discount": { // The type of discount that will be applied to a customer's order.
+                "type": "AMOUNT", // Applies an amount discount.
+                "amount_off": 3000, // Amount taken off the subtotal of a price. Value is multiplied by 100 to precisely represent 2 decimal places. For example, a $10 discount is written as 1000. In case of the amount being calculated by the formula, i.e. the amount_off_formula parameter is present in the amount definition, this value becomes the fallback value. Such that in a case where the formula cannot be calculated due to missing metadata, for example, this value will be used as the amount off.
+                "effect": "APPLY_TO_ORDER" // Defines how the discount is applied to the customer's order. The discount effects are defined as follows: APPLY_TO_ORDER (discount applies to the total order amount), APPLY_TO_ITEMS (each item subtotal is discounted equally), APPLY_TO_ITEMS_PROPORTIONALLY (split discount proportionally to amount), APPLY_TO_ITEMS_PROPORTIONALLY_BY_QUANTITY (split discount proportionally to quantity), APPLY_TO_ITEMS_BY_QUANTITY (each unit of matched products has the same discount value)
+            }
+        },
+        "active": true, // A flag to toggle the promotion tier on or off. You can disable a promotion tier even though it's within the active period defined by the start_date and expiration_date - true indicates an active promotion tier and false indicates an inactive promotion tier.
+        "start_date": "2022-09-21T00:00:00.000Z", // Activation timestamp defines when the promotion tier starts to be active in ISO 8601 format. Promotion tier is inactive before this date.
+        "expiration_date": null, // Activation timestamp defines when the promotion tier expires in ISO 8601 format. Promotion tier is inactive after this date.
+        "validity_timeframe": { // Set recurrent time periods when the promotion tier is valid. For example, valid for 1 hour every other day.start_date required when including the validity_timeframe.
+            "interval": "P2D", // Defines the intervening time between two time points in ISO 8601 format, expressed as a duration. For example, a promotion tier with an interval of P2D will be active every other day.
+            "duration": "P1D" // Defines the amount of time the promotion tier will be active in ISO 8601 format. For example, a promotion tier with a duration of P1D will be valid for a duration of one day.
+        },
+        "validity_day_of_week": [ // Integer array corresponding to the particular days of the week in which the promotion tier is valid - 0 Sunday, 1 Monday, 2 Tuesday, 3 Wednesday, 4 Thursday, 5 Friday, 6 Saturday.
+            1,
+            2,
+            3,
+            4
+        ],
+        "validation_rules": [ // Array containing the ID of the validation rule associated with the promotion tier.
+            "{{validation_rule_id}}"
+        ]
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/promotions/{{campaign_id}}/tiers
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Get Promotion Tier
+# @name get_promotion_tier
+GET {{voucherengine_base_url}}/v1/promotions/tiers/{{promotion_tier_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Update Promotion Tier
+# @name update_promotion_tier
+< {%
+    const body = {
+        "action": { // Contains details about the discount applied by the promotion tier.
+            "discount": { // The type of discount that will be applied to a customer's order.
+                "type": "AMOUNT", // Applies an amount discount.
+                "amount_off": 100 // Amount taken off the subtotal of a price. 
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/promotions/tiers/{{promotion_tier_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Promotion Tier
+# @name delete_promotion_tier
+DELETE {{voucherengine_base_url}}/v1/promotions/tiers/{{promotion_tier_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Enable Promotion Tier
+# @name enable_promotion_tier
+POST {{voucherengine_base_url}}/v1/promotions/tiers/{{promotion_tier_id}}/enable
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Disable Promotion Tier
+# @name disable_promotion_tier
+POST {{voucherengine_base_url}}/v1/promotions/tiers/{{promotion_tier_id}}/disable
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Promotion Stacks
+# @name list_promotion_stacks
+GET {{voucherengine_base_url}}/v1/promotions/stacks?limit=100&page=1&order=created_at&created_at[before]=2024-02-22T10%3A13%3A06.487Z
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Promotion Stacks in Campaign
+# @name list_promotion_stacks_in_campaign
+GET {{voucherengine_base_url}}/v1/promotions/{{campaign_id}}/stacks
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Promotion Stack
+# @name get_promotion_stack
+GET {{voucherengine_base_url}}/v1/promotions/{{campaign_id}}/stacks/{{stack_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Promotion Stack
+# @name create_promotion_stack
+< {%
+    const body = {
+        "name": "{{promotion_stack_name}}", // Promotion stack name.
+        "tiers": { // Contains the tier configuration.
+            "ids": [ // Contains the list of tiers in a pre-defined sequence.
+                "{{promotion_tier_id}}",
+                "{{promotion_tier_id}}",
+                "{{promotion_tier_id}}"
+            ],
+            "hierarchy_mode": "MANUAL" // Default: MANUAL
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/promotions/{{campaign_id}}/stacks
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Promotion Stack
+# @name update_promotion_stack
+< {%
+    const body = {
+        "name": "{{promotion_stack_name}}", // Promotion stack name.
+        "tiers": { // Contains the tier configuration.
+            "ids": [ // Contains the list of tiers in a pre-defined sequence.
+                "{{promotion_tier_id}}",
+                "{{promotion_tier_id}}",
+                "{{promotion_tier_id}}"
+            ],
+            "hierarchy_mode": "MANUAL" // Default: MANUAL
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/promotions/{{campaign_id}}/stacks/{{stack_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Promotion Stack
+# @name delete_promotion_stack
+DELETE {{voucherengine_base_url}}/v1/promotions/{{campaign_id}}/stacks/{{stack_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

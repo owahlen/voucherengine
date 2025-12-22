@@ -1,0 +1,247 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Orders
+# @name list_orders
+GET {{voucherengine_base_url}}/v1/orders?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Order
+# @name get_order
+< {%
+    const body = {
+        "customer": {
+            "source_id": "123123"
+        },
+        "status":"PAID",
+        "items": [
+            {
+                "product_id": "prod_090cafbb84d3a81ce3",
+                "quantity": 1,
+                "price": 1000,
+                "product": {
+                    "metadata": {
+                        "category": "a"
+                    }
+                }
+            },
+            {
+                "product_id": "prod_092f74cb134164e32b",
+                "quantity": 1,
+                "price": 1000,
+                "product": {
+                    "metadata": {
+                        "category": "b"
+                    }
+                }
+            }
+        ]
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+GET {{voucherengine_base_url}}/v1/orders/{{order_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Order
+# @name create_order
+< {%
+    const body = {
+        "customer": {
+            "source_id": "{{customer_source_id}}", // A unique identifier of the customer who validates a voucher. It can be a customer ID or email from a CRM system, database, or a third-party service. If you also pass a customer ID (unique ID assigned by Voucherify), the source ID will be ignored.
+            "name": "Bob Smith", // Customer's first and last name.
+            "description": "A frequent customer", // An arbitrary string that you can attach to a customer object.
+            "email": "bob.smith@email.com", // Customer's email address.
+            "phone": "+1 933 222 3333", // Customer's phone number. This parameter is mandatory when you try to send out codes to customers via an SMS channel.
+            "address": { // Customer's address.
+                "city": "New York",
+                "country": "United States",
+                "line_1": "123 Main St.",
+                "line_2": "APT 3 BLG 4",
+                "postal_code": "10001",
+                "state": "NY"
+            },
+            "metadata": { // A set of custom key/value pairs that you can attach to a customer. The metadata object stores all custom attributes assigned to the customer. It can be useful for storing additional information about the customer in a structured format. This metadata can be used for validating whether the customer qualifies for a discount or it can be used in building customer segments.
+                "lang": "en",
+                "test": true
+            },
+            "birthdate": "1991-11-24" // Customer's birthdate; format YYYY-MM-DD.
+        },
+        "amount": 171000, // A positive integer in the smallest currency unit (e.g. 100 cents for $1.00) representing the total amount of the order. This is the sum of the order items' amounts.
+        "status": "PAID", //The order status.
+        "items": [
+            {
+                "quantity": 1, // Subtotal quantity for each item. 
+                "price": 90000, // Individual item price. Decimals are not used, so this means $900.00. 
+                "amount": 90000, // Subtotal (quantity x price). Decimals are not used, so this means $900.00. 
+                "source_id": "galaxy_s24", // Product's unique source ID.
+                "name": "Samsung Galaxy", // Source ID of the product.
+                "related_object": "product", // Used along with the source_id property, can be set to either sku or product.
+                "product": {
+                    "metadata": { // Product metadata will vary based on custom attributes you assign. Examples are shown below. 
+                        "brand": "Samsung",
+                        "colour": "Indigo",
+                        "category": "smartphone"
+                    }
+                }
+            },
+            {
+                "quantity": 1, // Subtotal quantity for each item. 
+                "price": 65000, // Individual item price. Decimals are not used, so this means $650.00. 
+                "amount": 65000, // Subtotal (quantity x price). Decimals are not used, so this means $650.00. 
+                "source_id": "NT670U", // Product's unique source ID.
+                "name": "Samsung TV", // Source ID of the product.
+                "related_object": "product", // Used along with the source_id property, can be set to either sku or product.
+                "product": {
+                    "metadata": { // Product metadata will vary based on custom attributes you assign. Examples are shown below. 
+                        "brand": "Samsung",
+                        "colour": "black",
+                        "category": "tv"
+                    }
+                }
+            },
+            {
+                "quantity": 1, // Subtotal quantity for each item. 
+                "price": 6000, // Individual item price. Decimals are not used, so this means $60.00. 
+                "amount": 6000, // Subtotal (quantity x price). Decimals are not used, so this means $60.00. 
+                "source_id": "galaxy_active2", // Product's unique source ID.
+                "name": "Samsung Smartwatch", // Source ID of the product.
+                "related_object": "product", // Used along with the source_id property, can be set to either sku or product.
+                "product": {
+                    "metadata": { // Product metadata will vary based on custom attributes you assign. Examples are shown below. 
+                        "brand": "Samsung",
+                        "colour": "Blue",
+                        "category": "smartwatch"
+                    }
+                }
+            },
+            {
+                "quantity": 2, // Subtotal quantity for each item. 
+                "price": 5000, // Individual item price. Decimals are not used, so this means $50.00. 
+                "amount": 10000, // Subtotal (quantity x price). Decimals are not used, so this means $100.00. 
+                "source_id": "galaxy_buds", // Product's unique source ID.
+                "name": "Samsung Headphones", // Source ID of the product.
+                "related_object": "product", // Used along with the source_id property, can be set to either sku or product.
+                "product": {
+                    "metadata": { // Product metadata will vary based on custom attributes you assign. Examples are shown below. 
+                        "brand": "Samsung",
+                        "colour": "White",
+                        "category": "earbuds"
+                    }
+                }
+            }
+        ]
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/orders
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Order
+# @name update_order
+< {%
+    const body = {
+        "status": "CANCELED" // The order status.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/orders/{{order_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Import Orders
+# @name import_orders
+POST {{voucherengine_base_url}}/v1/orders/import
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+// This endpoint should only be used to import historical orders into Voucherify. For on-going synchronization, the create order and update order endpoints should be used. This is critical because this endpoint does not store events or launch distributions.
+[
+    {
+        "source_id": "{{order_source_id}}", // Unique source ID of an existing order that will be linked to the redemption of this request.
+        "status": "PAID", // The order status.
+        "metadata": { // A set of custom key/value pairs that you can attach to an SKU. It can be useful for storing additional information about the SKU in a structured format.
+            "location_id": [
+                "L1",
+                "L2"
+            ],
+            "payment_mean": [
+                "paypal",
+                "credit-card"
+            ]
+        },
+        "customer": {
+            "source_id": "{{customer_source_id}}"
+        },
+        "items": [
+            {
+                "source_id": "{{product_id or sku_id}}", // The merchant's product/SKU ID (if it is different from the Voucherify product/SKU ID). It is useful in the integration between multiple systems. It can be an ID from an eCommerce site, a database, or a third-party service.
+                "related_object": "product", // Used along with the source_id property, can be set to either sku or product.
+                "quantity": 2, // The quantity of the particular item in the cart.
+                "product": {
+                    "name": "Apple iPhone 12", // Product name.
+                    "price": 70000, // Product price. A positive integer in the smallest currency unit (e.g. 100 cents for $1.00).
+                    "metadata": { // A set of custom key/value pairs that you can attach to a product. It can be useful for storing additional information about the product in a structured format.
+                        "color": [
+                            "silver"
+                        ],
+                        "vendor": "mall"
+                    },
+                    "override": true // The override set to true is used to store the product information in the system. If the product does not exist, it will be created with a source_id; if it does exist, the provided values for the name, price, and metadata will replace those already stored in the system.
+                }
+            }
+        ]
+    }
+]
+
+### Create Orders Export
+# @name create_orders_export
+< {%
+    const body = {
+        "parameters": {
+            "fields": [
+                "id",
+                "source_id",
+                "status",
+                "created_at",
+                "updated_at",
+                "amount",
+                "discount_amount",
+                "items_discount_amount",
+                "total_discount_amount",
+                "total_amount",
+                "customer_id",
+                "referrer_id"
+            ]
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/orders/export
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+

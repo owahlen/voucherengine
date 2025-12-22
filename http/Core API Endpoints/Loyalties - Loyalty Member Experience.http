@@ -1,0 +1,350 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### Get Member - alternative
+# @name get_member_alternative
+GET {{voucherengine_base_url}}/v1/loyalties/members/{{member_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Member
+# @name get_member
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/members/{{member_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Member Pending Points
+# @name list_member_pending_points
+GET {{voucherengine_base_url}}/v1/loyalties/members/{{memberId}}/pending-points?limit=100
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Member Pending Points (with campaign ID)
+# @name list_member_pending_points_with_campaign_id
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaignId}}/members/{{memberId}}/pending-points?limit=100
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Campaign Pending Points
+# @name list_campaign_pending_points
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaignId}}/pending-points?limit=100
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Activate Member Pending Points
+# @name activate_member_pending_points
+POST {{voucherengine_base_url}}/v1/loyalties/members/{{memberId}}/pending-points/{{pendingPointsId}}/activate
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Cancel Member Pending Points
+# @name cancel_member_pending_points
+POST {{voucherengine_base_url}}/v1/loyalties/members/{{memberId}}/pending-points/{{pendingPointsId}}/cancel
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Adjust Member Pending Points
+# @name adjust_member_pending_points
+< {%
+    const body = {
+        "points": {{number of points}} // Add or subtract pending points with a given ID. A negative value subtracts the points.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/members/{{memberId}}/pending-points/{{pendingPointsId}}/balance
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Add Member
+# @name add_member
+< {%
+    const body = {
+        "customer": {
+            "source_id": "{{source_id}}", // A unique identifier of the customer who validates a voucher. It can be a customer ID or email from a CRM system, database, or a third-party service. If you also pass a customer ID (unique ID assigned by Voucherify), the source ID will be ignored.
+            "name": "{{customer_name}}",
+            "email": "{{customer_email}}"
+        },
+        "metadata": { // The metadata object stores all custom attributes assigned to the publication. A set of key/value pairs that you can attach to a publication object. It can be useful for storing additional information about the publication in a structured format.
+            "year": 2024
+        },
+        "channel": "facebook", // Specify the distribution channel.
+        "voucher": "{{voucher_code}}" // Specify the loyalty card code that you would like to publish to a customer. Optional.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/members
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### List Member Activity
+# @name list_member_activity
+GET {{voucherengine_base_url}}/v1/loyalties/members/{{memberId}}/activity
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Member Activity (with campaign ID)
+# @name list_member_activity_with_campaign_id
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaignId}}/members/{{memberId}}/activity
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Add or Remove Loyalty Card Balance - alternative
+# @name add_or_remove_loyalty_card_balance_alternative
+< {%
+    const body = {
+        "points": 100, // Incremental balance to be added to/subtracted from the loyalty card. To add points: 100. To subtract points, add a minus: -100
+        "expiration_type": "CUSTOM_DATE", // Set the type of expiration for added points. PROGRAM_RULES: Inherit rules from campaign. NON_EXPIRING: Points never expire. CUSTOM_DATE: Points expire on a particular date. Requires expiration_date parameter.
+        "expiration_date": "2024-05-30" // Set expiration date for added points, i.e. YYYY-MM-DD. This parameter is required only when expiration_type is set to CUSTOM_DATE.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/members/{{member_id}}/balance
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Add or Remove Loyalty Card Balance
+# @name add_or_remove_loyalty_card_balance
+< {%
+    const body = {
+        "points": 100, // Incremental balance to be added to/subtracted from the loyalty card. To add points: 100. To subtract points, add a minus: -100
+        "expiration_type": "CUSTOM_DATE", // Set the type of expiration for added points. PROGRAM_RULES: Inherit rules from campaign. NON_EXPIRING: Points never expire. CUSTOM_DATE: Points expire on a particular date. Requires expiration_date parameter.
+        "expiration_date": "2024-05-30" // Set expiration date for added points, i.e. YYYY-MM-DD. This parameter is required only when expiration_type is set to CUSTOM_DATE.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/members/{{member_id}}/balance
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Transfer Points
+# @name transfer_points
+< {%
+    const body = [
+        {
+            "code": "{{loyalty_card_code}}", // Unique loyalty card code from which the user wants to transfer loyalty points (source).
+            "points": 25 // The number of loyalty points that the user wants to transfer to another loyalty card. The number of points cannot be higher than the current balance on the loyalty card (source).
+        },
+        {
+            "code": "{{loyalty_card_code}}",
+            "points": 10
+        }
+    ];
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/members/{{member_id}}/transfers
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Estimate Points
+# @name estimate_points
+< {%
+    const body = {  
+        "customer": {  
+            "source_id": "{{source_id}}",  // A unique identifier of the customer who validates a voucher. It can be a customer ID or email from a CRM system, database, or a third-party service. If you also pass a customer ID (unique ID assigned by Voucherify), the source ID will be ignored.
+            "metadata": {  
+                "reason": "loyaltyQualifications"  // The metadata object stores all custom attributes assigned to the customer. A set of key/value pairs that you can attach to a customer object. It can be useful for storing additional information about the customer in a structured format.
+            }  
+        },  
+        "order": {  
+            "id": "{{order_id}}",  // A unique identifier of the order.
+            "metadata": {  
+                "source": "qualifyPoints"  // The metadata object stores all custom attributes assigned to the order. A set of key/value pairs that you can attach to an order object. It can be useful for storing additional information about the order in a structured format.
+            }  
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/qualifications
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### List Loyalty Card Transactions - alternative
+# @name list_loyalty_card_transactions_alternative
+GET {{voucherengine_base_url}}/v1/loyalties/members/{{member_id}}/transactions?limit=100&order={{id}}&starting_after_id={{id}}&filters[created_at][$after]=2024-01-01T00:00:00.000Z
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Loyalty Card Transactions
+# @name list_loyalty_card_transactions
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/members/{{member_id}}/transactions?limit=100&order={{id}}&starting_after_id={{id}}&filters[created_at][$after]=2024-01-01T00:00:00.000Z
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Export Loyalty Card Transactions - alternative
+# @name export_loyalty_card_transactions_alternative
+< {%
+    const body = {
+        "parameters": { // List of available fields and filters that can be exported with an order along with the sorting order of the returned data.
+            "order": "-created_at",
+            "fields": [
+                "id",
+                "type",
+                "source_id",
+                "reason",
+                "balance",
+                "amount",
+                "created_at",
+                "voucher_id",
+                "campaign_id",
+                "details",
+                "related_transaction_id"
+            ]
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/members/{{member_id}}/transactions/export
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Export Loyalty Card Transactions
+# @name export_loyalty_card_transactions
+< {%
+    const body = {
+        "parameters": { // List of available fields and filters that can be exported with an order along with the sorting order of the returned data.
+            "order": "-created_at",
+            "fields": [
+                "id",
+                "type",
+                "source_id",
+                "reason",
+                "balance",
+                "amount",
+                "created_at",
+                "voucher_id",
+                "campaign_id",
+                "details",
+                "related_transaction_id"
+            ]
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/members/{{member_id}}/transactions/export
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Get Points Expiration
+# @name get_points_expiration
+GET {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/members/{{member_id}}/points-expiration?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Member Rewards
+# @name list_member_rewards
+GET {{voucherengine_base_url}}/v1/loyalties/members/{{member_id}}/rewards?affordable_only=true
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Redeem Reward - alternative
+# @name redeem_reward_alternative
+< {%
+    const body = {
+        "reward": { // Contains information about the reward that the customer wants to redeem and the number of points the customer is choosing to use for the reward if the reward is a pay with points reward.
+            "id": "{{reward_id}}", // Unique reward ID assigned by Voucherify. The reward must be assigned to the campaign in order for the user to be able to use the reward.
+            "points": 100 // The number of loyalty points that the user wants to spend in order to fulfill the order. The number of points cannot be higher than the current balance on the loyalty card.
+        },
+        "order": { // Order object that is required when redeeming a pay with points reward.
+            "items": [ // Array of items applied to the order.
+                {
+                    "product_id": "{{product_id}}", // A unique product ID assigned by Voucherify.
+                    "quantity": "1" // The quantity of the particular item in the cart.
+                },
+                {
+                    "product_id": "{{product_id}}",
+                    "quantity": "2"
+                }
+            ]
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/members/{{member_id}}/redemption
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Redeem Reward
+# @name redeem_reward
+< {%
+    const body = {
+        "reward": { // Contains information about the reward that the customer wants to redeem and the number of points the customer is choosing to use for the reward if the reward is a pay with points reward.
+            "id": "{{reward_id}}", // Unique reward ID assigned by Voucherify. The reward must be assigned to the campaign in order for the user to be able to use the reward.
+            "points": 100 // The number of loyalty points that the user wants to spend in order to fulfill the order. The number of points cannot be higher than the current balance on the loyalty card.
+        },
+        "order": { // Order object that is required when redeeming a pay with points reward.
+            "items": [ // Array of items applied to the order.
+                {
+                    "product_id": "{{product_id}}", // A unique product ID assigned by Voucherify.
+                    "quantity": "1" // The quantity of the particular item in the cart.
+                },
+                {
+                    "product_id": "{{product_id}}",
+                    "quantity": "2"
+                }
+            ]
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/loyalties/{{campaign_id}}/members/{{member_id}}/redemption
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### List Member's Loyalty Tiers
+# @name list_member_s_loyalty_tiers
+GET {{voucherengine_base_url}}/v1/loyalties/members/{{member_id}}/tiers
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+

@@ -1,0 +1,242 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+# Voucherengine uses Keycloak bearer tokens plus a tenant header, not X-App-Id/X-App-Token.
+# Run authenticate_tenant for tenant endpoints; use authenticate_manager for /v1/tenants/**.
+run #authenticate_tenant
+
+# NOTE: Some endpoints listed here are not implemented yet and may return 404.
+
+### List Rewards
+# @name list_rewards
+GET {{voucherengine_base_url}}/v1/rewards?limit=100&page=1&assignment_id={{reward_assignment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Reward
+# @name get_reward
+GET {{voucherengine_base_url}}/v1/rewards/{{reward_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Reward - Create a Gift Voucher Reward
+# @name create_reward_create_a_gift_voucher_reward
+< {%
+    const body = {
+        "name": "{{reward_name}}", // Reward name.
+        "type": "CAMPAIGN", // Reward type. Default: CAMPAIGN
+        "metadata": { // The metadata object stores all custom attributes assigned to the reward. A set of key/value pairs that you can attach to a reward object. It can be useful for storing additional information about the reward in a structured format.
+            "type": "gift"
+        },
+        "parameters": { // Configure a reward that adds cash to a gift card. This type of reward is a subset of a Digital (CAMPAIGN) reward.
+            "campaign": {
+                "id": "{{campaign_id}}", // Assign the reward to the campaign that contains the gift cards that will be replenished by the reward. Provide the unique campaign ID, assigned by Voucherify.
+                "balance": 3000 // The incremental amout to be added to the current balance on the gift card. Value is multiplied by 100 to precisely represent 2 decimal places. For example, $100 amount is written as 10000.
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/rewards
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Reward - Create a Discount Code Reward
+# @name create_reward_create_a_discount_code_reward
+< {%
+    const body = {
+        "name": "{{reward_name}}", // Reward name.
+        "type": "CAMPAIGN", // Reward type. Default: CAMPAIGN
+        "metadata": { // The metadata object stores all custom attributes assigned to the reward. A set of key/value pairs that you can attach to a reward object. It can be useful for storing additional information about the reward in a structured format.
+            "type": "Discount Code"
+        },
+        "parameters": { // Provide the source of the rewards. In this case - the ID of the campaign.
+            "campaign": {
+                "id": "{{campaign_id}}" // Assign the reward to the discount campaign.
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/rewards
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Reward - Add points to a Loyalty Card
+# @name create_reward_add_points_to_a_loyalty_card
+< {%
+    const body = {
+        "name": "{{reward_name}}", // Reward name.
+        "type": "CAMPAIGN", // Reward type. Default: CAMPAIGN
+        "metadata": { // The metadata object stores all custom attributes assigned to the reward. A set of key/value pairs that you can attach to a reward object. It can be useful for storing additional information about the reward in a structured format.
+            "type": "Loyalty Card reward"
+        },
+        "parameters": { 
+            "campaign": {
+                "id": "{{campaign_id}}", // Assign the reward to the discount campaign.
+                "balance": 100 // Number of points to add to a Loyalty Card from the campaign.
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/rewards
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Reward - Create a material reward
+# @name create_reward_create_a_material_reward
+< {%
+    const body = {
+        "name": "{{reward_name}}", // Reward name.
+        "type": "MATERIAL", // Reward type.
+        "metadata": { // The metadata object stores all custom attributes assigned to the reward. A set of key/value pairs that you can attach to a reward object. It can be useful for storing additional information about the reward in a structured format.
+            "type": "Material reward"
+        },
+        "parameters": { // Provide the product or SKU that is used as a reward.
+            "product": {
+                "id": "{{product-id}}", // ID of the product.
+                "sku_id": null // SKU ID of the SKU.
+            }
+        },
+        "stock":10 // Number of times the reward can be given.
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/rewards
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Create Reward - Create a Pay with Points Reward
+# @name create_reward_create_a_pay_with_points_reward
+< {%
+    const body = {
+        "name": "{{reward_name}}", // Reward name.
+        "type": "COIN", // Reward type.
+        "metadata": { // The metadata object stores all custom attributes assigned to the reward. A set of key/value pairs that you can attach to a reward object. It can be useful for storing additional information about the reward in a structured format.
+            "type": "Pay with Points reward"
+        },
+        "parameters": { // The following configuration gives the customer a one cent discount for each point.
+            "coint": {
+                "exchange_ratio": 1, // The cash equivalent of the points defined in the points_ratio property.
+                "points_ratio": 1 // The number of loyalty points that will map to the predefined cash amount defined by the exchange_ratio property.
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/rewards
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Reward
+# @name update_reward
+< {%
+    const body = {
+        "name": "{{reward_name}}", // Reward name.
+        "type": "CAMPAIGN", // Reward type. Default: CAMPAIGN
+        "metadata": { // The metadata object stores all custom attributes assigned to the reward. A set of key/value pairs that you can attach to a reward object. It can be useful for storing additional information about the reward in a structured format.
+            "type": "gift"
+        },
+        "parameters": { // Configure a reward that adds cash to a gift card. This type of reward is a subset of a Digital (CAMPAIGN) reward.
+            "campaign": {
+                "id": "{{campaign_id}}", // Assign the reward to the campaign that contains the gift cards that will be replenished by the reward. Provide the unique campaign ID, assigned by Voucherify.
+                "balance": 4000 // The incremental amout to be added to the current balance on the gift card. Value is multiplied by 100 to precisely represent 2 decimal places. For example, $100 amount is written as 10000.
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/rewards/{{reward_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Reward
+# @name delete_reward
+DELETE {{voucherengine_base_url}}/v1/rewards/{{reward_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### List Reward Assignments
+# @name list_reward_assignments
+GET {{voucherengine_base_url}}/v1/rewards/{{reward_id}}/assignments?limit=100&page=1
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Get Reward Assignment
+# @name get_reward_assignment
+GET {{voucherengine_base_url}}/v1/rewards/{{reward_id}}/assignments/{{assignment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+### Create Reward Assignment
+# @name create_reward_assignment
+< {%
+    const body = {
+        "campaign": "{{campaign_id}}", // The campaign ID of the campaign to which the reward is to be assigned.
+        "parameters": { // Defines the cost of the reward.
+            "loyalty": { // Defines the equivalent points value of the reward.
+                "points": 50 // Number of points that will be subtracted from the loyalty card points balance if the reward is redeemed.
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+POST {{voucherengine_base_url}}/v1/rewards/{{reward_id}}/assignments
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Update Reward Assignment
+# @name update_reward_assignment
+< {%
+    const body = {
+        "parameters": { // An object that defines the price of the reward in loyalty points.
+            "loyalty": { // Stores the points parameter.
+                "points": 100 // Defines how many points are required to obtain the reward.
+            }
+        }
+    };
+    request.variables.set("payload", JSON.stringify(body));
+%}
+PUT {{voucherengine_base_url}}/v1/rewards/{{reward_id}}/assignments/{{assignment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{{payload}}
+
+### Delete Reward Assignment
+# @name delete_reward_assignment
+DELETE {{voucherengine_base_url}}/v1/rewards/{{reward_id}}/assignments/{{assignment_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
