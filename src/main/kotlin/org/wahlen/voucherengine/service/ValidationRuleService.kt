@@ -49,9 +49,29 @@ class ValidationRuleService(
     @Transactional(readOnly = true)
     fun listRules(): List<ValidationRuleResponse> = validationRuleRepository.findAll().map(::toResponse)
 
+    @Transactional(readOnly = true)
+    fun listAssignments(): List<ValidationRuleAssignmentResponse> =
+        validationRulesAssignmentRepository.findAll().map(::toAssignmentResponse)
+
+    @Transactional(readOnly = true)
+    fun listAssignmentsForRule(ruleId: UUID): List<ValidationRuleAssignmentResponse> =
+        validationRulesAssignmentRepository.findAll()
+            .filter { it.ruleId == ruleId }
+            .map(::toAssignmentResponse)
+
     @Transactional
     fun deleteRule(id: UUID) {
         validationRuleRepository.findById(id).ifPresent { validationRuleRepository.delete(it) }
+    }
+
+    @Transactional
+    fun deleteAssignment(id: UUID): Boolean {
+        val exists = validationRulesAssignmentRepository.findById(id)
+        if (exists.isPresent) {
+            validationRulesAssignmentRepository.delete(exists.get())
+            return true
+        }
+        return false
     }
 
     @Transactional

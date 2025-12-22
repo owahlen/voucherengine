@@ -53,6 +53,24 @@ class CampaignControllerIntegrationTest @Autowired constructor(
                 .content(voucherBody)
         ).andExpect(status().isCreated)
             .andExpect(jsonPath("$.code").value("BF2026-0001"))
+
+        mockMvc.perform(get("/v1/campaigns/$campaignId/vouchers"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[0].code").value("BF2026-0001"))
+
+        val updateBody = """{ "name": "BF-UPDATED", "type": "DISCOUNT_COUPONS", "mode": "STATIC" }"""
+        mockMvc.perform(
+            put("/v1/campaigns/$campaignId")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateBody)
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.name").value("BF-UPDATED"))
+
+        mockMvc.perform(delete("/v1/campaigns/$campaignId"))
+            .andExpect(status().isNoContent)
+
+        mockMvc.perform(get("/v1/campaigns/$campaignId"))
+            .andExpect(status().isNotFound)
     }
 
     companion object {

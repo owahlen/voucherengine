@@ -6,4 +6,5 @@ import java.util.UUID
 
 interface VoucherRepository : JpaRepository<Voucher, UUID> {
     fun findByCode(code: String): Voucher?
+    fun findAllByCampaignId(campaignId: UUID): List<Voucher>
 }

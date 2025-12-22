@@ -94,6 +94,30 @@ class VoucherController(
     }
 
     @Operation(
+        summary = "Delete voucher",
+        operationId = "deleteVoucher",
+        responses = [
+            ApiResponse(responseCode = "204", description = "Voucher deleted"),
+            ApiResponse(responseCode = "404", description = "Voucher not found")
+        ]
+    )
+    @DeleteMapping("/vouchers/{code}")
+    fun deleteVoucher(@PathVariable code: String): ResponseEntity<Void> {
+        return if (voucherService.deleteVoucher(code)) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
+    }
+
+    @Operation(
+        summary = "List vouchers",
+        operationId = "listVouchers",
+        responses = [
+            ApiResponse(responseCode = "200", description = "List of vouchers")
+        ]
+    )
+    @GetMapping("/vouchers")
+    fun listVouchers(): ResponseEntity<List<VoucherResponse>> =
+        ResponseEntity.ok(voucherService.listVouchers().map { voucherService.toVoucherResponse(it) })
+
+    @Operation(
         summary = "Validate multiple redeemables (stackable discounts)",
         operationId = "validateStack",
         responses = [

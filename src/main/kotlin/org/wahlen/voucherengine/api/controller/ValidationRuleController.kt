@@ -82,6 +82,47 @@ class ValidationRuleController(
     fun listRules(): ResponseEntity<List<ValidationRuleResponse>> = ResponseEntity.ok(validationRuleService.listRules())
 
     @Operation(
+        summary = "List validation rule assignments",
+        operationId = "listValidationRuleAssignments",
+        responses = [
+            ApiResponse(responseCode = "200", description = "List of assignments")
+        ]
+    )
+    @GetMapping("/validation-rules-assignments")
+    fun listAssignments(): ResponseEntity<List<ValidationRuleAssignmentResponse>> =
+        ResponseEntity.ok(validationRuleService.listAssignments())
+
+    @Operation(
+        summary = "List assignments for a rule",
+        operationId = "listValidationRuleAssignmentsByRule",
+        responses = [
+            ApiResponse(responseCode = "200", description = "List of assignments"),
+            ApiResponse(responseCode = "404", description = "Rule not found")
+        ]
+    )
+    @GetMapping("/validation-rules/{id}/assignments")
+    fun listAssignmentsForRule(@PathVariable id: String): ResponseEntity<List<ValidationRuleAssignmentResponse>> {
+        if (validationRuleService.getRule(UUID.fromString(id)) == null) {
+            return ResponseEntity.notFound().build()
+        }
+        return ResponseEntity.ok(validationRuleService.listAssignmentsForRule(UUID.fromString(id)))
+    }
+
+    @Operation(
+        summary = "Delete validation rule assignment",
+        operationId = "deleteValidationRuleAssignment",
+        responses = [
+            ApiResponse(responseCode = "204", description = "Deleted"),
+            ApiResponse(responseCode = "404", description = "Not found")
+        ]
+    )
+    @DeleteMapping("/validation-rules-assignments/{assignmentId}")
+    fun deleteAssignment(@PathVariable assignmentId: String): ResponseEntity<Void> {
+        val deleted = validationRuleService.deleteAssignment(UUID.fromString(assignmentId))
+        return if (deleted) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
+    }
+
+    @Operation(
         summary = "Delete validation rule",
         operationId = "deleteValidationRule",
         responses = [

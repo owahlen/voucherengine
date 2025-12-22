@@ -76,6 +76,22 @@ class ValidationRuleControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(get("/v1/validation-rules"))
             .andExpect(status().isOk)
 
+        mockMvc.perform(get("/v1/validation-rules-assignments"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[0].rule_id").value(createdId))
+
+        mockMvc.perform(get("/v1/validation-rules/$createdId/assignments"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[0].related_object_id").value("TEST"))
+
+        val assignmentId = objectMapper.readTree(
+            mockMvc.perform(get("/v1/validation-rules-assignments"))
+                .andReturn().response.contentAsString
+        ).first().get("id").asText()
+
+        mockMvc.perform(delete("/v1/validation-rules-assignments/$assignmentId"))
+            .andExpect(status().isNoContent)
+
         // delete rule
         mockMvc.perform(delete("/v1/validation-rules/$createdId"))
             .andExpect(status().isNoContent)

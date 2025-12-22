@@ -76,6 +76,44 @@ class CampaignController(
     }
 
     @Operation(
+        summary = "Update campaign",
+        operationId = "updateCampaign",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Campaign updated"),
+            ApiResponse(responseCode = "404", description = "Not found")
+        ]
+    )
+    @PutMapping("/campaigns/{id}")
+    fun updateCampaign(@PathVariable id: UUID, @Valid @RequestBody body: CampaignCreateRequest): ResponseEntity<CampaignResponse> {
+        val campaign = campaignRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
+        campaign.name = body.name ?: campaign.name
+        campaign.type = body.type ?: campaign.type
+        campaign.mode = body.mode ?: campaign.mode
+        campaign.description = body.description ?: campaign.description
+        campaign.codePattern = body.code_pattern ?: campaign.codePattern
+        campaign.startDate = body.start_date ?: campaign.startDate
+        campaign.expirationDate = body.expiration_date ?: campaign.expirationDate
+        campaign.metadata = body.metadata ?: campaign.metadata
+        campaign.active = body.active ?: campaign.active
+        return ResponseEntity.ok(toResponse(campaignRepository.save(campaign)))
+    }
+
+    @Operation(
+        summary = "Delete campaign",
+        operationId = "deleteCampaign",
+        responses = [
+            ApiResponse(responseCode = "204", description = "Deleted"),
+            ApiResponse(responseCode = "404", description = "Not found")
+        ]
+    )
+    @DeleteMapping("/campaigns/{id}")
+    fun deleteCampaign(@PathVariable id: UUID): ResponseEntity<Void> {
+        val campaign = campaignRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
+        campaignRepository.delete(campaign)
+        return ResponseEntity.noContent().build()
+    }
+
+    @Operation(
         summary = "Create voucher within a campaign",
         operationId = "createCampaignVoucher",
         responses = [
@@ -92,6 +130,21 @@ class CampaignController(
         val campaign = campaignRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
         val voucher = voucherService.createVoucher(body.copy(campaign_id = campaign.id))
         return ResponseEntity.status(HttpStatus.CREATED).body(voucherService.toVoucherResponse(voucher))
+    }
+
+    @Operation(
+        summary = "List vouchers in campaign",
+        operationId = "listCampaignVouchers",
+        responses = [
+            ApiResponse(responseCode = "200", description = "List of vouchers for the campaign"),
+            ApiResponse(responseCode = "404", description = "Campaign not found")
+        ]
+    )
+    @GetMapping("/campaigns/{id}/vouchers")
+    fun listCampaignVouchers(@PathVariable id: UUID): ResponseEntity<List<VoucherResponse>> {
+        val campaign = campaignRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
+        val vouchers = voucherService.listVouchersByCampaign(campaign.id!!)
+        return ResponseEntity.ok(vouchers.map { voucherService.toVoucherResponse(it) })
     }
 
     private fun toResponse(campaign: Campaign) = CampaignResponse(

@@ -18,6 +18,7 @@ import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 import org.wahlen.voucherengine.persistence.model.voucher.VoucherType
 import org.wahlen.voucherengine.persistence.repository.CampaignRepository
 import org.wahlen.voucherengine.persistence.repository.RedemptionRepository
+import org.wahlen.voucherengine.persistence.repository.RedemptionRollbackRepository
 import org.wahlen.voucherengine.persistence.repository.CategoryRepository
 import org.wahlen.voucherengine.persistence.repository.VoucherRepository
 import org.wahlen.voucherengine.persistence.repository.ValidationRulesAssignmentRepository
@@ -45,6 +46,7 @@ class VoucherService(
     private val campaignRepository: CampaignRepository,
     private val validationRulesAssignmentRepository: ValidationRulesAssignmentRepository,
     private val validationRuleRepository: ValidationRuleRepository,
+    private val redemptionRollbackRepository: RedemptionRollbackRepository,
     private val clock: Clock,
 ) {
 
@@ -246,6 +248,20 @@ class VoucherService(
             updated_at = voucher.updatedAt
         )
 
+    @Transactional(readOnly = true)
+    fun listVouchers(): List<Voucher> = voucherRepository.findAll()
+
+    @Transactional(readOnly = true)
+    fun listVouchersByCampaign(campaignId: UUID): List<Voucher> =
+        voucherRepository.findAllByCampaignId(campaignId)
+
+    @Transactional
+    fun deleteVoucher(code: String): Boolean {
+        val existing = voucherRepository.findByCode(code) ?: return false
+        voucherRepository.delete(existing)
+        return true
+    }
+
     private fun generateAssetsIfMissing(voucher: Voucher) {
         val code = voucher.code ?: return
         val assets = voucher.assets ?: org.wahlen.voucherengine.persistence.model.voucher.VoucherAssetsEmbeddable()
@@ -406,6 +422,24 @@ class VoucherService(
             }
         }
         return null
+    }
+
+    @Transactional
+    fun rollbackRedemption(redemptionId: UUID, request: org.wahlen.voucherengine.api.dto.request.RollbackRequest): org.wahlen.voucherengine.persistence.model.redemption.RedemptionRollback? {
+        val redemption = redemptionRepository.findById(redemptionId).orElse(null) ?: return null
+        val rollback = org.wahlen.voucherengine.persistence.model.redemption.RedemptionRollback(
+            date = Instant.now(clock),
+            trackingId = request.reason,
+            metadata = request.metadata,
+            amount = request.amount,
+            result = RedemptionResult.SUCCESS,
+            reason = request.reason,
+            redemptionId = redemption.id,
+            redemption = redemption,
+            customer = redemption.customer,
+            customerId = redemption.customer?.id
+        )
+        return redemptionRollbackRepository.save(rollback)
     }
 
     private fun ensureCategories(voucher: Voucher, categoryIds: List<UUID>?): ValidationResponse? {
