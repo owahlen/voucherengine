@@ -67,7 +67,7 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
 
         mockMvc.perform(get("/v1/redemptions").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$[0].id").exists())
+            .andExpect(jsonPath("$.redemptions[0].id").exists())
 
         mockMvc.perform(get("/v1/redemptions/$redemptionId").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)

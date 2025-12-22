@@ -1,6 +1,7 @@
 package org.wahlen.voucherengine.api.controller
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import jakarta.validation.Valid
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.ProductCreateRequest
 import org.wahlen.voucherengine.api.dto.request.SkuCreateRequest
@@ -62,12 +64,23 @@ class ProductController(
         ]
     )
     @GetMapping("/products")
-    fun listProducts(@RequestHeader("tenant") tenant: String): ResponseEntity<ProductsListResponse> {
-        val products = productService.list(tenant)
+    fun listProducts(
+        @RequestHeader("tenant") tenant: String,
+        @Parameter(description = "Max number of items per page", example = "10")
+        @RequestParam(required = false, defaultValue = "10") limit: Int,
+        @Parameter(description = "1-based page index", example = "1")
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @Parameter(description = "Sort field, prefix with '-' for descending", example = "-created_at")
+        @RequestParam(required = false, defaultValue = "created_at") order: String
+    ): ResponseEntity<ProductsListResponse> {
+        val sort = parseSort(order, mapOf("created_at" to "createdAt", "updated_at" to "updatedAt", "name" to "name"), "created_at")
+        val cappedLimit = limit.coerceIn(1, 100)
+        val pageable = org.springframework.data.domain.PageRequest.of((page - 1).coerceAtLeast(0), cappedLimit, sort)
+        val productsPage = productService.list(tenant, pageable)
         return ResponseEntity.ok(
             ProductsListResponse(
-                products = products,
-                total = products.size
+                products = productsPage.content,
+                total = productsPage.totalElements.toInt()
             )
         )
     }

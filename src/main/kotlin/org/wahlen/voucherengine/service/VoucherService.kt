@@ -1,5 +1,7 @@
 package org.wahlen.voucherengine.service
 
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.common.DiscountDto
@@ -125,7 +127,19 @@ class VoucherService(
     fun getByCode(tenantName: String, code: String): Voucher? = voucherRepository.findByCodeAndTenantName(code, tenantName)
 
     @Transactional(readOnly = true)
-    fun validateVoucher(tenantName: String, code: String, request: VoucherValidationRequest): ValidationResponse {
+    fun validateVoucher(tenantName: String, code: String, request: VoucherValidationRequest): ValidationResponse =
+        validateVoucherInternal(tenantName, code, request, skipPerCustomerLimit = false)
+
+    @Transactional(readOnly = true)
+    fun validateVoucherForQualification(tenantName: String, code: String, request: VoucherValidationRequest): ValidationResponse =
+        validateVoucherInternal(tenantName, code, request, skipPerCustomerLimit = true)
+
+    private fun validateVoucherInternal(
+        tenantName: String,
+        code: String,
+        request: VoucherValidationRequest,
+        skipPerCustomerLimit: Boolean
+    ): ValidationResponse {
         val voucher = voucherRepository.findByCodeAndTenantName(code, tenantName)
             ?: return ValidationResponse(false, error = ErrorResponse("voucher_not_found", "Voucher does not exist."))
 
@@ -136,7 +150,7 @@ class VoucherService(
         ensureOwnership(voucher, customer)?.let { return it }
 
         val totalRedemptions = voucher.id?.let { redemptionRepository.countByVoucherIdAndTenantName(it, tenantName).toInt() } ?: 0
-        val perCustomerLimit = voucher.redemptionJson?.per_customer
+        val perCustomerLimit = if (skipPerCustomerLimit) null else voucher.redemptionJson?.per_customer
         val quantityLimit = voucher.redemptionJson?.quantity
 
         ensureLimits(tenantName, perCustomerLimit, quantityLimit, totalRedemptions, voucher, customer)?.let { return it }
@@ -258,7 +272,8 @@ class VoucherService(
     )
 
     @Transactional(readOnly = true)
-    fun listVouchers(tenantName: String): List<Voucher> = voucherRepository.findAllByTenantName(tenantName)
+    fun listVouchers(tenantName: String, pageable: Pageable): Page<Voucher> =
+        voucherRepository.findAllByTenantName(tenantName, pageable)
 
     @Transactional(readOnly = true)
     fun listVouchersByCampaign(tenantName: String, campaignId: UUID): List<Voucher> =

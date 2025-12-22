@@ -109,6 +109,11 @@ This document explains how **Products** and **SKUs** are stored in Voucherify an
 - Core transactional data should be append-only
 - Order items are immutable snapshots with soft references to `product_id` / `sku_id`
 
+### Response fields (high level)
+- List responses return an envelope with `object`, `data_ref`, `orders`, and `total`
+- Order responses include `items_discount_amount`, `total_discount_amount`, and `total_amount`
+- Order items expose calculated values (`amount`, `discount_amount`, `subtotal_amount`) plus snapshots (`product`, `sku`)
+
 ### Deletion
 - Supported but discouraged in production
 - No cascade deletes
@@ -160,6 +165,41 @@ Deleting a constraint may break future validations, but never rewrites historica
 - They are **not** audit records like Orders
 - Deleting a product cascades to its SKUs; deleting a SKU does not cascade
 - Deleting them can affect future voucher validation
+
+---
+
+## Product collections
+
+**Endpoint**
+```
+/v1/product-collections
+```
+
+### What they represent
+- Named sets of products and/or SKUs
+- Used for rules and segmentation
+
+### Types
+- `STATIC`: explicit list of products/SKUs
+- `AUTO_UPDATE`: stored filter definition (no automatic evaluation yet)
+
+### Notes
+- Collections are tenant-scoped
+- Listing collection products returns a mix of product and SKU objects
+
+---
+
+## Pagination & sorting
+
+List endpoints support:
+- `limit`: page size (default 10)
+- `page`: 1-based page index (default 1)
+- `order`: sort field, prefix with `-` for descending
+
+Applied to:
+- `/v1/products`
+- `/v1/orders`
+- `/v1/product-collections`
 
 ---
 

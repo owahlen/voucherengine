@@ -51,7 +51,7 @@ class VoucherListControllerIntegrationTest @Autowired constructor(
 
         mockMvc.perform(get("/v1/vouchers").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$[0].code").exists())
+            .andExpect(jsonPath("$.vouchers[0].code").exists())
 
         mockMvc.perform(delete("/v1/vouchers/LIST-001").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNoContent)

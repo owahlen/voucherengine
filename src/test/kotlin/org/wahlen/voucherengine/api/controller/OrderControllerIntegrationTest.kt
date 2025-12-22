@@ -60,10 +60,11 @@ class OrderControllerIntegrationTest @Autowired constructor(
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.source_id").value("order-1"))
             .andExpect(jsonPath("$.customer_id").exists())
+            .andExpect(jsonPath("$.customer.object").value("customer"))
 
         mockMvc.perform(get("/v1/orders").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$[0].source_id").value("order-1"))
+            .andExpect(jsonPath("$.orders[0].source_id").value("order-1"))
 
         mockMvc.perform(get("/v1/orders/order-1").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
@@ -104,5 +105,37 @@ class OrderControllerIntegrationTest @Autowired constructor(
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}")
         ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `lists orders with pagination`() {
+        val firstOrder = """
+            { "source_id": "order-a", "status": "PAID", "amount": 500 }
+        """.trimIndent()
+        val secondOrder = """
+            { "source_id": "order-b", "status": "PAID", "amount": 700 }
+        """.trimIndent()
+        mockMvc.perform(
+            post("/v1/orders")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(firstOrder)
+        ).andExpect(status().isCreated)
+        mockMvc.perform(
+            post("/v1/orders")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(secondOrder)
+        ).andExpect(status().isCreated)
+
+        mockMvc.perform(
+            get("/v1/orders?limit=1&page=1&order=created_at")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.total").value(2))
+            .andExpect(jsonPath("$.orders.length()").value(1))
     }
 }

@@ -1,0 +1,95 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1766416000000-5
+      author: codex
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_product_collection
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+              - column:
+                  name: type
+                  type: VARCHAR(50)
+              - column:
+                  name: filter
+                  type: jsonb
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: product_collection
+        - addUniqueConstraint:
+            columnNames: tenant_id, name
+            constraintName: uc_product_collection_tenant_name
+            tableName: product_collection
+        - addForeignKeyConstraint:
+            baseTableName: product_collection
+            baseColumnNames: tenant_id
+            constraintName: FK_PRODUCT_COLLECTION_ON_TENANT
+            referencedTableName: tenant
+            referencedColumnNames: id
+
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_product_collection_item
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  name: item_id
+                  type: VARCHAR(255)
+              - column:
+                  name: product_id
+                  type: VARCHAR(255)
+              - column:
+                  name: object_type
+                  type: VARCHAR(50)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: product_collection_id
+                  type: UUID
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: product_collection_item
+        - addForeignKeyConstraint:
+            baseTableName: product_collection_item
+            baseColumnNames: product_collection_id
+            constraintName: FK_PRODUCT_COLLECTION_ITEM_ON_COLLECTION
+            referencedTableName: product_collection
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: product_collection_item
+            baseColumnNames: tenant_id
+            constraintName: FK_PRODUCT_COLLECTION_ITEM_ON_TENANT
+            referencedTableName: tenant
+            referencedColumnNames: id

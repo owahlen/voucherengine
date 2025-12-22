@@ -1,5 +1,7 @@
 package org.wahlen.voucherengine.service
 
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.CustomerCreateRequest
@@ -31,7 +33,8 @@ class CustomerService(
     }
 
     @Transactional(readOnly = true)
-    fun list(tenantName: String): List<Customer> = customerRepository.findAllByTenantName(tenantName)
+    fun list(tenantName: String, pageable: Pageable): Page<Customer> =
+        customerRepository.findAllByTenantName(tenantName, pageable)
 
     @Transactional(readOnly = true)
     fun getByIdOrSource(tenantName: String, idOrSource: String): Customer? {

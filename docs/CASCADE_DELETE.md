@@ -154,6 +154,20 @@ This document describes the **cascade-delete behavior for the main Voucherify ob
 
 ---
 
+### 🧺 Product Collection
+
+**DELETE** `/v1/product-collections/{id}`
+
+**Cascade effects**
+
+✅ Collection items  
+❌ Products, SKUs, Orders, Vouchers  
+
+**Notes**
+- Deleting a collection only removes the collection definition
+
+---
+
 ## Practical guidance
 
 ### When to delete a voucher

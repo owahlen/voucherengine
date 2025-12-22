@@ -1,6 +1,7 @@
 package org.wahlen.voucherengine.api.controller
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import jakarta.validation.Valid
@@ -13,9 +14,11 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.RollbackRequest
 import org.wahlen.voucherengine.api.dto.response.RedemptionDetailResponse
+import org.wahlen.voucherengine.api.dto.response.RedemptionsListResponse
 import org.wahlen.voucherengine.api.dto.response.RedemptionRollbackResponse
 import org.wahlen.voucherengine.service.RedemptionService
 import org.wahlen.voucherengine.service.VoucherService
@@ -41,19 +44,42 @@ class RedemptionController(
         responses = [ApiResponse(responseCode = "200", description = "List of redemptions")]
     )
     @GetMapping("/redemptions")
-    fun listRedemptions(@RequestHeader("tenant") tenant: String): ResponseEntity<List<RedemptionDetailResponse>> =
-        ResponseEntity.ok(
-            redemptionService.list(tenant).map {
-                RedemptionDetailResponse(
-                    id = it.id,
-                    voucher_code = it.voucher?.code,
-                    customer_id = it.customer?.id,
-                    amount = it.amount,
-                    status = it.status?.name,
-                    created_at = it.createdAt
-                )
-            }
+    fun listRedemptions(
+        @RequestHeader("tenant") tenant: String,
+        @Parameter(description = "Max number of items per page", example = "10")
+        @RequestParam(required = false, defaultValue = "10") limit: Int,
+        @Parameter(description = "1-based page index", example = "1")
+        @RequestParam(required = false, defaultValue = "1") page: Int
+    ): ResponseEntity<RedemptionsListResponse> {
+        if (page > 99) {
+            throw org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST,
+                "page_over_limit"
+            )
+        }
+        val cappedLimit = limit.coerceIn(1, 100)
+        val pageable = org.springframework.data.domain.PageRequest.of(
+            (page - 1).coerceAtLeast(0),
+            cappedLimit,
+            org.springframework.data.domain.Sort.by("createdAt").descending()
         )
+        val redemptions = redemptionService.list(tenant, pageable).map {
+            RedemptionDetailResponse(
+                id = it.id,
+                voucher_code = it.voucher?.code,
+                customer_id = it.customer?.id,
+                amount = it.amount,
+                status = it.status?.name,
+                created_at = it.createdAt
+            )
+        }
+        return ResponseEntity.ok(
+            RedemptionsListResponse(
+                redemptions = redemptions.content,
+                total = redemptions.totalElements.toInt()
+            )
+        )
+    }
 
     @Operation(
         summary = "Get redemption by id",

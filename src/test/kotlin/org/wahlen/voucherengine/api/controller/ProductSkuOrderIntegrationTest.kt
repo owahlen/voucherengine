@@ -166,6 +166,9 @@ class ProductSkuOrderIntegrationTest @Autowired constructor(
         ).andExpect(status().isCreated)
             .andExpect(jsonPath("$.items[0].product_id").value("prod-starter"))
             .andExpect(jsonPath("$.items[0].sku_id").value("sku-starter-monthly"))
+            .andExpect(jsonPath("$.items[0].amount").value(5000))
+            .andExpect(jsonPath("$.items[0].subtotal_amount").value(5000))
+            .andExpect(jsonPath("$.items[0].object").value("order_item"))
 
         mockMvc.perform(
             delete("/v1/products/prod-starter")
@@ -180,5 +183,33 @@ class ProductSkuOrderIntegrationTest @Autowired constructor(
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.items[0].product_id").value("prod-starter"))
             .andExpect(jsonPath("$.items[0].sku_id").value("sku-starter-monthly"))
+    }
+
+    @Test
+    fun `lists products with pagination`() {
+        val firstProduct = """{ "name": "First", "source_id": "prod-first", "price": 1000 }"""
+        val secondProduct = """{ "name": "Second", "source_id": "prod-second", "price": 2000 }"""
+        mockMvc.perform(
+            post("/v1/products")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(firstProduct)
+        ).andExpect(status().isCreated)
+        mockMvc.perform(
+            post("/v1/products")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(secondProduct)
+        ).andExpect(status().isCreated)
+
+        mockMvc.perform(
+            get("/v1/products?limit=1&page=1&order=created_at")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.total").value(2))
+            .andExpect(jsonPath("$.products.length()").value(1))
     }
 }

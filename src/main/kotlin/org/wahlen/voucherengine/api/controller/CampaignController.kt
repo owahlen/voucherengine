@@ -1,6 +1,7 @@
 package org.wahlen.voucherengine.api.controller
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import jakarta.validation.Valid
@@ -10,6 +11,7 @@ import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import org.wahlen.voucherengine.api.dto.request.CampaignCreateRequest
 import org.wahlen.voucherengine.api.dto.request.VoucherCreateRequest
+import org.wahlen.voucherengine.api.dto.response.CampaignsListResponse
 import org.wahlen.voucherengine.api.dto.response.CampaignResponse
 import org.wahlen.voucherengine.api.dto.response.VoucherResponse
 import org.wahlen.voucherengine.persistence.model.campaign.Campaign
@@ -56,8 +58,27 @@ class CampaignController(
         ]
     )
     @GetMapping("/campaigns")
-    fun listCampaigns(@RequestHeader("tenant") tenant: String): ResponseEntity<List<CampaignResponse>> =
-        ResponseEntity.ok(campaignService.list(tenant).map(::toResponse))
+    fun listCampaigns(
+        @RequestHeader("tenant") tenant: String,
+        @Parameter(description = "Max number of items per page", example = "10")
+        @RequestParam(required = false, defaultValue = "10") limit: Int,
+        @Parameter(description = "1-based page index", example = "1")
+        @RequestParam(required = false, defaultValue = "1") page: Int
+    ): ResponseEntity<CampaignsListResponse> {
+        val cappedLimit = limit.coerceIn(1, 100)
+        val pageable = org.springframework.data.domain.PageRequest.of(
+            (page - 1).coerceAtLeast(0),
+            cappedLimit,
+            org.springframework.data.domain.Sort.by("createdAt").descending()
+        )
+        val campaigns = campaignService.list(tenant, pageable)
+        return ResponseEntity.ok(
+            CampaignsListResponse(
+                campaigns = campaigns.content.map(::toResponse),
+                total = campaigns.totalElements.toInt()
+            )
+        )
+    }
 
     @Operation(
         summary = "Get campaign",

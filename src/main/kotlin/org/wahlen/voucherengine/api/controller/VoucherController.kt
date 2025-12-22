@@ -1,6 +1,7 @@
 package org.wahlen.voucherengine.api.controller
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import jakarta.validation.Valid
@@ -11,6 +12,7 @@ import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import org.wahlen.voucherengine.api.dto.request.*
 import org.wahlen.voucherengine.api.dto.response.VoucherResponse
+import org.wahlen.voucherengine.api.dto.response.VouchersListResponse
 import org.wahlen.voucherengine.api.dto.response.VoucherAssetsDto
 import org.wahlen.voucherengine.api.dto.response.AssetDto
 import org.wahlen.voucherengine.service.VoucherService
@@ -132,8 +134,27 @@ class VoucherController(
         ]
     )
     @GetMapping("/vouchers")
-    fun listVouchers(@RequestHeader("tenant") tenant: String): ResponseEntity<List<VoucherResponse>> =
-        ResponseEntity.ok(voucherService.listVouchers(tenant).map { voucherService.toVoucherResponse(it) })
+    fun listVouchers(
+        @RequestHeader("tenant") tenant: String,
+        @Parameter(description = "Max number of items per page", example = "10")
+        @RequestParam(required = false, defaultValue = "10") limit: Int,
+        @Parameter(description = "1-based page index", example = "1")
+        @RequestParam(required = false, defaultValue = "1") page: Int
+    ): ResponseEntity<VouchersListResponse> {
+        val cappedLimit = limit.coerceIn(1, 100)
+        val pageable = org.springframework.data.domain.PageRequest.of(
+            (page - 1).coerceAtLeast(0),
+            cappedLimit,
+            org.springframework.data.domain.Sort.by("createdAt").descending()
+        )
+        val vouchers = voucherService.listVouchers(tenant, pageable)
+        return ResponseEntity.ok(
+            VouchersListResponse(
+                vouchers = vouchers.content.map { voucherService.toVoucherResponse(it) },
+                total = vouchers.totalElements.toInt()
+            )
+        )
+    }
 
     @Operation(
         summary = "Validate multiple redeemables (stackable discounts)",

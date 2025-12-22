@@ -1,5 +1,7 @@
 package org.wahlen.voucherengine.service
 
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.ProductCreateRequest
@@ -33,8 +35,9 @@ class ProductService(
     }
 
     @Transactional(readOnly = true)
-    fun list(tenantName: String): List<ProductResponse> =
-        productRepository.findAllByTenantName(tenantName).map { toResponse(it, tenantName, includeSkus = false) }
+    fun list(tenantName: String, pageable: Pageable): Page<ProductResponse> =
+        productRepository.findAllByTenantName(tenantName, pageable)
+            .map { toResponse(it, tenantName, includeSkus = false) }
 
     @Transactional(readOnly = true)
     fun getByIdOrSource(tenantName: String, idOrSource: String): ProductResponse? =
