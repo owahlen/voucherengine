@@ -12,7 +12,9 @@ Publications
 Qualifications
 Validations
 Redemptions
+Exports
 Vouchers
+Vouchers (Operations)
 Campaigns
 Promotions
 Templates

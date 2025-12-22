@@ -15,11 +15,12 @@ import org.wahlen.voucherengine.api.dto.response.VoucherResponse
 import org.wahlen.voucherengine.api.dto.response.VouchersListResponse
 import org.wahlen.voucherengine.api.dto.response.VoucherAssetsDto
 import org.wahlen.voucherengine.api.dto.response.AssetDto
+import org.wahlen.voucherengine.api.dto.response.ValidationsValidateResponse
+import org.wahlen.voucherengine.api.dto.response.RedemptionsRedeemResponse
 import org.wahlen.voucherengine.service.VoucherService
-import org.wahlen.voucherengine.service.dto.ErrorResponse
-import org.wahlen.voucherengine.service.dto.RedemptionResponse
 import org.wahlen.voucherengine.service.dto.ValidationResponse
-import org.wahlen.voucherengine.service.dto.ValidationStackResponse
+import org.wahlen.voucherengine.service.ValidationStackService
+import org.wahlen.voucherengine.service.RedemptionStackService
 import org.wahlen.voucherengine.service.QrCodeService
 import org.wahlen.voucherengine.service.BarcodeService
 
@@ -35,7 +36,9 @@ import org.wahlen.voucherengine.service.BarcodeService
 class VoucherController(
     private val voucherService: VoucherService,
     private val qrCodeService: QrCodeService,
-    private val barcodeService: BarcodeService
+    private val barcodeService: BarcodeService,
+    private val validationStackService: ValidationStackService,
+    private val redemptionStackService: RedemptionStackService
 ) {
 
     @Operation(
@@ -111,6 +114,40 @@ class VoucherController(
     }
 
     @Operation(
+        summary = "Enable voucher",
+        operationId = "enableVoucher",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Voucher enabled"),
+            ApiResponse(responseCode = "404", description = "Voucher not found")
+        ]
+    )
+    @PostMapping("/vouchers/{code}/enable")
+    fun enableVoucher(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String
+    ): ResponseEntity<VoucherResponse> {
+        val updated = voucherService.setVoucherActive(tenant, code, true) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(voucherService.toVoucherResponse(updated))
+    }
+
+    @Operation(
+        summary = "Disable voucher",
+        operationId = "disableVoucher",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Voucher disabled"),
+            ApiResponse(responseCode = "404", description = "Voucher not found")
+        ]
+    )
+    @PostMapping("/vouchers/{code}/disable")
+    fun disableVoucher(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String
+    ): ResponseEntity<VoucherResponse> {
+        val updated = voucherService.setVoucherActive(tenant, code, false) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(voucherService.toVoucherResponse(updated))
+    }
+
+    @Operation(
         summary = "Delete voucher",
         operationId = "deleteVoucher",
         responses = [
@@ -168,23 +205,9 @@ class VoucherController(
     fun validateStack(
         @RequestHeader("tenant") tenant: String,
         @Valid @RequestBody body: ValidationStackRequest
-    ): ResponseEntity<ValidationStackResponse> {
-        val responses = body.redeemables.map { redeemable ->
-            if (redeemable.`object` != "voucher") {
-                ValidationResponse(
-                    valid = false,
-                    error = ErrorResponse("unsupported_redeemable", "Only vouchers are supported in the stack validation")
-                )
-            } else {
-                voucherService.validateVoucher(
-                    tenant,
-                    redeemable.id,
-                    VoucherValidationRequest(customer = body.customer, order = body.order)
-                )
-            }
-        }
-        val status = if (responses.all { it.valid }) HttpStatus.OK else HttpStatus.BAD_REQUEST
-        return ResponseEntity.status(status).body(ValidationStackResponse(responses))
+    ): ResponseEntity<ValidationsValidateResponse> {
+        val response = validationStackService.validate(tenant, body)
+        return ResponseEntity.ok(response)
     }
 
     @Operation(
@@ -200,10 +223,9 @@ class VoucherController(
     fun redeem(
         @RequestHeader("tenant") tenant: String,
         @Valid @RequestBody body: RedemptionRequest
-    ): ResponseEntity<RedemptionResponse> {
-        val result = voucherService.redeem(tenant, body)
-        val status = if (result.error == null) HttpStatus.OK else HttpStatus.BAD_REQUEST
-        return ResponseEntity.status(status).body(result)
+    ): ResponseEntity<RedemptionsRedeemResponse> {
+        val response = redemptionStackService.redeem(tenant, body)
+        return ResponseEntity.ok(response)
     }
 
     @Operation(

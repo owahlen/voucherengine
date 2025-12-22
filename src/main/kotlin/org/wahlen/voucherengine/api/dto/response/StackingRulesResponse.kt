@@ -30,5 +30,7 @@ data class StackingRulesResponse(
     @field:Schema(description = "No effect skip categories")
     val no_effect_skip_categories: List<String>? = null,
     @field:Schema(description = "No effect redeem anyway categories")
-    val no_effect_redeem_anyway_categories: List<String>? = null
+    val no_effect_redeem_anyway_categories: List<String>? = null,
+    @field:Schema(description = "Redeemables rollback order mode")
+    val redeemables_rollback_order_mode: String? = null
 )

@@ -123,6 +123,13 @@ class VoucherService(
         return voucherRepository.save(existing)
     }
 
+    @Transactional
+    fun setVoucherActive(tenantName: String, code: String, active: Boolean): Voucher? {
+        val existing = voucherRepository.findByCodeAndTenantName(code, tenantName) ?: return null
+        existing.active = active
+        return voucherRepository.save(existing)
+    }
+
     @Transactional(readOnly = true)
     fun getByCode(tenantName: String, code: String): Voucher? = voucherRepository.findByCodeAndTenantName(code, tenantName)
 
@@ -212,21 +219,52 @@ class VoucherService(
         if (redeemable.`object` != "voucher") {
             return RedemptionResponse("failure", error = ErrorResponse("unsupported_redeemable", "Only vouchers are supported"))
         }
-        val voucher = voucherRepository.findByCodeAndTenantName(redeemable.id, tenantName)
-            ?: return RedemptionResponse("failure", error = ErrorResponse("voucher_not_found", "Voucher does not exist."))
+        val result = redeemSingle(
+            tenantName,
+            redeemable.id,
+            request.customer,
+            request.order,
+            request.tracking_id,
+            request.metadata
+        )
+        return if (result.error != null) {
+            RedemptionResponse("failure", error = result.error)
+        } else {
+            RedemptionResponse("success", redemptionId = result.redemption?.id)
+        }
+    }
 
-        val validation = validateVoucher(tenantName, voucher.code ?: redeemable.id, VoucherValidationRequest(request.customer, request.order))
+    @Transactional
+    fun redeemSingle(
+        tenantName: String,
+        code: String,
+        customerRef: CustomerReferenceDto?,
+        order: OrderRequest?,
+        trackingId: String?,
+        metadata: Map<String, Any?>?
+    ): RedeemSingleResult {
+        val voucher = voucherRepository.findByCodeAndTenantName(code, tenantName)
+            ?: return RedeemSingleResult(error = ErrorResponse("voucher_not_found", "Voucher does not exist."))
+
+        val validation = validateVoucher(
+            tenantName,
+            voucher.code ?: code,
+            VoucherValidationRequest(customer = customerRef, order = order, metadata = metadata)
+        )
         if (!validation.valid) {
-            return RedemptionResponse("failure", error = validation.error)
+            return RedeemSingleResult(error = validation.error ?: ErrorResponse("invalid_request", "Validation failed."))
         }
 
         val tenant = tenantService.requireTenant(tenantName)
-        val customer = customerService.ensureCustomer(tenantName, request.customer)
+        val customer = customerService.ensureCustomer(tenantName, customerRef)
+        val hashedTrackingId = trackingId?.let(::hashTrackingId) ?: customerRef?.source_id?.let(::hashTrackingId)
 
         val redemption = Redemption(
+            trackingId = hashedTrackingId,
+            metadata = metadata,
             voucher = voucher,
             customer = customer,
-            amount = request.order?.amount,
+            amount = order?.amount,
             result = RedemptionResult.SUCCESS,
             status = RedemptionStatus.SUCCEEDED
         )
@@ -239,9 +277,13 @@ class VoucherService(
             voucher.redemptionJson = redemptionJson.copy(redeemed_quantity = current + 1)
             voucherRepository.save(voucher)
         }
-
-        return RedemptionResponse("success", redemptionId = saved.id)
+        return RedeemSingleResult(redemption = saved)
     }
+
+    data class RedeemSingleResult(
+        val redemption: Redemption? = null,
+        val error: ErrorResponse? = null
+    )
 
     private fun calculateDiscountAmount(voucher: Voucher, orderAmount: Long?, orderUnits: Int?): Long? {
         val discount = voucher.discountJson ?: return null
@@ -394,7 +436,11 @@ class VoucherService(
                 allowedRulePrefixes
             )
             if (!ok) {
-                return ValidationResponse(false, error = buildRuleError(rule, "rule_failed", "Validation rule not satisfied."))
+                return ValidationResponse(
+                    valid = false,
+                    error = buildRuleError(rule, "rule_failed", "Validation rule not satisfied."),
+                    validationRuleId = rule.id?.toString()
+                )
             }
         }
         return null
@@ -465,6 +511,12 @@ class VoucherService(
         val code = (errorMap?.get("code") as? String) ?: defaultCode
         val message = (errorMap?.get("message") as? String) ?: defaultMessage
         return ErrorResponse(code, message)
+    }
+
+    private fun hashTrackingId(source: String): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        val bytes = digest.digest(source.toByteArray(Charsets.UTF_8))
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 
     private fun ensureActiveWindow(voucher: Voucher, now: Instant): ValidationResponse? {

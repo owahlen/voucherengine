@@ -75,6 +75,6 @@ class VoucherE2ETest @Autowired constructor(
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(redeemBody)
         ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.result").value("success"))
+            .andExpect(jsonPath("$.redemptions[0].status").value("SUCCEEDED"))
     }
 }

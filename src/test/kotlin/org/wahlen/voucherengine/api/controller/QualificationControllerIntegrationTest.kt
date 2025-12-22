@@ -102,11 +102,10 @@ class QualificationControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.redeemables.total").value(1))
             .andReturn()
 
-        val cursor = com.fasterxml.jackson.databind.ObjectMapper()
-            .readTree(firstPage.response.contentAsString)
-            .get("redeemables")
-            .get("more_starting_after")
-            .asText()
+        val cursorPayload = com.fasterxml.jackson.databind.ObjectMapper()
+            .readValue(firstPage.response.contentAsString, Map::class.java)
+        val cursor = ((cursorPayload["redeemables"] as? Map<*, *>)?.get("more_starting_after") as? String)
+            ?: error("Missing qualification id")
 
         val secondPageBody = """
             { "options": { "limit": 1, "starting_after": "$cursor" } }

@@ -63,7 +63,9 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
         ).andExpect(status().isOk)
             .andReturn()
 
-        val redemptionId = objectMapper.readTree(redemptionResult.response.contentAsString).get("redemptionId").asString()
+        val redemptionPayload = objectMapper.readValue(redemptionResult.response.contentAsString, Map::class.java)
+        val redemptionId = ((redemptionPayload["redemptions"] as? List<*>)?.firstOrNull() as? Map<*, *>)?.get("id") as? String
+            ?: error("Missing redemption id")
 
         mockMvc.perform(get("/v1/redemptions").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
@@ -85,5 +87,41 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
                 .content(rollbackBody)
         ).andExpect(status().isCreated)
             .andExpect(jsonPath("$.redemption_id").value(redemptionId))
+    }
+
+    @Test
+    fun `redemptions return inapplicable redeemables when validation fails`() {
+        val code = "FAIL-${UUID.randomUUID().toString().take(6)}"
+        val voucherBody = """
+            { "code": "$code", "type": "DISCOUNT_VOUCHER", "discount": { "type": "PERCENT", "percent_off": 10 } }
+        """.trimIndent()
+        mockMvc.perform(
+            post("/v1/vouchers")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(voucherBody)
+        ).andExpect(status().isCreated)
+
+        val redemptionBody = """
+            {
+              "redeemables": [
+                { "object": "voucher", "id": "$code" },
+                { "object": "voucher", "id": "missing-code" }
+              ],
+              "customer": { "source_id": "redeem-user" },
+              "order": { "id": "o-2", "amount": 1000 }
+            }
+        """.trimIndent()
+        mockMvc.perform(
+            post("/v1/redemptions")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(redemptionBody)
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.redemptions").isEmpty)
+            .andExpect(jsonPath("$.inapplicable_redeemables[0].status").value("INAPPLICABLE"))
+            .andExpect(jsonPath("$.inapplicable_redeemables[0].result.error.code").value("voucher_not_found"))
     }
 }

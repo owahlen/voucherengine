@@ -1,0 +1,59 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1766416000000-7
+      author: codex
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_session_lock
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  constraints:
+                    nullable: false
+                  name: session_key
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: redeemable_id
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: redeemable_object
+                  type: VARCHAR(50)
+              - column:
+                  name: expires_at
+                  type: DATETIME
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: session_lock
+        - createIndex:
+            indexName: idx_session_lock_tenant_key
+            tableName: session_lock
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: session_key
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: session_lock
+            constraintName: fk_session_lock_tenant
+            referencedColumnNames: id
+            referencedTableName: tenant

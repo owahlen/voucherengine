@@ -8,7 +8,8 @@ data class ValidationResponse(
     val voucher: VoucherResponse? = null,
     val discount: DiscountDto? = null,
     val order: ValidationOrderSummary? = null,
-    val error: ErrorResponse? = null
+    val error: ErrorResponse? = null,
+    val validationRuleId: String? = null
 )
 
 data class ValidationOrderSummary(
