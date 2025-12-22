@@ -8,7 +8,7 @@ import org.wahlen.voucherengine.persistence.model.customer.Customer
 import org.wahlen.voucherengine.persistence.model.redemption.Redemption
 
 @Entity
-@Table
+@Table(name = "orders")
 class Order(
     @Column
     var sourceId: String? = null,

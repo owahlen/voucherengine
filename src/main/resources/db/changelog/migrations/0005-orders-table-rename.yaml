@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0005-orders-table-rename
+      author: codex
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: redemption
+            constraintName: FK_REDEMPTION_ON_ORDER
+        - renameTable:
+            oldTableName: order
+            newTableName: orders
+        - addForeignKeyConstraint:
+            baseColumnNames: order_id
+            baseTableName: redemption
+            constraintName: FK_REDEMPTION_ON_ORDERS
+            referencedColumnNames: id
+            referencedTableName: orders
