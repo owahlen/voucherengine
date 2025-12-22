@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.OrderCreateRequest
 import org.wahlen.voucherengine.api.dto.response.OrderResponse
 import org.wahlen.voucherengine.persistence.model.order.Order
+import org.wahlen.voucherengine.persistence.model.order.OrderItem
 import org.wahlen.voucherengine.persistence.repository.OrderRepository
 import java.util.UUID
 
@@ -72,6 +73,29 @@ class OrderService(
         entity.discountAmount = request.discount_amount ?: entity.discountAmount
         entity.metadata = request.metadata ?: entity.metadata
         entity.customer = customerService.ensureCustomer(tenantName, request.customer)
+        request.items?.let { items ->
+            items.forEach { item ->
+                if (item.product_id.isNullOrBlank() && item.sku_id.isNullOrBlank()) {
+                    throw org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST,
+                        "order.items must include product_id or sku_id"
+                    )
+                }
+            }
+            entity.items.clear()
+            val tenant = tenantService.requireTenant(tenantName)
+            items.forEach { item ->
+                val orderItem = OrderItem(
+                    productId = item.product_id,
+                    skuId = item.sku_id,
+                    quantity = item.quantity,
+                    price = item.price,
+                    order = entity
+                )
+                orderItem.tenant = tenant
+                entity.items.add(orderItem)
+            }
+        }
     }
 
     private fun toResponse(order: Order): OrderResponse =
@@ -83,6 +107,14 @@ class OrderService(
             initial_amount = order.initialAmount,
             discount_amount = order.discountAmount,
             metadata = order.metadata,
+            items = order.items.map {
+                org.wahlen.voucherengine.api.dto.response.OrderItemResponse(
+                    product_id = it.productId,
+                    sku_id = it.skuId,
+                    quantity = it.quantity,
+                    price = it.price
+                )
+            },
             customer_id = order.customer?.id,
             created_at = order.createdAt,
             updated_at = order.updatedAt

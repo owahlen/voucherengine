@@ -14,4 +14,9 @@ interface ValidationRulesAssignmentRepository : JpaRepository<ValidationRulesAss
     fun findAllByTenantName(tenantName: String): List<ValidationRulesAssignment>
     fun findAllByRuleIdAndTenantName(ruleId: UUID, tenantName: String): List<ValidationRulesAssignment>
     fun findByIdAndTenantName(id: UUID, tenantName: String): ValidationRulesAssignment?
+    fun findAllByTenantNameAndRelatedObjectTypeAndRelatedObjectIdIn(
+        tenantName: String,
+        relatedObjectType: String,
+        relatedObjectIds: List<String>
+    ): List<ValidationRulesAssignment>
 }

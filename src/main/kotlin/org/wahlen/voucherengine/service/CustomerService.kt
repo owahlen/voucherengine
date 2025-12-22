@@ -6,11 +6,15 @@ import org.wahlen.voucherengine.api.dto.request.CustomerCreateRequest
 import org.wahlen.voucherengine.api.dto.request.CustomerReferenceDto
 import org.wahlen.voucherengine.persistence.model.customer.Customer
 import org.wahlen.voucherengine.persistence.repository.CustomerRepository
+import org.wahlen.voucherengine.persistence.repository.PublicationRepository
+import org.wahlen.voucherengine.persistence.repository.VoucherRepository
 import java.util.UUID
 
 @Service
 class CustomerService(
     private val customerRepository: CustomerRepository,
+    private val publicationRepository: PublicationRepository,
+    private val voucherRepository: VoucherRepository,
     private val tenantService: TenantService
 ) {
     @Transactional
@@ -41,6 +45,18 @@ class CustomerService(
     @Transactional
     fun delete(tenantName: String, idOrSource: String) {
         val existing = getByIdOrSource(tenantName, idOrSource) ?: return
+        val customerId = existing.id
+        if (customerId != null) {
+            val publications = publicationRepository.findAllByTenantNameAndCustomerId(tenantName, customerId)
+            if (publications.isNotEmpty()) {
+                publicationRepository.deleteAll(publications)
+            }
+            val vouchers = voucherRepository.findAllByTenantNameAndHolderId(tenantName, customerId)
+            if (vouchers.isNotEmpty()) {
+                vouchers.forEach { it.holder = null }
+                voucherRepository.saveAll(vouchers)
+            }
+        }
         customerRepository.delete(existing)
     }
 

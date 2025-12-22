@@ -47,6 +47,9 @@ class VoucherService(
     private val validationRulesAssignmentRepository: ValidationRulesAssignmentRepository,
     private val validationRuleRepository: ValidationRuleRepository,
     private val redemptionRollbackRepository: RedemptionRollbackRepository,
+    private val publicationRepository: org.wahlen.voucherengine.persistence.repository.PublicationRepository,
+    private val productRepository: org.wahlen.voucherengine.persistence.repository.ProductRepository,
+    private val skuRepository: org.wahlen.voucherengine.persistence.repository.SkuRepository,
     private val tenantService: TenantService,
     private val clock: Clock,
 ) {
@@ -142,6 +145,7 @@ class VoucherService(
             redemptionRepository.countByVoucherIdAndCustomerIdAndTenantName(voucher.id!!, customer.id!!, tenantName).toInt()
         } else 0
 
+        ensureOrderItemsExist(tenantName, request.order)?.let { return it }
         applyValidationRules(tenantName, voucher, customer, customerRedemptions, totalRedemptions, request)?.let { return it }
 
         ensureCategories(voucher, request.categories)?.let { return it }
@@ -263,6 +267,39 @@ class VoucherService(
     @Transactional
     fun deleteVoucher(tenantName: String, code: String): Boolean {
         val existing = voucherRepository.findByCodeAndTenantName(code, tenantName) ?: return false
+        val voucherId = existing.id
+        val voucherCode = existing.code
+
+        if (voucherId != null) {
+            val publications = publicationRepository.findAllByTenantNameAndVoucherId(tenantName, voucherId)
+            if (publications.isNotEmpty()) {
+                publicationRepository.deleteAll(publications)
+            }
+            val redemptions = redemptionRepository.findAllByTenantNameAndVoucherId(tenantName, voucherId)
+            if (redemptions.isNotEmpty()) {
+                redemptionRepository.deleteAll(redemptions)
+            }
+            val idAssignments = validationRulesAssignmentRepository
+                .findAllByTenantNameAndRelatedObjectTypeAndRelatedObjectIdIn(
+                    tenantName,
+                    "voucher",
+                    listOf(voucherId.toString())
+                )
+            if (idAssignments.isNotEmpty()) {
+                validationRulesAssignmentRepository.deleteAll(idAssignments)
+            }
+        }
+        if (!voucherCode.isNullOrBlank()) {
+            val codeAssignments = validationRulesAssignmentRepository
+                .findAllByTenantNameAndRelatedObjectTypeAndRelatedObjectIdIn(
+                    tenantName,
+                    "voucher",
+                    listOf(voucherCode)
+                )
+            if (codeAssignments.isNotEmpty()) {
+                validationRulesAssignmentRepository.deleteAll(codeAssignments)
+            }
+        }
         voucherRepository.delete(existing)
         return true
     }
@@ -420,6 +457,45 @@ class VoucherService(
             return ValidationResponse(false, error = ErrorResponse("voucher_not_assigned", "Voucher assigned to another customer."))
         }
         return null
+    }
+
+    private fun ensureOrderItemsExist(tenantName: String, order: org.wahlen.voucherengine.api.dto.request.OrderRequest?): ValidationResponse? {
+        val items = order?.items ?: return null
+        items.forEach { item ->
+            val productId = item.product_id?.trim()
+            if (!productId.isNullOrBlank()) {
+                val product = findProductByIdOrSource(tenantName, productId)
+                if (product == null) {
+                    return ValidationResponse(false, error = ErrorResponse("product_not_found", "Product does not exist."))
+                }
+            }
+            val skuId = item.sku_id?.trim()
+            if (!skuId.isNullOrBlank()) {
+                val sku = findSkuByIdOrSource(tenantName, skuId)
+                if (sku == null) {
+                    return ValidationResponse(false, error = ErrorResponse("sku_not_found", "SKU does not exist."))
+                }
+            }
+        }
+        return null
+    }
+
+    private fun findProductByIdOrSource(tenantName: String, idOrSource: String): org.wahlen.voucherengine.persistence.model.product.Product? {
+        val uuid = runCatching { java.util.UUID.fromString(idOrSource) }.getOrNull()
+        if (uuid != null) {
+            val byId = productRepository.findByIdAndTenantName(uuid, tenantName)
+            if (byId != null) return byId
+        }
+        return productRepository.findBySourceIdAndTenantName(idOrSource, tenantName)
+    }
+
+    private fun findSkuByIdOrSource(tenantName: String, idOrSource: String): org.wahlen.voucherengine.persistence.model.product.Sku? {
+        val uuid = runCatching { java.util.UUID.fromString(idOrSource) }.getOrNull()
+        if (uuid != null) {
+            val byId = skuRepository.findByIdAndTenantName(uuid, tenantName)
+            if (byId != null) return byId
+        }
+        return skuRepository.findBySourceIdAndTenantName(idOrSource, tenantName)
     }
 
     private fun ensureLimits(

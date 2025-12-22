@@ -63,14 +63,14 @@ class RuleEvaluatorTest {
         val order = OrderRequest(
             id = "o2",
             amount = 500,
-            items = listOf(OrderItemDto(product_id = "SKU_A", quantity = 1, price = 500))
+            items = listOf(OrderItemDto(sku_id = "SKU_A", quantity = 1, price = 500))
         )
         assertTrue(RuleEvaluator.evaluate(rules, ctx(order)))
 
         val orderNoMatch = OrderRequest(
             id = "o3",
             amount = 500,
-            items = listOf(OrderItemDto(product_id = "SKU_B", quantity = 1, price = 500))
+            items = listOf(OrderItemDto(sku_id = "SKU_B", quantity = 1, price = 500))
         )
         assertFalse(RuleEvaluator.evaluate(rules, ctx(orderNoMatch)))
     }
@@ -114,7 +114,7 @@ class RuleEvaluatorTest {
         val order = OrderRequest(
             id = "o4",
             amount = 200,
-            items = listOf(OrderItemDto(product_id = "SKU_A", quantity = 1, price = 200))
+            items = listOf(OrderItemDto(sku_id = "SKU_A", quantity = 1, price = 200))
         )
         // (false and false) or true => true
         assertTrue(RuleEvaluator.evaluate(rules, ctx(order)))
@@ -147,8 +147,8 @@ class RuleEvaluatorTest {
                     id = "o5",
                     amount = 100,
                     items = listOf(
-                        OrderItemDto(product_id = "SKU_A", quantity = 1, price = 50),
-                        OrderItemDto(product_id = "SKU_B", quantity = 1, price = 50)
+                        OrderItemDto(sku_id = "SKU_A", quantity = 1, price = 50),
+                        OrderItemDto(sku_id = "SKU_B", quantity = 1, price = 50)
                     ),
                     metadata = mapOf("is_test" to false)
                 )

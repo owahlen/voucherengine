@@ -5,6 +5,9 @@ import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.CampaignCreateRequest
 import org.wahlen.voucherengine.persistence.model.campaign.Campaign
 import org.wahlen.voucherengine.persistence.repository.CampaignRepository
+import org.wahlen.voucherengine.persistence.repository.PublicationRepository
+import org.wahlen.voucherengine.persistence.repository.RedemptionRepository
+import org.wahlen.voucherengine.persistence.repository.ValidationRulesAssignmentRepository
 import org.wahlen.voucherengine.persistence.repository.VoucherRepository
 import java.util.UUID
 
@@ -12,6 +15,9 @@ import java.util.UUID
 class CampaignService(
     private val campaignRepository: CampaignRepository,
     private val voucherRepository: VoucherRepository,
+    private val publicationRepository: PublicationRepository,
+    private val redemptionRepository: RedemptionRepository,
+    private val validationRulesAssignmentRepository: ValidationRulesAssignmentRepository,
     private val tenantService: TenantService
 ) {
 
@@ -58,8 +64,52 @@ class CampaignService(
     fun delete(tenantName: String, id: UUID): Boolean {
         val existing = campaignRepository.findByIdAndTenantName(id, tenantName) ?: return false
         val vouchers = voucherRepository.findAllByCampaignIdAndTenantName(id, tenantName)
-        vouchers.forEach { it.campaign = null }
-        voucherRepository.saveAll(vouchers)
+        val voucherIds = vouchers.mapNotNull { it.id }
+        val voucherCodes = vouchers.mapNotNull { it.code }
+        val campaignIdentifiers = listOfNotNull(existing.id?.toString(), existing.name).distinct()
+
+        if (campaignIdentifiers.isNotEmpty()) {
+            val campaignAssignments = validationRulesAssignmentRepository
+                .findAllByTenantNameAndRelatedObjectTypeAndRelatedObjectIdIn(tenantName, "campaign", campaignIdentifiers)
+            if (campaignAssignments.isNotEmpty()) {
+                validationRulesAssignmentRepository.deleteAll(campaignAssignments)
+            }
+        }
+
+        if (voucherIds.isNotEmpty()) {
+            val voucherIdAssignments = validationRulesAssignmentRepository
+                .findAllByTenantNameAndRelatedObjectTypeAndRelatedObjectIdIn(
+                    tenantName,
+                    "voucher",
+                    voucherIds.map(UUID::toString)
+                )
+            if (voucherIdAssignments.isNotEmpty()) {
+                validationRulesAssignmentRepository.deleteAll(voucherIdAssignments)
+            }
+        }
+        if (voucherCodes.isNotEmpty()) {
+            val voucherCodeAssignments = validationRulesAssignmentRepository
+                .findAllByTenantNameAndRelatedObjectTypeAndRelatedObjectIdIn(tenantName, "voucher", voucherCodes)
+            if (voucherCodeAssignments.isNotEmpty()) {
+                validationRulesAssignmentRepository.deleteAll(voucherCodeAssignments)
+            }
+        }
+
+        val publications = publicationRepository.findAllByTenantNameAndCampaignId(tenantName, id)
+        if (publications.isNotEmpty()) {
+            publicationRepository.deleteAll(publications)
+        }
+
+        if (voucherIds.isNotEmpty()) {
+            val redemptions = redemptionRepository.findAllByTenantNameAndVoucherIdIn(tenantName, voucherIds)
+            if (redemptions.isNotEmpty()) {
+                redemptionRepository.deleteAll(redemptions)
+            }
+        }
+
+        if (vouchers.isNotEmpty()) {
+            voucherRepository.deleteAll(vouchers)
+        }
         campaignRepository.delete(existing)
         return true
     }

@@ -9,4 +9,6 @@ interface RedemptionRepository : JpaRepository<Redemption, UUID> {
     fun countByVoucherIdAndCustomerIdAndTenantName(voucherId: UUID, customerId: UUID, tenantName: String): Long
     fun findAllByTenantName(tenantName: String): List<Redemption>
     fun findByIdAndTenantName(id: UUID, tenantName: String): Redemption?
+    fun findAllByTenantNameAndVoucherId(tenantName: String, voucherId: UUID): List<Redemption>
+    fun findAllByTenantNameAndVoucherIdIn(tenantName: String, voucherIds: List<UUID>): List<Redemption>
 }

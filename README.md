@@ -13,6 +13,7 @@ Voucherengine models a focused, API-first subset of Voucherify. It covers the vo
 - Controllers expose Voucherify-like verbs: voucher CRUD/validate/redeem, customer CRUD, validation-rule CRUD/assignment, and stack validations.
 - Services enforce the documented behavior: redemption quantity/per-customer limits (e.g., multi-use 1000 cap), holder checks, and metadata preservation. Responses include voucher assets, redemption counters, and timestamps per the docs.
 - All endpoints require a `tenant` header; tenants are managed via `/v1/tenants`.
+- Publications assign vouchers to customers via `/v1/publications` (see `docs/PUBLICATIONS.md`).
 
 ## Security and Keycloak
 - JWTs are validated by Spring against the configured Keycloak realm (`spring.security.oauth2.resourceserver.jwt.issuer-uri`).

@@ -20,7 +20,11 @@ import org.wahlen.voucherengine.api.dto.request.VoucherValidationRequest
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleAssignmentRequest
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleCreateRequest
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.persistence.model.product.Product
+import org.wahlen.voucherengine.persistence.model.product.Sku
 import org.wahlen.voucherengine.persistence.repository.CategoryRepository
+import org.wahlen.voucherengine.persistence.repository.ProductRepository
+import org.wahlen.voucherengine.persistence.repository.SkuRepository
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Import
@@ -42,6 +46,8 @@ import kotlin.test.assertTrue
 class VoucherServiceTest @Autowired constructor(
     private val voucherService: VoucherService,
     private val categoryRepository: CategoryRepository,
+    private val productRepository: ProductRepository,
+    private val skuRepository: SkuRepository,
     private val validationRuleService: ValidationRuleService,
     private val tenantRepository: TenantRepository,
     private val clock: MutableClock
@@ -177,6 +183,7 @@ class VoucherServiceTest @Autowired constructor(
 
     @Test
     fun `voucher validation respects complex rule logic`() {
+        ensureSku("prod-rule-logic", "SKU_A")
         val voucher = voucherService.createVoucher(
             tenantName,
             VoucherCreateRequest(
@@ -220,7 +227,7 @@ class VoucherServiceTest @Autowired constructor(
                 order = org.wahlen.voucherengine.api.dto.request.OrderRequest(
                     id = "order-1",
                     amount = 500,
-                    items = listOf(org.wahlen.voucherengine.api.dto.request.OrderItemDto(product_id = "SKU_A", quantity = 1, price = 500))
+                    items = listOf(org.wahlen.voucherengine.api.dto.request.OrderItemDto(sku_id = "SKU_A", quantity = 1, price = 500))
                 )
             )
         )
@@ -234,7 +241,7 @@ class VoucherServiceTest @Autowired constructor(
                 order = org.wahlen.voucherengine.api.dto.request.OrderRequest(
                     id = "order-2",
                     amount = 1500,
-                    items = listOf(org.wahlen.voucherengine.api.dto.request.OrderItemDto(product_id = "SKU_A", quantity = 1, price = 1500))
+                    items = listOf(org.wahlen.voucherengine.api.dto.request.OrderItemDto(sku_id = "SKU_A", quantity = 1, price = 1500))
                 )
             )
         )
@@ -284,6 +291,7 @@ class VoucherServiceTest @Autowired constructor(
 
     @Test
     fun `unit discount applies per item quantity`() {
+        ensureSku("prod-unit-1", "sku-1")
         voucherService.createVoucher(
             tenantName,
             VoucherCreateRequest(
@@ -302,7 +310,7 @@ class VoucherServiceTest @Autowired constructor(
                     id = "order-1",
                     amount = 1000,
                     items = listOf(
-                        org.wahlen.voucherengine.api.dto.request.OrderItemDto(product_id = "sku-1", quantity = 2, price = 500)
+                        org.wahlen.voucherengine.api.dto.request.OrderItemDto(sku_id = "sku-1", quantity = 2, price = 500)
                     )
                 )
             )
@@ -407,6 +415,21 @@ class VoucherServiceTest @Autowired constructor(
 
         fun setZone(zone: java.time.ZoneId) {
             this.zoneValue = zone
+        }
+    }
+
+    private fun ensureSku(productSourceId: String, skuSourceId: String) {
+        val tenant = tenantRepository.findByName(tenantName) ?: tenantRepository.save(Tenant(name = tenantName))
+        val product = productRepository.findBySourceIdAndTenantName(productSourceId, tenantName)
+            ?: productRepository.save(Product(sourceId = productSourceId, name = "Test").apply { this.tenant = tenant })
+        if (skuRepository.findBySourceIdAndTenantName(skuSourceId, tenantName) == null) {
+            skuRepository.save(
+                Sku(
+                    sourceId = skuSourceId,
+                    sku = skuSourceId,
+                    product = product
+                ).apply { this.tenant = tenant }
+            )
         }
     }
 }

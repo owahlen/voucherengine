@@ -21,6 +21,9 @@ data class OrderCreateRequest(
     @field:Schema(description = "Order metadata")
     var metadata: Map<String, Any?>? = null,
     @field:Valid
+    @field:Schema(description = "Order items")
+    var items: List<OrderItemDto>? = null,
+    @field:Valid
     @field:Schema(description = "Customer reference for the order")
     var customer: CustomerReferenceDto? = null
 )

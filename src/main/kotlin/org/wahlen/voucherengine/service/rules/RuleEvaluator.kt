@@ -99,8 +99,12 @@ object RuleEvaluator {
     private fun evaluateOrderItemRule(path: String, op: String, operand: Any?, order: OrderRequest?): Boolean {
         val items = order?.items ?: return false
         if (path == "sku") {
-            val skus = items.mapNotNull { it.product_id }
+            val skus = items.mapNotNull { it.sku_id }
             return evaluateCondition(skus, op, operand)
+        }
+        if (path == "product") {
+            val products = items.mapNotNull { it.product_id }
+            return evaluateCondition(products, op, operand)
         }
         return items.any { item ->
             val value: Any? = when (path) {

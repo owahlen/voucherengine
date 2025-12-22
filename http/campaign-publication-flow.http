@@ -1,0 +1,445 @@
+import authenticate.http
+
+@tenant = acme
+
+### obtain the access_token
+run #authenticate_tenant
+
+### Initialize shared identifiers
+< {%
+    const now = Date.now();
+    client.global.set("campaign_name", `Welcome-30D-${now}`);
+    client.global.set("campaign_code_pattern", `WELCOME-${String(now).slice(-4)}-####`);
+    client.global.set("campaign_start", "2025-12-22T00:00:00Z");
+    client.global.set("campaign_end", "2026-12-31T00:00:00Z");
+
+    client.global.set("customer_1", `user-${now}-1`);
+    client.global.set("customer_2", `user-${now}-2`);
+    client.global.set("customer_3", `user-${now}-3`);
+
+    client.global.set("voucher_1", `WELCOME-${now}-A`);
+    client.global.set("voucher_2", `WELCOME-${now}-B`);
+%}
+
+### Create customer 1
+# @name create_customer_1
+POST {{voucherengine_base_url}}/v1/customers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "source_id": "{{customer_1}}",
+  "name": "Max Mustermann",
+  "email": "max@example.com",
+  "metadata": {
+    "plan": "pro"
+  }
+}
+
+> {%
+    client.test("customer 1 created", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.source_id === client.global.get("customer_1"));
+    });
+%}
+
+### Create customer 2
+# @name create_customer_2
+POST {{voucherengine_base_url}}/v1/customers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "source_id": "{{customer_2}}",
+  "name": "Erika Mustermann",
+  "email": "erika@example.com",
+  "metadata": {
+    "plan": "pro"
+  }
+}
+
+> {%
+    client.test("customer 2 created", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.source_id === client.global.get("customer_2"));
+    });
+%}
+
+### Create customer 3
+# @name create_customer_3
+POST {{voucherengine_base_url}}/v1/customers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "source_id": "{{customer_3}}",
+  "name": "Chris Example",
+  "email": "chris@example.com",
+  "metadata": {
+    "plan": "pro"
+  }
+}
+
+> {%
+    client.test("customer 3 created", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.source_id === client.global.get("customer_3"));
+    });
+%}
+
+### Create campaign (voucher pool)
+# @name create_campaign
+POST {{voucherengine_base_url}}/v1/campaigns
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "name": "{{campaign_name}}",
+  "type": "DISCOUNT_COUPONS",
+  "mode": "AUTO_UPDATE",
+  "start_date": "{{campaign_start}}",
+  "expiration_date": "{{campaign_end}}",
+  "code_pattern": "{{campaign_code_pattern}}",
+  "description": "Welcome campaign",
+  "metadata": {
+    "reason": "welcome"
+  }
+}
+
+> {%
+    client.test("campaign created", () => {
+        client.assert(response.status === 201);
+        client.assert(!!response.body.id);
+        client.assert(response.body.name === client.global.get("campaign_name"));
+    });
+    client.global.set("campaign_id", response.body.id);
+%}
+
+### Create voucher 1 in campaign
+# @name create_campaign_voucher_1
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaign_id}}/vouchers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "code": "{{voucher_1}}",
+  "type": "DISCOUNT_VOUCHER",
+  "discount": {
+    "type": "PERCENT",
+    "percent_off": 10
+  },
+  "redemption": {
+    "quantity": 1
+  }
+}
+
+> {%
+    client.test("campaign voucher 1 created", () => {
+        client.assert(response.status === 201);
+        client.assert(response.body.code === client.global.get("voucher_1"));
+    });
+%}
+
+### Create voucher 2 in campaign
+# @name create_campaign_voucher_2
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaign_id}}/vouchers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "code": "{{voucher_2}}",
+  "type": "DISCOUNT_VOUCHER",
+  "discount": {
+    "type": "PERCENT",
+    "percent_off": 10
+  },
+  "redemption": {
+    "quantity": 1
+  }
+}
+
+> {%
+    client.test("campaign voucher 2 created", () => {
+        client.assert(response.status === 201);
+        client.assert(response.body.code === client.global.get("voucher_2"));
+    });
+%}
+
+### Publish voucher for customer 1 (join_once=true)
+# @name publish_customer_1
+POST {{voucherengine_base_url}}/v1/publications?join_once=true
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "campaign": { "name": "{{campaign_name}}" },
+  "customer": {
+    "source_id": "{{customer_1}}",
+    "name": "Max Mustermann",
+    "email": "max@example.com"
+  },
+  "channel": "api",
+  "metadata": {
+    "reason": "welcome"
+  }
+}
+
+> {%
+    client.test("publication for customer 1 succeeds", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.result === "SUCCESS");
+        client.assert(!!response.body.voucher.code);
+    });
+    client.global.set("publication_1", response.body.id);
+    client.global.set("voucher_customer_1", response.body.voucher.code);
+%}
+
+### Publish voucher for customer 1 again (join_once=true) - idempotent
+# @name publish_customer_1_join_once
+POST {{voucherengine_base_url}}/v1/publications?join_once=true
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "campaign": { "name": "{{campaign_name}}" },
+  "customer": {
+    "source_id": "{{customer_1}}",
+    "name": "Max Mustermann",
+    "email": "max@example.com"
+  },
+  "channel": "api",
+  "metadata": {
+    "reason": "welcome"
+  }
+}
+
+> {%
+    client.test("publication for customer 1 is idempotent", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.id === client.global.get("publication_1"));
+        client.assert(response.body.voucher.code === client.global.get("voucher_customer_1"));
+    });
+%}
+
+### Publish voucher for customer 2 (join_once=true)
+# @name publish_customer_2
+POST {{voucherengine_base_url}}/v1/publications?join_once=true
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "campaign": { "name": "{{campaign_name}}" },
+  "customer": {
+    "source_id": "{{customer_2}}",
+    "name": "Erika Mustermann",
+    "email": "erika@example.com"
+  },
+  "channel": "api",
+  "metadata": {
+    "reason": "welcome"
+  }
+}
+
+> {%
+    client.test("publication for customer 2 succeeds", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.result === "SUCCESS");
+        client.assert(!!response.body.voucher.code);
+        client.assert(response.body.voucher.code !== client.global.get("voucher_customer_1"));
+    });
+    client.global.set("publication_2", response.body.id);
+    client.global.set("voucher_customer_2", response.body.voucher.code);
+%}
+
+### Publish voucher for customer 3 (join_once=true) - should fail (no more vouchers)
+# @name publish_customer_3
+POST {{voucherengine_base_url}}/v1/publications?join_once=true
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "campaign": { "name": "{{campaign_name}}" },
+  "customer": {
+    "source_id": "{{customer_3}}",
+    "name": "Chris Example",
+    "email": "chris@example.com"
+  },
+  "channel": "api",
+  "metadata": {
+    "reason": "welcome"
+  }
+}
+
+> {%
+    client.test("publication for customer 3 fails", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.result === "FAILURE");
+        client.assert(response.body.failure_code === "voucher_not_found");
+    });
+%}
+
+### Delete voucher for customer 1
+# @name delete_voucher_customer_1
+DELETE {{voucherengine_base_url}}/v1/vouchers/{{voucher_customer_1}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher 1 deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Delete voucher for customer 2
+# @name delete_voucher_customer_2
+DELETE {{voucherengine_base_url}}/v1/vouchers/{{voucher_customer_2}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher 2 deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Delete campaign
+# @name delete_campaign
+DELETE {{voucherengine_base_url}}/v1/campaigns/{{campaign_id}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("campaign deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Delete customer 1
+# @name delete_customer_1
+DELETE {{voucherengine_base_url}}/v1/customers/{{customer_1}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("customer 1 deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Delete customer 2
+# @name delete_customer_2
+DELETE {{voucherengine_base_url}}/v1/customers/{{customer_2}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("customer 2 deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Delete customer 3
+# @name delete_customer_3
+DELETE {{voucherengine_base_url}}/v1/customers/{{customer_3}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("customer 3 deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Verify campaign deletion
+# @name get_deleted_campaign
+GET {{voucherengine_base_url}}/v1/campaigns/{{campaign_id}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("campaign not found after deletion", () => {
+        client.assert(response.status === 404);
+    });
+%}
+
+### Verify voucher deletion (customer 1)
+# @name get_deleted_voucher_1
+GET {{voucherengine_base_url}}/v1/vouchers/{{voucher_customer_1}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher 1 not found after deletion", () => {
+        client.assert(response.status === 404);
+    });
+%}
+
+### Verify voucher deletion (customer 2)
+# @name get_deleted_voucher_2
+GET {{voucherengine_base_url}}/v1/vouchers/{{voucher_customer_2}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher 2 not found after deletion", () => {
+        client.assert(response.status === 404);
+    });
+%}
+
+### Verify customer deletion (customer 1)
+# @name get_deleted_customer_1
+GET {{voucherengine_base_url}}/v1/customers/{{customer_1}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("customer 1 not found after deletion", () => {
+        client.assert(response.status === 404);
+    });
+%}
+
+### Verify customer deletion (customer 2)
+# @name get_deleted_customer_2
+GET {{voucherengine_base_url}}/v1/customers/{{customer_2}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("customer 2 not found after deletion", () => {
+        client.assert(response.status === 404);
+    });
+%}
+
+### Verify customer deletion (customer 3)
+# @name get_deleted_customer_3
+GET {{voucherengine_base_url}}/v1/customers/{{customer_3}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("customer 3 not found after deletion", () => {
+        client.assert(response.status === 404);
+    });
+%}

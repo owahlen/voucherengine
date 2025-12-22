@@ -40,4 +40,7 @@ class Order(
 
     @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], orphanRemoval = false, fetch = FetchType.LAZY)
     var redemptions: MutableList<Redemption> = mutableListOf()
+
+    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
+    var items: MutableList<OrderItem> = mutableListOf()
 }

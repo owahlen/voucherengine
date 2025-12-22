@@ -19,6 +19,8 @@ data class OrderResponse(
     val discount_amount: Long?,
     @field:Schema(description = "Metadata")
     val metadata: Map<String, Any?>? = null,
+    @field:Schema(description = "Order items")
+    val items: List<OrderItemResponse>? = null,
     @field:Schema(description = "Customer id")
     val customer_id: UUID? = null,
     @field:Schema(description = "Created at")
