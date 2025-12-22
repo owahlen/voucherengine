@@ -52,22 +52,26 @@ class PublicationService(
         sourceId: String?
     ): List<Publication> {
         val normalizedResult = result?.trim()?.uppercase()
-        val items = when {
-            !campaignName.isNullOrBlank() -> publicationRepository.findAllByTenantNameAndCampaignName(tenantName, campaignName)
-            !customerId.isNullOrBlank() -> publicationRepository.findAllByTenantNameAndCustomerId(
-                tenantName,
-                java.util.UUID.fromString(customerId)
-            )
-            !voucherCode.isNullOrBlank() -> publicationRepository.findAllByTenantNameAndVoucherCode(tenantName, voucherCode)
-            !normalizedResult.isNullOrBlank() -> publicationRepository.findAllByTenantNameAndResult(
-                tenantName,
-                PublicationResult.valueOf(normalizedResult)
-            )
-            !sourceId.isNullOrBlank() -> publicationRepository.findAllByTenantNameAndSourceId(tenantName, sourceId)
-            else -> publicationRepository.findAllByTenantName(tenantName)
+        val items = publicationRepository.findAllByTenantName(tenantName)
+        val customerUuid = customerId?.takeIf { it.isNotBlank() }?.let { java.util.UUID.fromString(it) }
+        val resultEnum = normalizedResult?.takeIf { it.isNotBlank() }?.let { PublicationResult.valueOf(it) }
+        val filtered = items.filter { publication ->
+            if (!campaignName.isNullOrBlank() && publication.campaign?.name != campaignName) return@filter false
+            if (customerUuid != null && publication.customer?.id != customerUuid) return@filter false
+            if (!voucherCode.isNullOrBlank()) {
+                val codeMatch = publication.voucher?.code == voucherCode || publication.vouchers.any { it.code == voucherCode }
+                if (!codeMatch) return@filter false
+            }
+            if (resultEnum != null && publication.result != resultEnum) return@filter false
+            if (!sourceId.isNullOrBlank() && publication.sourceId != sourceId) return@filter false
+            true
         }
-        return items.sortedByDescending { it.createdAt }
+        return filtered.sortedByDescending { it.createdAt }
     }
+
+    @Transactional(readOnly = true)
+    fun getPublication(tenantName: String, id: java.util.UUID): Publication? =
+        publicationRepository.findByIdAndTenantName(id, tenantName)
 
     private fun createPublicationForVoucher(
         tenantName: String,
@@ -251,7 +255,7 @@ class PublicationService(
                     barcode = org.wahlen.voucherengine.api.dto.response.AssetDto(id = it.barcodeId, url = it.barcodeUrl)
                 )
             },
-            is_referral_code = false
+            is_referral_code = voucher.campaign?.type == org.wahlen.voucherengine.persistence.model.campaign.CampaignType.REFERRAL_PROGRAM
         )
 
     private fun voucherSuitabilityFailure(voucher: Voucher, now: Instant): Pair<String, String>? {

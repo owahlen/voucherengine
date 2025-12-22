@@ -220,4 +220,125 @@ class PublicationControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.vouchers.length()").value(2))
             .andExpect(jsonPath("$.vouchers_id.length()").value(2))
     }
+
+    @Test
+    fun `get publication by id`() {
+        val voucherCode = "PUBGET-${UUID.randomUUID().toString().take(6)}"
+        val voucherBody = """
+            { "code": "$voucherCode", "type": "DISCOUNT_VOUCHER", "discount": { "type": "PERCENT", "percent_off": 12 }, "redemption": { "quantity": 1 } }
+        """.trimIndent()
+
+        mockMvc.perform(
+            post("/v1/vouchers")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(voucherBody)
+        ).andExpect(status().isCreated)
+
+        val customerSource = "customer-${UUID.randomUUID().toString().take(6)}"
+        val publicationBody = """
+            { "voucher": "$voucherCode", "customer": { "source_id": "$customerSource", "email": "pubget@example.com" }, "channel": "api" }
+        """.trimIndent()
+
+        val publication = mockMvc.perform(
+            post("/v1/publications")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(publicationBody)
+        ).andExpect(status().isOk)
+            .andReturn()
+
+        val publicationId = objectMapper.readTree(publication.response.contentAsString).get("id").asString()
+
+        mockMvc.perform(
+            get("/v1/publications/$publicationId")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(publicationId))
+            .andExpect(jsonPath("$.voucher.code").value(voucherCode))
+    }
+
+    @Test
+    fun `list publications with combined filters`() {
+        val campaignName = "Campaign-${UUID.randomUUID().toString().take(6)}"
+        val campaignBody = """
+            { "name": "$campaignName", "type": "DISCOUNT_COUPONS", "mode": "STATIC", "code_pattern": "FLTR-####" }
+        """.trimIndent()
+
+        val campaignResult = mockMvc.perform(
+            post("/v1/campaigns")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(campaignBody)
+        ).andExpect(status().isCreated)
+            .andReturn()
+
+        val campaignId = UUID.fromString(objectMapper.readTree(campaignResult.response.contentAsString).get("id").asString())
+        val voucherBody = { code: String ->
+            """
+            { "code": "$code", "type": "DISCOUNT_VOUCHER", "discount": { "type": "PERCENT", "percent_off": 20 }, "redemption": { "quantity": 1 } }
+            """.trimIndent()
+        }
+
+        val voucherCodeOne = "FLTR-${UUID.randomUUID().toString().take(6)}"
+        val voucherCodeTwo = "FLTR-${UUID.randomUUID().toString().take(6)}"
+
+        mockMvc.perform(
+            post("/v1/campaigns/$campaignId/vouchers")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(voucherBody(voucherCodeOne))
+        ).andExpect(status().isCreated)
+
+        mockMvc.perform(
+            post("/v1/campaigns/$campaignId/vouchers")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(voucherBody(voucherCodeTwo))
+        ).andExpect(status().isCreated)
+
+        val customerOne = "customer-${UUID.randomUUID().toString().take(6)}"
+        val customerTwo = "customer-${UUID.randomUUID().toString().take(6)}"
+        val publicationBody = { customer: String ->
+            """
+            { "campaign": { "name": "$campaignName" }, "customer": { "source_id": "$customer", "email": "filter@example.com" }, "channel": "api" }
+            """.trimIndent()
+        }
+
+        val publicationOne = mockMvc.perform(
+            post("/v1/publications")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(publicationBody(customerOne))
+        ).andExpect(status().isOk)
+            .andReturn()
+
+        mockMvc.perform(
+            post("/v1/publications")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(publicationBody(customerTwo))
+        ).andExpect(status().isOk)
+
+        val customerId = objectMapper.readTree(publicationOne.response.contentAsString).get("customer_id").asString()
+
+        mockMvc.perform(
+            get("/v1/publications")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .param("campaign", campaignName)
+                .param("customer", customerId)
+                .param("result", "SUCCESS")
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.total").value(1))
+            .andExpect(jsonPath("$.publications[0].customer_id").value(customerId))
+    }
 }

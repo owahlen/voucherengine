@@ -188,6 +188,23 @@ class PublicationController(
         }
     }
 
+    @Operation(
+        summary = "Get publication",
+        operationId = "getPublication",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Publication found"),
+            ApiResponse(responseCode = "404", description = "Not found")
+        ]
+    )
+    @GetMapping("/publications/{id}")
+    fun getPublication(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: java.util.UUID
+    ): ResponseEntity<PublicationResponse> {
+        val publication = publicationService.getPublication(tenant, id) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(publicationService.toResponse(publication))
+    }
+
     private fun applyOrder(
         entries: List<org.wahlen.voucherengine.persistence.model.publication.Publication>,
         order: String?
@@ -234,7 +251,9 @@ class PublicationController(
             val voucherCodes = vouchers.mapNotNull { it.code }
             val voucherTypes = vouchers.mapNotNull { it.type?.name }
             val campaignNames = vouchers.mapNotNull { it.campaign?.name }.ifEmpty { publication.campaign?.name?.let { listOf(it) } ?: emptyList() }
-            val isReferral = vouchers.any { it.campaign?.type == org.wahlen.voucherengine.persistence.model.campaign.CampaignType.REFERRAL_PROGRAM }
+            val isReferral = vouchers.any {
+                it.campaign?.type == org.wahlen.voucherengine.persistence.model.campaign.CampaignType.REFERRAL_PROGRAM
+            } || publication.campaign?.type == org.wahlen.voucherengine.persistence.model.campaign.CampaignType.REFERRAL_PROGRAM
             val checks = mutableListOf<Boolean>()
 
             customerFilter?.let { checks.add(matchesStringFilter(publication.customer?.id?.toString(), it)) }

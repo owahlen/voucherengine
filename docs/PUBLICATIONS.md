@@ -58,5 +58,10 @@ Additional query options:
 - Sorting: `order` supports `id`, `-id`, `voucher_code`, `-voucher_code`, `tracking_id`, `-tracking_id`, `customer_id`, `-customer_id`, `created_at`, `-created_at`, `channel`, `-channel`.
 - Filters: `filters[customer_id]`, `filters[voucher_code]`, `filters[campaign_name]`, `filters[result]`, `filters[failure_code]`, `filters[source_id]`, `filters[voucher_type]`, `filters[is_referral_code]`, `filters[parent_object_id]`, `filters[related_object_id]` with `$is`, `$in`, `$is_not`, `$not_in` and optional `filters[junction]=OR`.
 
+## Get publication
+`GET /v1/publications/{id}`
+
+Returns a single publication by its UUID.
+
 ## List publications for a voucher
 `GET /v1/vouchers/{code}/publications?page=1&limit=10`
