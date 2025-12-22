@@ -1,0 +1,220 @@
+import authenticate.http
+
+@tenant = acme
+
+### obtain the access_token
+run #authenticate_tenant
+
+### Create a voucher valid now (start_date in past, expiration in future)
+# @name create_valid_time_voucher
+< {%
+    const now = new Date();
+    const past = new Date(now.getTime() - 5 * 60 * 1000);
+    const future = new Date(now.getTime() + 5 * 60 * 1000);
+    client.global.set("valid_voucher_code", `TIME-VALID-${now.getTime()}`);
+    client.global.set("valid_start", past.toISOString());
+    client.global.set("valid_end", future.toISOString());
+%}
+POST {{voucherengine_base_url}}/v1/vouchers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "code": "{{valid_voucher_code}}",
+  "type": "DISCOUNT_VOUCHER",
+  "discount": {
+    "type": "AMOUNT",
+    "amount_off": 500,
+    "amount_off_type": "FIXED"
+  },
+  "redemption": {
+    "quantity": 1
+  },
+  "start_date": "{{valid_start}}",
+  "expiration_date": "{{valid_end}}"
+}
+
+> {%
+    client.test("valid-window voucher created", () => {
+        client.assert(response.status === 201);
+        client.assert(response.body.code === client.global.get("valid_voucher_code"));
+    });
+%}
+
+### Validate within the window (should succeed)
+# @name validate_within_window
+POST {{voucherengine_base_url}}/v1/vouchers/{{valid_voucher_code}}/validate
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "customer": {
+    "source_id": "time-window-customer"
+  }
+}
+
+> {%
+    client.test("validation allowed within window", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.valid === true);
+    });
+%}
+
+### Redeem within the window (should succeed)
+# @name redeem_within_window
+POST {{voucherengine_base_url}}/v1/redemptions
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "redeemables": [
+    { "object": "voucher", "id": "{{valid_voucher_code}}" }
+  ],
+  "customer": {
+    "source_id": "time-window-customer"
+  }
+}
+
+> {%
+    client.test("redemption allowed within window", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.result === "success");
+    });
+%}
+
+### Create a voucher not yet active (start_date in future)
+# @name create_future_voucher
+< {%
+    const now = new Date();
+    const futureStart = new Date(now.getTime() + 60 * 60 * 1000);
+    const futureEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    client.global.set("future_voucher_code", `TIME-FUTURE-${now.getTime()}`);
+    client.global.set("future_start", futureStart.toISOString());
+    client.global.set("future_end", futureEnd.toISOString());
+%}
+POST {{voucherengine_base_url}}/v1/vouchers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "code": "{{future_voucher_code}}",
+  "type": "DISCOUNT_VOUCHER",
+  "discount": {
+    "type": "AMOUNT",
+    "amount_off": 500,
+    "amount_off_type": "FIXED"
+  },
+  "redemption": {
+    "quantity": 1
+  },
+  "start_date": "{{future_start}}",
+  "expiration_date": "{{future_end}}"
+}
+
+> {%
+    client.test("future-window voucher created", () => {
+        client.assert(response.status === 201);
+        client.assert(response.body.code === client.global.get("future_voucher_code"));
+    });
+%}
+
+### Validate outside the window (should fail)
+# @name validate_outside_window
+POST {{voucherengine_base_url}}/v1/vouchers/{{future_voucher_code}}/validate
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "customer": {
+    "source_id": "time-window-customer"
+  }
+}
+
+> {%
+    client.test("validation rejected outside window", () => {
+        client.assert(response.status === 400);
+        client.assert(response.body.valid === false);
+        client.assert(response.body.error.code === "voucher_inactive");
+    });
+%}
+
+### Redeem outside the window (should fail)
+# @name redeem_outside_window
+POST {{voucherengine_base_url}}/v1/redemptions
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "redeemables": [
+    { "object": "voucher", "id": "{{future_voucher_code}}" }
+  ],
+  "customer": {
+    "source_id": "time-window-customer"
+  }
+}
+
+> {%
+    client.test("redemption rejected outside window", () => {
+        client.assert(response.status === 400);
+        client.assert(response.body.result === "failure");
+        client.assert(response.body.error.code === "voucher_inactive");
+    });
+%}
+
+### Delete vouchers
+# @name delete_valid_voucher
+DELETE {{voucherengine_base_url}}/v1/vouchers/{{valid_voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("valid voucher deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Verify valid voucher deleted
+# @name get_deleted_valid_voucher
+GET {{voucherengine_base_url}}/v1/vouchers/{{valid_voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("valid voucher not found after deletion", () => {
+        client.assert(response.status === 404);
+    });
+%}
+
+### Delete future voucher
+# @name delete_future_voucher
+DELETE {{voucherengine_base_url}}/v1/vouchers/{{future_voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("future voucher deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Verify future voucher deleted
+# @name get_deleted_future_voucher
+GET {{voucherengine_base_url}}/v1/vouchers/{{future_voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("future voucher not found after deletion", () => {
+        client.assert(response.status === 404);
+    });
+%}

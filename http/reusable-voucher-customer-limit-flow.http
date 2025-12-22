@@ -1,0 +1,396 @@
+import authenticate.http
+
+@tenant = acme
+
+### obtain the access_token
+run #authenticate_tenant
+
+### Create a voucher with redemption quantity 2
+# @name create_multi_use_voucher
+< {%
+    const now = Date.now();
+    client.global.set("voucher_code", `MULTI-USE-PER-CUSTOMER-${now}`);
+    client.global.set("customer1_id", `customer-1-${now}`);
+    client.global.set("customer2_id", `customer-2-${now}`);
+    client.global.set("customer3_id", `customer-3-${now}`);
+%}
+POST {{voucherengine_base_url}}/v1/vouchers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "code": "{{voucher_code}}",
+  "type": "DISCOUNT_VOUCHER",
+  "discount": {
+    "type": "PERCENT",
+    "percent_off": 10
+  },
+  "redemption": {
+    "quantity": 2
+  }
+}
+
+> {%
+    client.test("voucher created with quantity 2", () => {
+        client.assert(response.status === 201);
+        client.assert(response.body.code === client.global.get("voucher_code"));
+        client.assert(response.body.redemption.quantity === 2);
+    });
+%}
+
+### Create a validation rule limiting redemptions per customer to 1
+# @name create_validation_rule
+POST {{voucherengine_base_url}}/v1/validation-rules
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "name": "One redemption per customer",
+  "type": "redemptions",
+  "conditions": {
+    "redemptions": {
+      "per_customer": 1,
+      "per_incentive": true
+    }
+  },
+  "error": {
+    "code": "redemption_limit_per_customer_exceeded",
+    "message": "This voucher can be redeemed only once per customer."
+  }
+}
+
+> {%
+    client.test("validation rule created", () => {
+        client.assert(response.status === 201);
+        client.assert(response.body.object === "validation_rule");
+        client.assert(response.body.conditions.redemptions.per_customer === 1);
+    });
+    client.global.set("rule_id", response.body.id);
+%}
+
+### Assign the validation rule to the voucher
+# @name assign_validation_rule
+POST {{voucherengine_base_url}}/v1/validation-rules/{{rule_id}}/assignments
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "object": "voucher",
+  "id": "{{voucher_code}}"
+}
+
+> {%
+    client.test("validation rule assigned to voucher", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.object === "validation_rules_assignment");
+        client.assert(response.body.related_object_id === client.global.get("voucher_code"));
+        client.assert(response.body.rule_id === client.global.get("rule_id"));
+    });
+    client.global.set("assignment_id", response.body.id);
+%}
+
+### Customer 1: validate (should be valid)
+# @name validate_customer1_before
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/validate
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "customer": {
+    "source_id": "{{customer1_id}}"
+  }
+}
+
+> {%
+    client.test("customer1 validates before redemption", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.valid === true);
+    });
+%}
+
+### Customer 1: redeem (should succeed)
+# @name redeem_customer1
+POST {{voucherengine_base_url}}/v1/redemptions
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "redeemables": [
+    { "object": "voucher", "id": "{{voucher_code}}" }
+  ],
+  "customer": {
+    "source_id": "{{customer1_id}}"
+  }
+}
+
+> {%
+    client.test("customer1 redeemed", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.result === "success");
+        client.assert(!!response.body.redemptionId);
+    });
+%}
+
+### Customer 1: validate again (per-customer limit exceeded)
+# @name validate_customer1_after
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/validate
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "customer": {
+    "source_id": "{{customer1_id}}"
+  }
+}
+
+> {%
+    client.test("customer1 blocked by per-customer limit", () => {
+        client.assert(response.status === 400);
+        client.assert(response.body.valid === false);
+        client.assert(response.body.error.code === "redemption_limit_per_customer_exceeded");
+    });
+%}
+
+### Customer 1: redeem again (should fail)
+# @name redeem_customer1_again
+POST {{voucherengine_base_url}}/v1/redemptions
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "redeemables": [
+    { "object": "voucher", "id": "{{voucher_code}}" }
+  ],
+  "customer": {
+    "source_id": "{{customer1_id}}"
+  }
+}
+
+> {%
+    client.test("customer1 redemption rejected", () => {
+        client.assert(response.status === 400);
+        client.assert(response.body.result === "failure");
+        client.assert(response.body.error.code === "redemption_limit_per_customer_exceeded");
+    });
+%}
+
+### Customer 2: validate (should be valid)
+# @name validate_customer2_before
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/validate
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "customer": {
+    "source_id": "{{customer2_id}}"
+  }
+}
+
+> {%
+    client.test("customer2 validates before redemption", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.valid === true);
+    });
+%}
+
+### Customer 2: redeem (should succeed)
+# @name redeem_customer2
+POST {{voucherengine_base_url}}/v1/redemptions
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "redeemables": [
+    { "object": "voucher", "id": "{{voucher_code}}" }
+  ],
+  "customer": {
+    "source_id": "{{customer2_id}}"
+  }
+}
+
+> {%
+    client.test("customer2 redeemed", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.result === "success");
+        client.assert(!!response.body.redemptionId);
+    });
+%}
+
+### Customer 2: validate again (total limit exceeded)
+# @name validate_customer2_after
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/validate
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "customer": {
+    "source_id": "{{customer2_id}}"
+  }
+}
+
+> {%
+    client.test("customer2 blocked by total limit", () => {
+        client.assert(response.status === 400);
+        client.assert(response.body.valid === false);
+        client.assert(response.body.error.code === "redemption_limit_exceeded");
+    });
+%}
+
+### Customer 2: redeem again (should fail)
+# @name redeem_customer2_again
+POST {{voucherengine_base_url}}/v1/redemptions
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "redeemables": [
+    { "object": "voucher", "id": "{{voucher_code}}" }
+  ],
+  "customer": {
+    "source_id": "{{customer2_id}}"
+  }
+}
+
+> {%
+    client.test("customer2 redemption rejected", () => {
+        client.assert(response.status === 400);
+        client.assert(response.body.result === "failure");
+        client.assert(response.body.error.code === "redemption_limit_exceeded");
+    });
+%}
+
+### Customer 3: validate (total limit exceeded)
+# @name validate_customer3
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/validate
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "customer": {
+    "source_id": "{{customer3_id}}"
+  }
+}
+
+> {%
+    client.test("customer3 blocked by total limit", () => {
+        client.assert(response.status === 400);
+        client.assert(response.body.valid === false);
+        client.assert(response.body.error.code === "redemption_limit_exceeded");
+    });
+%}
+
+### Customer 3: redeem (should fail)
+# @name redeem_customer3
+POST {{voucherengine_base_url}}/v1/redemptions
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "redeemables": [
+    { "object": "voucher", "id": "{{voucher_code}}" }
+  ],
+  "customer": {
+    "source_id": "{{customer3_id}}"
+  }
+}
+
+> {%
+    client.test("customer3 redemption rejected", () => {
+        client.assert(response.status === 400);
+        client.assert(response.body.result === "failure");
+        client.assert(response.body.error.code === "redemption_limit_exceeded");
+    });
+%}
+
+### Delete validation rule assignment
+# @name delete_validation_assignment
+DELETE {{voucherengine_base_url}}/v1/validation-rules-assignments/{{assignment_id}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("validation rule assignment deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Verify assignments are cleared for the rule
+# @name list_rule_assignments
+GET {{voucherengine_base_url}}/v1/validation-rules/{{rule_id}}/assignments
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("rule assignments empty", () => {
+        client.assert(response.status === 200);
+        client.assert(Array.isArray(response.body));
+        client.assert(response.body.length === 0);
+    });
+%}
+
+### Delete validation rule
+# @name delete_validation_rule
+DELETE {{voucherengine_base_url}}/v1/validation-rules/{{rule_id}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("validation rule deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Verify validation rule is deleted
+# @name get_deleted_validation_rule
+GET {{voucherengine_base_url}}/v1/validation-rules/{{rule_id}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("validation rule not found after deletion", () => {
+        client.assert(response.status === 404);
+    });
+%}
+
+### Delete voucher
+# @name delete_voucher
+DELETE {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Verify voucher is deleted
+# @name get_deleted_voucher
+GET {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher not found after deletion", () => {
+        client.assert(response.status === 404);
+    });
+%}

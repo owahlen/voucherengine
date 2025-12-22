@@ -36,6 +36,17 @@ Voucherengine models a focused, API-first subset of Voucherify. It covers the vo
 2. Launch the app: `./gradlew bootRun`
 3. Run tests (H2): `GRADLE_USER_HOME=.gradle-tmp ./gradlew test`
 
+## IntelliJ HTTP Client (Docker)
+Use the JetBrains HTTP Client CLI container to run collections without IntelliJ:
+```
+docker run --rm --network host \
+  -v "$PWD/http:/work" -w /work \
+  jetbrains/intellij-http-client \
+  -e development -v http-client.env.json \
+  multi-use-voucher-flow.http
+```
+If host networking is unavailable, add `-D` to rewrite `localhost` to `host.docker.internal`.
+
 ## Layout
 - `src/main/kotlin`: app entrypoint, controllers under `api/controller`, DTOs under `api/dto`, services under `service`, persistence under `persistence/**`.
 - `src/main/resources`: application config and Liquibase changelog.

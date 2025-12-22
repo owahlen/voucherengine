@@ -1,0 +1,169 @@
+import authenticate.http
+
+@tenant = acme
+
+### obtain the access_token
+run #authenticate_tenant
+
+### Create a voucher with redemption quantity 1
+# @name create_multi_use_voucher
+< {%
+    const now = Date.now();
+    client.global.set("voucher_code", `MULTI-USE-${now}`);
+    client.global.set("customer_id", `customer-${now}`);
+%}
+POST {{voucherengine_base_url}}/v1/vouchers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "code": "{{voucher_code}}",
+  "type": "DISCOUNT_VOUCHER",
+  "discount": {
+    "type": "PERCENT",
+    "percent_off": 10
+  },
+  "redemption": {
+    "quantity": 1
+  }
+}
+
+> {%
+    client.test("voucher created", () => {
+        client.assert(response.status === 201);
+        client.assert(response.body.code === client.global.get("voucher_code"));
+        client.assert(response.body.redemption.quantity === 1);
+    });
+%}
+
+### List vouchers (should include the new code)
+# @name list_vouchers
+GET {{voucherengine_base_url}}/v1/vouchers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher list includes new voucher", () => {
+        client.assert(response.status === 200);
+        const codes = response.body.map(item => item.code);
+        client.assert(codes.includes(client.global.get("voucher_code")));
+    });
+%}
+
+### Validate the voucher (should be valid)
+# @name validate_before_redeem
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/validate
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "customer": {
+    "source_id": "{{customer_id}}"
+  }
+}
+
+> {%
+    client.test("voucher validates before redemption", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.valid === true);
+        client.assert(response.body.voucher.code === client.global.get("voucher_code"));
+    });
+%}
+
+### Redeem the voucher (should succeed)
+# @name redeem_voucher
+POST {{voucherengine_base_url}}/v1/redemptions
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "redeemables": [
+    { "object": "voucher", "id": "{{voucher_code}}" }
+  ],
+  "customer": {
+    "source_id": "{{customer_id}}"
+  }
+}
+
+> {%
+    client.test("voucher redeemed", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.result === "success");
+        client.assert(!!response.body.redemptionId);
+    });
+%}
+
+### Validate again (should be invalid due to total redemption limit)
+# @name validate_after_redeem
+POST {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}/validate
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "customer": {
+    "source_id": "{{customer_id}}"
+  }
+}
+
+> {%
+    client.test("voucher invalid after redemption", () => {
+        client.assert(response.status === 400);
+        client.assert(response.body.valid === false);
+        client.assert(response.body.error.code === "redemption_limit_exceeded");
+    });
+%}
+
+### Redeem again (should fail due to total redemption limit)
+# @name redeem_after_limit
+POST {{voucherengine_base_url}}/v1/redemptions
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "redeemables": [
+    { "object": "voucher", "id": "{{voucher_code}}" }
+  ],
+  "customer": {
+    "source_id": "{{customer_id}}"
+  }
+}
+
+> {%
+    client.test("voucher redemption rejected after limit", () => {
+        client.assert(response.status === 400);
+        client.assert(response.body.result === "failure");
+        client.assert(response.body.error.code === "redemption_limit_exceeded");
+    });
+%}
+
+### Delete the voucher
+# @name delete_voucher
+DELETE {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Verify voucher is deleted
+# @name get_deleted_voucher
+GET {{voucherengine_base_url}}/v1/vouchers/{{voucher_code}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher not found after deletion", () => {
+        client.assert(response.status === 404);
+    });
+%}
