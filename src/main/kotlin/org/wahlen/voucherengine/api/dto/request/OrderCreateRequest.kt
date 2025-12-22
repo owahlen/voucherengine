@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Positive
 data class OrderCreateRequest(
     @field:NotBlank
     @field:Schema(description = "Order source identifier", example = "order-123")
-    var id: String? = null,
+    var source_id: String? = null,
     @field:Schema(description = "Order status", example = "PAID")
     var status: String? = null,
     @field:Positive

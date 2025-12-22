@@ -27,7 +27,7 @@ class OrderControllerIntegrationTest @Autowired constructor(
     fun `create update and delete order`() {
         val createBody = """
             {
-              "id": "order-1",
+              "source_id": "order-1",
               "status": "PAID",
               "amount": 1000,
               "initial_amount": 1200,
@@ -56,7 +56,7 @@ class OrderControllerIntegrationTest @Autowired constructor(
 
         val updateBody = """
             {
-              "id": "order-1",
+              "source_id": "order-1",
               "status": "CANCELED",
               "discount_amount": 300
             }

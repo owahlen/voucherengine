@@ -16,7 +16,7 @@ class OrderService(
 
     @Transactional
     fun create(request: OrderCreateRequest): OrderResponse {
-        val entity = (request.id?.let { orderRepository.findBySourceId(it) }) ?: Order()
+        val entity = (request.source_id?.let { orderRepository.findBySourceId(it) }) ?: Order()
         applyRequest(entity, request)
         return toResponse(orderRepository.save(entity))
     }
@@ -24,7 +24,7 @@ class OrderService(
     @Transactional
     fun update(orderId: String, request: OrderCreateRequest): OrderResponse? {
         val entity = find(orderId) ?: return null
-        applyRequest(entity, request.copy(id = orderId))
+        applyRequest(entity, request.copy(source_id = orderId))
         return toResponse(orderRepository.save(entity))
     }
 
@@ -59,7 +59,7 @@ class OrderService(
     }
 
     private fun applyRequest(entity: Order, request: OrderCreateRequest) {
-        entity.sourceId = request.id ?: entity.sourceId
+        entity.sourceId = request.source_id ?: entity.sourceId
         entity.status = request.status ?: entity.status
         entity.amount = request.amount ?: entity.amount
         entity.initialAmount = request.initial_amount ?: entity.initialAmount
