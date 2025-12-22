@@ -28,6 +28,10 @@ import org.wahlen.voucherengine.service.dto.ValidationOrderSummary
 import org.wahlen.voucherengine.service.dto.ValidationResponse
 import org.wahlen.voucherengine.service.rules.RuleEvaluator
 import org.springframework.http.HttpStatus
+import java.time.Clock
+import java.time.Duration
+import java.time.LocalTime
+import java.time.ZoneOffset
 import java.time.Instant
 import java.util.UUID
 
@@ -40,6 +44,7 @@ class VoucherService(
     private val campaignRepository: CampaignRepository,
     private val validationRulesAssignmentRepository: ValidationRulesAssignmentRepository,
     private val validationRuleRepository: ValidationRuleRepository,
+    private val clock: Clock,
 ) {
 
     @Transactional
@@ -57,7 +62,12 @@ class VoucherService(
             holder = holder,
             additionalInfo = request.additional_info,
             campaign = campaign,
+            startDate = request.start_date,
+            expirationDate = request.expiration_date
         )
+        voucher.validityTimeframe = request.validity_timeframe
+        voucher.validityDayOfWeek = request.validity_day_of_week
+        voucher.validityHours = request.validity_hours
         voucher.redemptionJson = RedemptionDto(
             quantity = request.redemption?.quantity,
             redeemed_quantity = 0,
@@ -78,6 +88,11 @@ class VoucherService(
         existing.metadata = request.metadata ?: existing.metadata
         existing.active = request.active ?: existing.active
         existing.additionalInfo = request.additional_info ?: existing.additionalInfo
+        existing.validityTimeframe = request.validity_timeframe ?: existing.validityTimeframe
+        existing.validityDayOfWeek = request.validity_day_of_week ?: existing.validityDayOfWeek
+        existing.validityHours = request.validity_hours ?: existing.validityHours
+        existing.startDate = request.start_date ?: existing.startDate
+        existing.expirationDate = request.expiration_date ?: existing.expirationDate
         existing.redemptionJson = existing.redemptionJson?.copy(
             quantity = request.redemption?.quantity ?: existing.redemptionJson?.quantity,
             per_customer = request.redemption?.per_customer ?: existing.redemptionJson?.per_customer
@@ -106,12 +121,15 @@ class VoucherService(
         if (voucher.active == false) {
             return ValidationResponse(false, error = ErrorResponse("voucher_inactive", "Voucher is inactive."))
         }
-        val now = Instant.now()
+        val now = Instant.now(clock)
         if (voucher.startDate != null && now.isBefore(voucher.startDate)) {
             return ValidationResponse(false, error = ErrorResponse("voucher_inactive", "Voucher is not yet active."))
         }
         if (voucher.expirationDate != null && now.isAfter(voucher.expirationDate)) {
             return ValidationResponse(false, error = ErrorResponse("voucher_expired", "This voucher has expired."))
+        }
+        if (!isWithinValidityWindow(voucher, now)) {
+            return ValidationResponse(false, error = ErrorResponse("voucher_inactive", "Voucher is not active right now."))
         }
 
         val customer = customerService.ensureCustomer(request.customer)
@@ -245,6 +263,9 @@ class VoucherService(
             additional_info = voucher.additionalInfo,
             start_date = voucher.startDate,
             expiration_date = voucher.expirationDate,
+            validity_timeframe = voucher.validityTimeframe,
+            validity_day_of_week = voucher.validityDayOfWeek,
+            validity_hours = voucher.validityHours,
             metadata = voucher.metadata,
             assets = VoucherAssetsDto(
                 qr = AssetDto(id = voucher.assets?.qrId, url = voucher.assets?.qrUrl),
@@ -315,5 +336,41 @@ class VoucherService(
         val code = (errorMap?.get("code") as? String) ?: defaultCode
         val message = (errorMap?.get("message") as? String) ?: defaultMessage
         return ErrorResponse(code, message)
+    }
+
+    private fun isWithinValidityWindow(voucher: Voucher, now: Instant): Boolean {
+        val zoned = now.atZone(ZoneOffset.UTC)
+
+        voucher.validityDayOfWeek?.let { days ->
+            if (days.isNotEmpty()) {
+                val dow = zoned.dayOfWeek.value % 7 // Sunday -> 0
+                if (!days.contains(dow)) return false
+            }
+        }
+
+        voucher.validityHours?.daily?.let { slots ->
+            if (slots.isNotEmpty()) {
+                val currentTime = zoned.toLocalTime()
+                val matches = slots.any { slot ->
+                    val start = slot.start_time?.let { LocalTime.parse(it) } ?: return@any false
+                    val end = slot.expiration_time?.let { LocalTime.parse(it) } ?: return@any false
+                    val dayAllowed = slot.days_of_week?.let { it.contains(zoned.dayOfWeek.value % 7) } ?: true
+                    dayAllowed && !currentTime.isBefore(start) && currentTime.isBefore(end)
+                }
+                if (!matches) return false
+            }
+        }
+
+        voucher.validityTimeframe?.let { timeframe ->
+            val start = voucher.startDate ?: return false
+            val duration = timeframe.duration?.let { Duration.parse(it) } ?: return false
+            val interval = timeframe.interval?.let { Duration.parse(it) } ?: return false
+            val elapsed = Duration.between(start, now)
+            if (elapsed.isNegative) return false
+            val cycles = elapsed.dividedBy(interval)
+            val cycleRemainder = elapsed.minus(interval.multipliedBy(cycles))
+            if (cycleRemainder >= duration) return false
+        }
+        return true
     }
 }

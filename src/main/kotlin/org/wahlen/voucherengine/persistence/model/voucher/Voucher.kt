@@ -7,6 +7,8 @@ import org.wahlen.voucherengine.api.dto.common.DiscountDto
 import org.wahlen.voucherengine.api.dto.common.GiftDto
 import org.wahlen.voucherengine.api.dto.common.LoyaltyCardDto
 import org.wahlen.voucherengine.api.dto.common.RedemptionDto
+import org.wahlen.voucherengine.api.dto.common.ValidityHoursDto
+import org.wahlen.voucherengine.api.dto.common.ValidityTimeframeDto
 import org.wahlen.voucherengine.persistence.model.campaign.Campaign
 import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
 import org.wahlen.voucherengine.persistence.model.customer.Customer
@@ -145,4 +147,25 @@ class Voucher(
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     var redemptionJson: RedemptionDto? = null
+
+    /**
+     * Recurring validity timeframe (interval/duration).
+     */
+    @Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    var validityTimeframe: ValidityTimeframeDto? = null
+
+    /**
+     * Days of week when voucher is valid (0=Sun..6=Sat).
+     */
+    @Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    var validityDayOfWeek: List<Int>? = null
+
+    /**
+     * Daily hours when voucher is valid.
+     */
+    @Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    var validityHours: ValidityHoursDto? = null
 }

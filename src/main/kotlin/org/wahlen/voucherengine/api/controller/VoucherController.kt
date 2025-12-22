@@ -40,38 +40,7 @@ class VoucherController(
     @PostMapping("/vouchers")
     fun createVoucher(@Valid @RequestBody body: VoucherCreateRequest): ResponseEntity<VoucherResponse> {
         val voucher = voucherService.createVoucher(body)
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-            VoucherResponse(
-                id = voucher.id,
-                objectType = "voucher",
-                code = voucher.code,
-                type = voucher.type,
-                status = if (voucher.active == true) "ACTIVE" else "INACTIVE",
-                discount = voucher.discountJson,
-                gift = voucher.giftJson,
-                loyalty_card = voucher.loyaltyCardJson,
-                redemption = voucher.redemptionJson,
-                additional_info = voucher.additionalInfo,
-                start_date = voucher.startDate,
-                expiration_date = voucher.expirationDate,
-                metadata = voucher.metadata,
-                assets = VoucherAssetsDto(
-                    qr = AssetDto(id = voucher.assets?.qrId, url = voucher.assets?.qrUrl),
-                    barcode = AssetDto(id = voucher.assets?.barcodeId, url = voucher.assets?.barcodeUrl)
-                ),
-                categories = voucher.categories.map {
-                    org.wahlen.voucherengine.api.dto.response.CategoryResponse(
-                        it.id,
-                        it.name,
-                        it.createdAt,
-                        it.updatedAt
-                    )
-                },
-                campaign_id = voucher.campaign?.id,
-                created_at = voucher.createdAt,
-                updated_at = voucher.updatedAt
-            )
-        )
+        return ResponseEntity.status(HttpStatus.CREATED).body(voucherService.toVoucherResponse(voucher))
     }
 
     @Operation(
@@ -104,38 +73,7 @@ class VoucherController(
     @GetMapping("/vouchers/{code}")
     fun getVoucher(@PathVariable code: String): ResponseEntity<VoucherResponse> {
         val voucher = voucherService.getByCode(code) ?: return ResponseEntity.notFound().build()
-        return ResponseEntity.ok(
-            VoucherResponse(
-                id = voucher.id,
-                objectType = "voucher",
-                code = voucher.code,
-                type = voucher.type,
-                status = if (voucher.active == true) "ACTIVE" else "INACTIVE",
-                discount = voucher.discountJson,
-                gift = voucher.giftJson,
-                loyalty_card = voucher.loyaltyCardJson,
-                redemption = voucher.redemptionJson,
-                additional_info = voucher.additionalInfo,
-                start_date = voucher.startDate,
-                expiration_date = voucher.expirationDate,
-                metadata = voucher.metadata,
-                assets = VoucherAssetsDto(
-                    qr = AssetDto(id = voucher.assets?.qrId, url = voucher.assets?.qrUrl),
-                    barcode = AssetDto(id = voucher.assets?.barcodeId, url = voucher.assets?.barcodeUrl)
-                ),
-                categories = voucher.categories.map {
-                    org.wahlen.voucherengine.api.dto.response.CategoryResponse(
-                        it.id,
-                        it.name,
-                        it.createdAt,
-                        it.updatedAt
-                    )
-                },
-                campaign_id = voucher.campaign?.id,
-                created_at = voucher.createdAt,
-                updated_at = voucher.updatedAt
-            )
-        )
+        return ResponseEntity.ok(voucherService.toVoucherResponse(voucher))
     }
 
     @Operation(
@@ -152,38 +90,7 @@ class VoucherController(
         @Valid @RequestBody body: VoucherCreateRequest
     ): ResponseEntity<VoucherResponse> {
         val updated = voucherService.updateVoucher(code, body) ?: return ResponseEntity.notFound().build()
-        return ResponseEntity.ok(
-            VoucherResponse(
-                id = updated.id,
-                objectType = "voucher",
-                code = updated.code,
-                type = updated.type,
-                status = if (updated.active == true) "ACTIVE" else "INACTIVE",
-                discount = updated.discountJson,
-                gift = updated.giftJson,
-                loyalty_card = updated.loyaltyCardJson,
-                redemption = updated.redemptionJson,
-                additional_info = updated.additionalInfo,
-                start_date = updated.startDate,
-                expiration_date = updated.expirationDate,
-                metadata = updated.metadata,
-                assets = VoucherAssetsDto(
-                    qr = AssetDto(id = updated.assets?.qrId, url = updated.assets?.qrUrl),
-                    barcode = AssetDto(id = updated.assets?.barcodeId, url = updated.assets?.barcodeUrl)
-                ),
-                categories = updated.categories.map {
-                    org.wahlen.voucherengine.api.dto.response.CategoryResponse(
-                        it.id,
-                        it.name,
-                        it.createdAt,
-                        it.updatedAt
-                    )
-                },
-                campaign_id = updated.campaign?.id,
-                created_at = updated.createdAt,
-                updated_at = updated.updatedAt
-            )
-        )
+        return ResponseEntity.ok(voucherService.toVoucherResponse(updated))
     }
 
     @Operation(

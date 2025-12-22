@@ -8,6 +8,9 @@ import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.common.DiscountDto
 import org.wahlen.voucherengine.api.dto.common.DiscountType
 import org.wahlen.voucherengine.api.dto.common.RedemptionDto
+import org.wahlen.voucherengine.api.dto.common.ValidityHoursDailyDto
+import org.wahlen.voucherengine.api.dto.common.ValidityHoursDto
+import org.wahlen.voucherengine.api.dto.common.ValidityTimeframeDto
 import org.wahlen.voucherengine.api.dto.request.CustomerReferenceDto
 import org.wahlen.voucherengine.api.dto.request.RedeemableDto
 import org.wahlen.voucherengine.api.dto.request.RedemptionRequest
@@ -16,6 +19,13 @@ import org.wahlen.voucherengine.api.dto.request.VoucherValidationRequest
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleAssignmentRequest
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleCreateRequest
 import org.wahlen.voucherengine.persistence.repository.CategoryRepository
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Primary
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -24,13 +34,14 @@ import kotlin.test.assertTrue
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Import(VoucherServiceTest.ClockTestConfig::class)
 @Transactional
 class VoucherServiceTest @Autowired constructor(
     private val voucherService: VoucherService,
     private val categoryRepository: CategoryRepository,
-    private val validationRuleService: ValidationRuleService
+    private val validationRuleService: ValidationRuleService,
+    private val clock: MutableClock
 ) {
-
     @Test
     fun `redeem stops at total quantity limit`() {
         voucherService.createVoucher(
@@ -264,5 +275,95 @@ class VoucherServiceTest @Autowired constructor(
         assertTrue(response.valid)
         assertEquals(200, response.order?.discount_amount)
         assertEquals(800, response.order?.total_amount)
+    }
+
+    @Test
+    fun `validity day of week and hours enforced`() {
+        clock.instant = Instant.parse("2025-01-05T10:00:00Z") // Sunday
+        clock.setZone(ZoneOffset.UTC)
+
+        voucherService.createVoucher(
+            VoucherCreateRequest(
+                code = "WEEKDAY-ONLY",
+                type = "DISCOUNT_VOUCHER",
+                discount = DiscountDto(type = DiscountType.PERCENT, percent_off = 10),
+                validity_day_of_week = listOf(1, 2, 3, 4, 5),
+                validity_hours = ValidityHoursDto(
+                    daily = listOf(
+                        ValidityHoursDailyDto(start_time = "09:00", expiration_time = "12:00", days_of_week = listOf(1, 2, 3, 4, 5))
+                    )
+                )
+            )
+        )
+
+        val invalidDay = voucherService.validateVoucher(
+            "WEEKDAY-ONLY",
+            VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
+        )
+        assertFalse(invalidDay.valid)
+
+        clock.instant = Instant.parse("2025-01-06T10:00:00Z") // Monday 10:00 UTC
+        val valid = voucherService.validateVoucher(
+            "WEEKDAY-ONLY",
+            VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
+        )
+        assertTrue(valid.valid)
+
+        clock.instant = Instant.parse("2025-01-06T13:00:00Z") // outside hours
+        val invalidHour = voucherService.validateVoucher(
+            "WEEKDAY-ONLY",
+            VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
+        )
+        assertFalse(invalidHour.valid)
+    }
+
+    @Test
+    fun `validity timeframe enforced`() {
+        val start = Instant.parse("2025-01-01T00:00:00Z")
+        clock.instant = start.plusSeconds(1800)
+        clock.setZone(ZoneOffset.UTC)
+
+        voucherService.createVoucher(
+            VoucherCreateRequest(
+                code = "WINDOWED",
+                type = "DISCOUNT_VOUCHER",
+                discount = DiscountDto(type = DiscountType.PERCENT, percent_off = 5),
+                start_date = start,
+                validity_timeframe = ValidityTimeframeDto(duration = "PT1H", interval = "P1D")
+            )
+        )
+
+        val valid = voucherService.validateVoucher(
+            "WINDOWED",
+            VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
+        )
+        assertTrue(valid.valid)
+
+        clock.instant = start.plusSeconds(7200)
+        val invalid = voucherService.validateVoucher(
+            "WINDOWED",
+            VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
+        )
+        assertFalse(invalid.valid)
+    }
+
+    @TestConfiguration
+    class ClockTestConfig {
+        @Bean
+        @Primary
+        fun mutableClock(): MutableClock = MutableClock(Instant.now(), ZoneOffset.UTC)
+    }
+
+    class MutableClock(var instant: Instant, private var zoneValue: java.time.ZoneId) : Clock() {
+        override fun withZone(zone: java.time.ZoneId): Clock {
+            this.zoneValue = zone
+            return this
+        }
+        override fun getZone(): java.time.ZoneId = zoneValue
+        override fun instant(): Instant = instant
+
+        fun setZone(zone: java.time.ZoneId) {
+            this.zoneValue = zone
+        }
     }
 }

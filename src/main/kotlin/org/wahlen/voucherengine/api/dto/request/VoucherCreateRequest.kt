@@ -7,6 +7,8 @@ import org.wahlen.voucherengine.api.dto.common.DiscountDto
 import org.wahlen.voucherengine.api.dto.common.GiftDto
 import org.wahlen.voucherengine.api.dto.common.LoyaltyCardDto
 import org.wahlen.voucherengine.api.dto.common.RedemptionDto
+import org.wahlen.voucherengine.api.dto.common.ValidityHoursDto
+import org.wahlen.voucherengine.api.dto.common.ValidityTimeframeDto
 
 data class VoucherCreateRequest(
     @field:NotBlank
@@ -27,6 +29,16 @@ data class VoucherCreateRequest(
     @field:Valid
     @field:Schema(description = "Redemption limits and counters")
     var redemption: RedemptionDto? = null,
+    @field:Schema(description = "UTC start date of validity", example = "2025-01-01T00:00:00Z")
+    var start_date: java.time.Instant? = null,
+    @field:Schema(description = "UTC expiration date", example = "2025-12-31T23:59:59Z")
+    var expiration_date: java.time.Instant? = null,
+    @field:Schema(description = "Recurring validity timeframe", example = """{"duration":"PT1H","interval":"P2D"}""")
+    var validity_timeframe: ValidityTimeframeDto? = null,
+    @field:Schema(description = "Days of week (0=Sun..6=Sat) when voucher is valid", example = "[1,2,3,4,5]")
+    var validity_day_of_week: List<Int>? = null,
+    @field:Schema(description = "Daily validity hours", example = """{"daily":[{"start_time":"09:00","expiration_time":"12:00","days_of_week":[1,2,3,4,5]}]}""")
+    var validity_hours: ValidityHoursDto? = null,
     @field:Valid
     @field:Schema(description = "Holder of the voucher if applicable")
     var customer: CustomerReferenceDto? = null,

@@ -5,6 +5,8 @@ import org.wahlen.voucherengine.api.dto.common.DiscountDto
 import org.wahlen.voucherengine.api.dto.common.GiftDto
 import org.wahlen.voucherengine.api.dto.common.LoyaltyCardDto
 import org.wahlen.voucherengine.api.dto.common.RedemptionDto
+import org.wahlen.voucherengine.api.dto.common.ValidityHoursDto
+import org.wahlen.voucherengine.api.dto.common.ValidityTimeframeDto
 import org.wahlen.voucherengine.persistence.model.voucher.VoucherType
 import java.time.Instant
 import java.util.UUID
@@ -28,6 +30,12 @@ data class VoucherResponse(
     val loyalty_card: LoyaltyCardDto? = null,
     @field:Schema(description = "Redemption limits and counters")
     val redemption: RedemptionDto? = null,
+    @field:Schema(description = "Recurring validity timeframe")
+    val validity_timeframe: ValidityTimeframeDto? = null,
+    @field:Schema(description = "Days of week (0=Sun..6=Sat) when voucher is valid")
+    val validity_day_of_week: List<Int>? = null,
+    @field:Schema(description = "Daily validity hours")
+    val validity_hours: ValidityHoursDto? = null,
     @field:Schema(description = "Additional voucher info/description", example = "Black Friday special")
     val additional_info: String? = null,
     @field:Schema(description = "UTC start date of validity", example = "2025-01-01T00:00:00Z")
