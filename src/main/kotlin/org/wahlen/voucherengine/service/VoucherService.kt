@@ -2,7 +2,7 @@ package org.wahlen.voucherengine.service
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.wahlen.voucherengine.api.dto.RedemptionDto
+import org.wahlen.voucherengine.api.dto.common.RedemptionDto
 import org.wahlen.voucherengine.api.dto.request.*
 import org.wahlen.voucherengine.persistence.model.redemption.Redemption
 import org.wahlen.voucherengine.persistence.model.redemption.RedemptionResult

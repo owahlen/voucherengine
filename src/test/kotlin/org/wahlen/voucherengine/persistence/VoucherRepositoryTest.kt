@@ -6,10 +6,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
-import org.wahlen.voucherengine.api.dto.AmountOffType
-import org.wahlen.voucherengine.api.dto.DiscountDto
-import org.wahlen.voucherengine.api.dto.DiscountType
-import org.wahlen.voucherengine.api.dto.RedemptionDto
+import org.wahlen.voucherengine.api.dto.common.AmountOffType
+import org.wahlen.voucherengine.api.dto.common.DiscountDto
+import org.wahlen.voucherengine.api.dto.common.DiscountType
+import org.wahlen.voucherengine.api.dto.common.RedemptionDto
 import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 import org.wahlen.voucherengine.persistence.model.voucher.VoucherType
 import org.wahlen.voucherengine.persistence.repository.VoucherRepository

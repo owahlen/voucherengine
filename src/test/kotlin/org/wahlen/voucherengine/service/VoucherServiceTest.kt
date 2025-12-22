@@ -5,9 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
-import org.wahlen.voucherengine.api.dto.DiscountDto
-import org.wahlen.voucherengine.api.dto.DiscountType
-import org.wahlen.voucherengine.api.dto.RedemptionDto
+import org.wahlen.voucherengine.api.dto.common.DiscountDto
+import org.wahlen.voucherengine.api.dto.common.DiscountType
+import org.wahlen.voucherengine.api.dto.common.RedemptionDto
 import org.wahlen.voucherengine.api.dto.request.CustomerReferenceDto
 import org.wahlen.voucherengine.api.dto.request.RedeemableDto
 import org.wahlen.voucherengine.api.dto.request.RedemptionRequest

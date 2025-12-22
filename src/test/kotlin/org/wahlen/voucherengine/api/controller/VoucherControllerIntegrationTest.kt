@@ -52,6 +52,25 @@ class VoucherControllerIntegrationTest @Autowired constructor(
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.valid").value(true))
 
+        // redeem once to consume limit
+        val redeemBody = """
+            { "redeemables": [ { "object": "voucher", "id": "$code" } ], "customer": { "source_id": "controller-customer" }, "order": { "id": "order-1", "amount": 1500 } }
+        """.trimIndent()
+
+        mockMvc.perform(
+            post("/v1/redemptions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(redeemBody)
+        ).andExpect(status().isOk)
+
+        // next validation should fail with limit exceeded
+        mockMvc.perform(
+            post("/v1/vouchers/$code/validate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validateBody)
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.error.code").value("redemption_limit_exceeded"))
+
         val updateBody = """
             { "code": "$code", "type": "DISCOUNT_VOUCHER", "discount": { "type": "PERCENT", "percent_off": 15 }, "redemption": { "quantity": 2 } }
         """.trimIndent()
@@ -61,5 +80,39 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateBody)
         ).andExpect(status().isOk)
+    }
+
+    @Test
+    fun `validate stack aggregates results`() {
+        val code = "STACK-${UUID.randomUUID().toString().take(8)}"
+        val createBody = """
+            { "code": "$code", "type": "DISCOUNT_VOUCHER", "discount": { "type": "PERCENT", "percent_off": 5 }, "redemption": { "quantity": 5 } }
+        """.trimIndent()
+
+        mockMvc.perform(
+            post("/v1/vouchers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createBody)
+        ).andExpect(status().isCreated)
+
+        val stackBody = """
+            {
+              "redeemables": [
+                { "object": "voucher", "id": "$code" },
+                { "object": "voucher", "id": "missing-code" }
+              ],
+              "customer": { "source_id": "stack-customer" },
+              "order": { "id": "order-stack", "amount": 500 }
+            }
+        """.trimIndent()
+
+        mockMvc.perform(
+            post("/v1/validations")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(stackBody)
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.validations[0].valid").value(true))
+            .andExpect(jsonPath("$.validations[1].valid").value(false))
+            .andExpect(jsonPath("$.validations[1].error.code").value("voucher_not_found"))
     }
 }

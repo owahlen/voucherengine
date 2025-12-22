@@ -3,9 +3,10 @@ package org.wahlen.voucherengine.persistence.model.voucher
 import jakarta.persistence.*
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
-import org.wahlen.voucherengine.api.dto.DiscountDto
-import org.wahlen.voucherengine.api.dto.GiftDto
-import org.wahlen.voucherengine.api.dto.LoyaltyCardDto
+import org.wahlen.voucherengine.api.dto.common.DiscountDto
+import org.wahlen.voucherengine.api.dto.common.GiftDto
+import org.wahlen.voucherengine.api.dto.common.LoyaltyCardDto
+import org.wahlen.voucherengine.api.dto.common.RedemptionDto
 import org.wahlen.voucherengine.persistence.model.campaign.Campaign
 import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
 import org.wahlen.voucherengine.persistence.model.customer.Customer
@@ -149,5 +150,5 @@ class Voucher(
      */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
-    var redemptionJson: org.wahlen.voucherengine.api.dto.RedemptionDto? = null
+    var redemptionJson: RedemptionDto? = null
 }

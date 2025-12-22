@@ -8,10 +8,14 @@ import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import org.wahlen.voucherengine.api.dto.request.*
-import org.wahlen.voucherengine.api.dto.VoucherResponse
+import org.wahlen.voucherengine.api.dto.response.VoucherResponse
+import org.wahlen.voucherengine.api.dto.response.VoucherAssetsDto
+import org.wahlen.voucherengine.api.dto.response.AssetDto
 import org.wahlen.voucherengine.service.VoucherService
+import org.wahlen.voucherengine.service.dto.ErrorResponse
 import org.wahlen.voucherengine.service.dto.RedemptionResponse
 import org.wahlen.voucherengine.service.dto.ValidationResponse
+import org.wahlen.voucherengine.service.dto.ValidationStackResponse
 
 @RestController
 @RequestMapping("/v1")
@@ -34,9 +38,23 @@ class VoucherController(
         return ResponseEntity.status(HttpStatus.CREATED).body(
             VoucherResponse(
                 id = voucher.id,
+                objectType = "voucher",
                 code = voucher.code,
                 type = voucher.type,
-                redemption = voucher.redemptionJson
+                status = if (voucher.active == true) "ACTIVE" else "INACTIVE",
+                discount = voucher.discountJson,
+                gift = voucher.giftJson,
+                loyalty_card = voucher.loyaltyCardJson,
+                redemption = voucher.redemptionJson,
+                start_date = voucher.startDate,
+                expiration_date = voucher.expirationDate,
+                metadata = voucher.metadata,
+                assets = VoucherAssetsDto(
+                    qr = AssetDto(id = voucher.assets?.qrId, url = voucher.assets?.qrUrl),
+                    barcode = AssetDto(id = voucher.assets?.barcodeId, url = voucher.assets?.barcodeUrl)
+                ),
+                created_at = voucher.createdAt,
+                updated_at = voucher.updatedAt
             )
         )
     }
@@ -45,8 +63,8 @@ class VoucherController(
         summary = "Validate a voucher code in a checkout context",
         operationId = "validateVoucher",
         responses = [
-            ApiResponse(responseCode = "200", description = "Validation result"),
-            ApiResponse(responseCode = "400", description = "Validation error"),
+            ApiResponse(responseCode = "200", description = "Validation succeeded"),
+            ApiResponse(responseCode = "400", description = "Validation failed (e.g., limit exceeded, inactive/expired, not assigned)"),
             ApiResponse(responseCode = "404", description = "Voucher not found")
         ]
     )
@@ -54,8 +72,11 @@ class VoucherController(
     fun validateVoucher(
         @PathVariable code: String,
         @Valid @RequestBody body: VoucherValidationRequest
-    ): ResponseEntity<ValidationResponse> =
-        ResponseEntity.ok(voucherService.validateVoucher(code, body))
+    ): ResponseEntity<ValidationResponse> {
+        val result = voucherService.validateVoucher(code, body)
+        val status = if (result.valid) HttpStatus.OK else HttpStatus.BAD_REQUEST
+        return ResponseEntity.status(status).body(result)
+    }
 
     @Operation(
         summary = "Get voucher by code",
@@ -71,9 +92,23 @@ class VoucherController(
         return ResponseEntity.ok(
             VoucherResponse(
                 id = voucher.id,
+                objectType = "voucher",
                 code = voucher.code,
                 type = voucher.type,
-                redemption = voucher.redemptionJson
+                status = if (voucher.active == true) "ACTIVE" else "INACTIVE",
+                discount = voucher.discountJson,
+                gift = voucher.giftJson,
+                loyalty_card = voucher.loyaltyCardJson,
+                redemption = voucher.redemptionJson,
+                start_date = voucher.startDate,
+                expiration_date = voucher.expirationDate,
+                metadata = voucher.metadata,
+                assets = VoucherAssetsDto(
+                    qr = AssetDto(id = voucher.assets?.qrId, url = voucher.assets?.qrUrl),
+                    barcode = AssetDto(id = voucher.assets?.barcodeId, url = voucher.assets?.barcodeUrl)
+                ),
+                created_at = voucher.createdAt,
+                updated_at = voucher.updatedAt
             )
         )
     }
@@ -95,9 +130,23 @@ class VoucherController(
         return ResponseEntity.ok(
             VoucherResponse(
                 id = updated.id,
+                objectType = "voucher",
                 code = updated.code,
                 type = updated.type,
-                redemption = updated.redemptionJson
+                status = if (updated.active == true) "ACTIVE" else "INACTIVE",
+                discount = updated.discountJson,
+                gift = updated.giftJson,
+                loyalty_card = updated.loyaltyCardJson,
+                redemption = updated.redemptionJson,
+                start_date = updated.startDate,
+                expiration_date = updated.expirationDate,
+                metadata = updated.metadata,
+                assets = VoucherAssetsDto(
+                    qr = AssetDto(id = updated.assets?.qrId, url = updated.assets?.qrUrl),
+                    barcode = AssetDto(id = updated.assets?.barcodeId, url = updated.assets?.barcodeUrl)
+                ),
+                created_at = updated.createdAt,
+                updated_at = updated.updatedAt
             )
         )
     }
@@ -107,12 +156,27 @@ class VoucherController(
         operationId = "validateStack",
         responses = [
             ApiResponse(responseCode = "200", description = "Stack validation result"),
-            ApiResponse(responseCode = "400", description = "Validation error")
+            ApiResponse(responseCode = "400", description = "Validation error (at least one redeemable invalid)")
         ]
     )
     @PostMapping("/validations")
-    fun validateStack(@Valid @RequestBody body: ValidationStackRequest): ResponseEntity<Any> =
-        ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(mapOf("status" to "not_implemented"))
+    fun validateStack(@Valid @RequestBody body: ValidationStackRequest): ResponseEntity<ValidationStackResponse> {
+        val responses = body.redeemables.map { redeemable ->
+            if (redeemable.`object` != "voucher") {
+                ValidationResponse(
+                    valid = false,
+                    error = ErrorResponse("unsupported_redeemable", "Only vouchers are supported in the stack validation")
+                )
+            } else {
+                voucherService.validateVoucher(
+                    redeemable.id,
+                    VoucherValidationRequest(customer = body.customer, order = body.order)
+                )
+            }
+        }
+        val status = if (responses.all { it.valid }) HttpStatus.OK else HttpStatus.BAD_REQUEST
+        return ResponseEntity.status(status).body(ValidationStackResponse(responses))
+    }
 
     @Operation(
         summary = "Redeem voucher(s) with order context",
