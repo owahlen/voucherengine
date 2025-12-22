@@ -1,0 +1,18 @@
+### Get access token (client_credentials) from Keycloak
+# @name authenticate
+< {%
+    const rawClientId = request.environment.get("client_id");
+    const rawSecret = request.environment.get("client_secret");
+    request.variables.set("encoded_client_id", encodeURIComponent(rawClientId));
+    request.variables.set("encoded_client_secret", encodeURIComponent(rawSecret));
+%}
+POST {{keycloak_base_url}}/realms/{{realm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&client_id={{encoded_client_id}}&client_secret={{encoded_client_secret}}
+
+> {%
+    client.global.set("access_token", response.body.access_token);
+    client.global.set("token_type", response.body.token_type);
+    client.global.set("expires_in", response.body.expires_in.toString());
+%}
