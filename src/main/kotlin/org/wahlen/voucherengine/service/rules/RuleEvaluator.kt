@@ -28,9 +28,16 @@ object RuleEvaluator {
         * - {"rules": { "1": { "name": "...", "conditions": { "$gte": 100 } }, ...}, "logic": "1 and 2"}
         * - {"redemptions": { "quantity": 1, "per_customer": 1 }} (legacy)
         */
-    fun evaluate(rulePayload: Map<String, Any?>, ctx: Context): Boolean {
+    fun evaluate(
+        rulePayload: Map<String, Any?>,
+        ctx: Context,
+        allowedRulePrefixes: Set<String>? = null
+    ): Boolean {
         // legacy redemptions-only shortcut
         if (rulePayload.containsKey("redemptions")) {
+            if (allowedRulePrefixes != null && "redemptions." !in allowedRulePrefixes) {
+                return true
+            }
             val redemptions = rulePayload["redemptions"] as? Map<*, *> ?: return false
             val qty = (redemptions["quantity"] as? Number)?.toInt()
             val perCustomer = (redemptions["per_customer"] as? Number)?.toInt()
@@ -47,6 +54,10 @@ object RuleEvaluator {
             val stringId = id?.toString() ?: return@forEach
             val map = value as? Map<*, *> ?: return@forEach
             val name = map["name"] as? String ?: return@forEach
+            if (allowedRulePrefixes != null && allowedRulePrefixes.none { name.startsWith(it) }) {
+                ruleResults[stringId] = true
+                return@forEach
+            }
             val conditions = map["conditions"] as? Map<*, *> ?: return@forEach
             ruleResults[stringId] = evaluateSingle(name, conditions, ctx)
         }
@@ -136,9 +147,10 @@ object RuleEvaluator {
     }
 
     private fun evaluateRedemptionRule(path: String, op: String, operand: Any?, ctx: Context): Boolean {
-        val value: Any? = when (path) {
-            "count.total" -> ctx.totalRedemptions
-            "count.per_customer" -> ctx.perCustomerRedemptions
+        val value: Any? = when {
+            path == "count.total" -> ctx.totalRedemptions
+            path == "count.per_customer" -> ctx.perCustomerRedemptions
+            path.startsWith("metadata.") -> ctx.request.metadata?.get(path.removePrefix("metadata."))
             else -> null
         }
         return evaluateCondition(value, op, operand)

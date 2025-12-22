@@ -6,5 +6,9 @@ data class QualificationOrderSummary(
     @field:Schema(description = "Order amount")
     val amount: Long? = null,
     @field:Schema(description = "Total amount after discounts")
-    val total_amount: Long? = null
+    val total_amount: Long? = null,
+    @field:Schema(description = "Order items")
+    val items: List<OrderItemResponse>? = null,
+    @field:Schema(description = "Object type", example = "order")
+    val `object`: String = "order"
 )

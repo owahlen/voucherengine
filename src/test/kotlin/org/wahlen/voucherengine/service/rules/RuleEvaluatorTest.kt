@@ -102,6 +102,50 @@ class RuleEvaluatorTest {
     }
 
     @Test
+    fun `redemption metadata conditions are evaluated`() {
+        val rules = mapOf(
+            "rules" to mapOf(
+                "1" to mapOf("name" to "redemptions.metadata.channel", "conditions" to mapOf("\$eq" to "web"))
+            ),
+            "logic" to "1"
+        )
+        val ctxWithMetadata = RuleEvaluator.Context(
+            voucher = voucher,
+            customer = customer,
+            request = VoucherValidationRequest(metadata = mapOf("channel" to "web")),
+            totalRedemptions = 0,
+            perCustomerRedemptions = 0
+        )
+        val ctxWithoutMetadata = RuleEvaluator.Context(
+            voucher = voucher,
+            customer = customer,
+            request = VoucherValidationRequest(metadata = mapOf("channel" to "store")),
+            totalRedemptions = 0,
+            perCustomerRedemptions = 0
+        )
+
+        assertTrue(RuleEvaluator.evaluate(rules, ctxWithMetadata))
+        assertFalse(RuleEvaluator.evaluate(rules, ctxWithoutMetadata))
+    }
+
+    @Test
+    fun `allowed rule prefixes ignore non-customer rules`() {
+        val rules = mapOf(
+            "rules" to mapOf(
+                "1" to mapOf("name" to "order.amount", "conditions" to mapOf("\$gte" to 500)),
+                "2" to mapOf("name" to "customer.email", "conditions" to mapOf("\$contains" to "@example.com"))
+            ),
+            "logic" to "1 and 2"
+        )
+        val result = RuleEvaluator.evaluate(
+            rules,
+            ctx(order = null),
+            allowedRulePrefixes = setOf("customer.")
+        )
+        assertTrue(result)
+    }
+
+    @Test
     fun `logic expressions short circuit`() {
         val rules = mapOf(
             "rules" to mapOf(

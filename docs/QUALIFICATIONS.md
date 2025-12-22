@@ -12,6 +12,7 @@ POST /v1/qualifications
 
 - `ALL` (default)
 - `CUSTOMER_WALLET`
+- `AUDIENCE_ONLY` (order rules are ignored; only customer-based rules are evaluated)
 - `PRODUCTS_BY_CUSTOMER`
 - `PRODUCTS_DISCOUNT_BY_CUSTOMER`
 
@@ -48,9 +49,11 @@ Supported `options.expand` values:
 
 - `redeemable` adds name/campaign/metadata
 - `category` adds category details
+- `validation_rules` adds `validation_rules_assignments` list metadata
 
 ## Notes
 
 - Qualification validation uses the same rules as voucher validation, but **per-customer redemption limits are ignored**, matching the Voucherify spec.
+- `metadata` in the request is used for rules that reference `redemptions.metadata.<key>`.
+- When `session.type` is `LOCK`, gift card results include `locked_credits` (returns `0` when there is no active lock).
 - Only voucher redeemables are returned at the moment.
-

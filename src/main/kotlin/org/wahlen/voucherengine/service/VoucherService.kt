@@ -128,17 +128,23 @@ class VoucherService(
 
     @Transactional(readOnly = true)
     fun validateVoucher(tenantName: String, code: String, request: VoucherValidationRequest): ValidationResponse =
-        validateVoucherInternal(tenantName, code, request, skipPerCustomerLimit = false)
+        validateVoucherInternal(tenantName, code, request, skipPerCustomerLimit = false, allowedRulePrefixes = null)
 
     @Transactional(readOnly = true)
-    fun validateVoucherForQualification(tenantName: String, code: String, request: VoucherValidationRequest): ValidationResponse =
-        validateVoucherInternal(tenantName, code, request, skipPerCustomerLimit = true)
+    fun validateVoucherForQualification(
+        tenantName: String,
+        code: String,
+        request: VoucherValidationRequest,
+        allowedRulePrefixes: Set<String>? = null
+    ): ValidationResponse =
+        validateVoucherInternal(tenantName, code, request, skipPerCustomerLimit = true, allowedRulePrefixes = allowedRulePrefixes)
 
     private fun validateVoucherInternal(
         tenantName: String,
         code: String,
         request: VoucherValidationRequest,
-        skipPerCustomerLimit: Boolean
+        skipPerCustomerLimit: Boolean,
+        allowedRulePrefixes: Set<String>?
     ): ValidationResponse {
         val voucher = voucherRepository.findByCodeAndTenantName(code, tenantName)
             ?: return ValidationResponse(false, error = ErrorResponse("voucher_not_found", "Voucher does not exist."))
@@ -160,7 +166,15 @@ class VoucherService(
         } else 0
 
         ensureOrderItemsExist(tenantName, request.order)?.let { return it }
-        applyValidationRules(tenantName, voucher, customer, customerRedemptions, totalRedemptions, request)?.let { return it }
+        applyValidationRules(
+            tenantName,
+            voucher,
+            customer,
+            customerRedemptions,
+            totalRedemptions,
+            request,
+            allowedRulePrefixes
+        )?.let { return it }
 
         ensureCategories(voucher, request.categories)?.let { return it }
 
@@ -352,7 +366,8 @@ class VoucherService(
         customer: Customer?,
         customerRedemptions: Int,
         totalRedemptions: Int,
-        request: VoucherValidationRequest
+        request: VoucherValidationRequest,
+        allowedRulePrefixes: Set<String>?
     ): ValidationResponse? {
         val assignments = mutableListOf<org.wahlen.voucherengine.persistence.model.validation.ValidationRulesAssignment>()
         voucher.id?.let { id ->
@@ -375,7 +390,8 @@ class VoucherService(
                     request = request,
                     totalRedemptions = totalRedemptions,
                     perCustomerRedemptions = customerRedemptions
-                )
+                ),
+                allowedRulePrefixes
             )
             if (!ok) {
                 return ValidationResponse(false, error = buildRuleError(rule, "rule_failed", "Validation rule not satisfied."))

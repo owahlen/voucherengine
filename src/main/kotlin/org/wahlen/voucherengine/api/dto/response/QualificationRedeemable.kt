@@ -14,6 +14,12 @@ data class QualificationRedeemable(
     val result: QualificationRedeemableResult? = null,
     @field:Schema(description = "Order summary")
     val order: QualificationOrderSummary? = null,
+    @field:Schema(description = "Validation rule id")
+    val validation_rule_id: String? = null,
+    @field:Schema(description = "Applicable items")
+    val applicable_to: QualificationItemList? = null,
+    @field:Schema(description = "Inapplicable items")
+    val inapplicable_to: QualificationItemList? = null,
     @field:Schema(description = "Redeemable name")
     val name: String? = null,
     @field:Schema(description = "Campaign name")
@@ -23,5 +29,11 @@ data class QualificationRedeemable(
     @field:Schema(description = "Redeemable metadata")
     val metadata: Map<String, Any?>? = null,
     @field:Schema(description = "Categories")
-    val categories: List<CategoryResponse>? = null
+    val categories: List<CategoryResponse>? = null,
+    @field:Schema(description = "Banner text")
+    val banner: String? = null,
+    @field:Schema(description = "Nested redeemables")
+    val redeemables: List<QualificationRedeemable>? = null,
+    @field:Schema(description = "Validation rules assignments")
+    val validation_rules_assignments: ValidationRulesAssignmentsListResponse? = null
 )

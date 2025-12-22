@@ -2,11 +2,9 @@ package org.wahlen.voucherengine.api.dto.request
 
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.Valid
-import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Positive
 
 data class OrderRequest(
-    @field:NotBlank
     @field:Schema(description = "Order identifier", example = "order-1")
     var id: String? = null,
     @field:Positive

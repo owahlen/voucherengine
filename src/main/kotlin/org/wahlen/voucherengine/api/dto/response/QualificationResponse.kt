@@ -8,5 +8,7 @@ data class QualificationResponse(
     @field:Schema(description = "Tracking id")
     val tracking_id: String? = null,
     @field:Schema(description = "Order summary")
-    val order: QualificationOrderSummary? = null
+    val order: QualificationOrderSummary? = null,
+    @field:Schema(description = "Stacking rules")
+    val stacking_rules: StackingRulesResponse? = null
 )
