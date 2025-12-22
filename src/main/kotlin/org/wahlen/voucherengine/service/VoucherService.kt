@@ -28,6 +28,7 @@ import org.wahlen.voucherengine.service.dto.ValidationOrderSummary
 import org.wahlen.voucherengine.service.dto.ValidationResponse
 import org.wahlen.voucherengine.service.rules.RuleEvaluator
 import org.springframework.http.HttpStatus
+import org.springframework.web.server.ResponseStatusException
 import java.time.Clock
 import java.time.Duration
 import java.time.LocalTime
@@ -51,6 +52,7 @@ class VoucherService(
     fun createVoucher(request: VoucherCreateRequest): Voucher {
         val holder = customerService.ensureCustomer(request.customer)
         val campaign = request.campaign_id?.let { campaignRepository.findById(it).orElse(null) }
+        validateValidity(request)
         val voucher = Voucher(
             code = request.code,
             type = request.type?.let { VoucherType.valueOf(it) },
@@ -81,6 +83,7 @@ class VoucherService(
     @Transactional
     fun updateVoucher(code: String, request: VoucherCreateRequest): Voucher? {
         val existing = voucherRepository.findByCode(code) ?: return null
+        validateValidity(request)
         existing.type = request.type?.let { VoucherType.valueOf(it) } ?: existing.type
         existing.discountJson = request.discount ?: existing.discountJson
         existing.giftJson = request.gift ?: existing.giftJson
@@ -118,59 +121,25 @@ class VoucherService(
         val voucher = voucherRepository.findByCode(code)
             ?: return ValidationResponse(false, error = ErrorResponse("voucher_not_found", "Voucher does not exist."))
 
-        if (voucher.active == false) {
-            return ValidationResponse(false, error = ErrorResponse("voucher_inactive", "Voucher is inactive."))
-        }
         val now = Instant.now(clock)
-        if (voucher.startDate != null && now.isBefore(voucher.startDate)) {
-            return ValidationResponse(false, error = ErrorResponse("voucher_inactive", "Voucher is not yet active."))
-        }
-        if (voucher.expirationDate != null && now.isAfter(voucher.expirationDate)) {
-            return ValidationResponse(false, error = ErrorResponse("voucher_expired", "This voucher has expired."))
-        }
-        if (!isWithinValidityWindow(voucher, now)) {
-            return ValidationResponse(false, error = ErrorResponse("voucher_inactive", "Voucher is not active right now."))
-        }
+        ensureActiveWindow(voucher, now)?.let { return it }
 
         val customer = customerService.ensureCustomer(request.customer)
-        if (voucher.holder != null && voucher.holder?.id != customer?.id) {
-            return ValidationResponse(false, error = ErrorResponse("voucher_not_assigned", "Voucher assigned to another customer."))
-        }
+        ensureOwnership(voucher, customer)?.let { return it }
 
         val totalRedemptions = voucher.id?.let { redemptionRepository.countByVoucherId(it).toInt() } ?: 0
         val perCustomerLimit = voucher.redemptionJson?.per_customer
         val quantityLimit = voucher.redemptionJson?.quantity
 
-        if (quantityLimit != null && totalRedemptions >= quantityLimit) {
-            return ValidationResponse(false, error = ErrorResponse("redemption_limit_exceeded", "This voucher reached its total redemption limit."))
-        }
+        ensureLimits(perCustomerLimit, quantityLimit, totalRedemptions, voucher, customer)?.let { return it }
 
         val customerRedemptions = if (customer?.id != null && voucher.id != null) {
             redemptionRepository.countByVoucherIdAndCustomerId(voucher.id!!, customer.id!!).toInt()
         } else 0
-        if (perCustomerLimit != null && customer?.id != null) {
-            if (customerRedemptions >= perCustomerLimit) {
-                val message = if (perCustomerLimit == 1) {
-                    "This voucher can be redeemed only once per customer."
-                } else {
-                    "This voucher can be redeemed only $perCustomerLimit time(s) per customer."
-                }
-                return ValidationResponse(false, error = ErrorResponse("redemption_limit_per_customer_exceeded", message))
-            }
-        }
 
         applyValidationRules(voucher, customer, customerRedemptions, totalRedemptions, request)?.let { return it }
 
-        if (voucher.categories.isNotEmpty()) {
-            val categoryIds = request.categories
-            if (categoryIds.isNullOrEmpty()) {
-                return ValidationResponse(false, error = ErrorResponse("voucher_category_mismatch", "Voucher is not applicable for provided categories."))
-            }
-            val overlap = voucher.categories.any { it.id != null && categoryIds.contains(it.id) }
-            if (!overlap) {
-                return ValidationResponse(false, error = ErrorResponse("voucher_category_mismatch", "Voucher is not applicable for provided categories."))
-            }
-        }
+        ensureCategories(voucher, request.categories)?.let { return it }
 
         val orderAmount = request.order?.amount
         val orderUnits = request.order?.items?.sumOf { it.quantity ?: 0 }
@@ -331,11 +300,125 @@ class VoucherService(
         return null
     }
 
+    private fun validateValidity(request: VoucherCreateRequest) {
+        request.validity_timeframe?.let { tf ->
+            val duration = tf.duration?.let { Duration.parse(it) } ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "validity_timeframe.duration is required and must be ISO-8601 duration")
+            val interval = tf.interval?.let { Duration.parse(it) } ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "validity_timeframe.interval is required and must be ISO-8601 duration")
+            if (duration.isZero || interval.isZero || duration.isNegative || interval.isNegative) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "validity_timeframe duration and interval must be positive")
+            }
+            if (duration > interval) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "validity_timeframe duration must be <= interval")
+            }
+            if (request.start_date == null) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "start_date is required when using validity_timeframe")
+            }
+        }
+
+        request.validity_day_of_week?.let { days ->
+            if (days.any { it !in 0..6 }) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "validity_day_of_week must contain values 0-6")
+            }
+        }
+
+        request.validity_hours?.daily?.let { slots ->
+            slots.forEach { slot ->
+                val start = slot.start_time?.let { LocalTime.parse(it) }
+                    ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "validity_hours.daily.start_time must be HH:mm")
+                val end = slot.expiration_time?.let { LocalTime.parse(it) }
+                    ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "validity_hours.daily.expiration_time must be HH:mm")
+                if (!start.isBefore(end)) {
+                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "validity_hours daily start_time must be before expiration_time")
+                }
+                slot.days_of_week?.let { days ->
+                    if (days.any { it !in 0..6 }) {
+                        throw ResponseStatusException(HttpStatus.BAD_REQUEST, "validity_hours days_of_week must be 0-6")
+                    }
+                }
+            }
+            // overlap check per day
+            val byDay = mutableMapOf<Int, MutableList<Pair<LocalTime, LocalTime>>>()
+            slots.forEach { slot ->
+                val start = LocalTime.parse(slot.start_time)
+                val end = LocalTime.parse(slot.expiration_time)
+                val days = slot.days_of_week ?: listOf(0,1,2,3,4,5,6)
+                days.forEach { day ->
+                    val list = byDay.computeIfAbsent(day) { mutableListOf() }
+                    list.add(start to end)
+                }
+            }
+            byDay.values.forEach { intervals ->
+                val sorted = intervals.sortedBy { it.first }
+                for (i in 1 until sorted.size) {
+                    val prev = sorted[i-1]
+                    val curr = sorted[i]
+                    if (!curr.first.isAfter(prev.second)) {
+                        throw ResponseStatusException(HttpStatus.BAD_REQUEST, "validity_hours intervals overlap for a day")
+                    }
+                }
+            }
+        }
+    }
+
     private fun buildRuleError(rule: org.wahlen.voucherengine.persistence.model.validation.ValidationRule, defaultCode: String, defaultMessage: String): ErrorResponse {
         val errorMap = rule.error
         val code = (errorMap?.get("code") as? String) ?: defaultCode
         val message = (errorMap?.get("message") as? String) ?: defaultMessage
         return ErrorResponse(code, message)
+    }
+
+    private fun ensureActiveWindow(voucher: Voucher, now: Instant): ValidationResponse? {
+        if (voucher.active == false) {
+            return ValidationResponse(false, error = ErrorResponse("voucher_inactive", "Voucher is inactive."))
+        }
+        if (voucher.startDate != null && now.isBefore(voucher.startDate)) {
+            return ValidationResponse(false, error = ErrorResponse("voucher_inactive", "Voucher is not yet active."))
+        }
+        if (voucher.expirationDate != null && now.isAfter(voucher.expirationDate)) {
+            return ValidationResponse(false, error = ErrorResponse("voucher_expired", "This voucher has expired."))
+        }
+        if (!isWithinValidityWindow(voucher, now)) {
+            return ValidationResponse(false, error = ErrorResponse("voucher_inactive", "Voucher is not active right now."))
+        }
+        return null
+    }
+
+    private fun ensureOwnership(voucher: Voucher, customer: Customer?): ValidationResponse? {
+        if (voucher.holder != null && voucher.holder?.id != customer?.id) {
+            return ValidationResponse(false, error = ErrorResponse("voucher_not_assigned", "Voucher assigned to another customer."))
+        }
+        return null
+    }
+
+    private fun ensureLimits(perCustomerLimit: Int?, quantityLimit: Int?, totalRedemptions: Int, voucher: Voucher, customer: Customer?): ValidationResponse? {
+        if (quantityLimit != null && totalRedemptions >= quantityLimit) {
+            return ValidationResponse(false, error = ErrorResponse("redemption_limit_exceeded", "This voucher reached its total redemption limit."))
+        }
+        if (perCustomerLimit != null && customer?.id != null && voucher.id != null) {
+            val customerRedemptions = redemptionRepository.countByVoucherIdAndCustomerId(voucher.id!!, customer.id!!).toInt()
+            if (customerRedemptions >= perCustomerLimit) {
+                val message = if (perCustomerLimit == 1) {
+                    "This voucher can be redeemed only once per customer."
+                } else {
+                    "This voucher can be redeemed only $perCustomerLimit time(s) per customer."
+                }
+                return ValidationResponse(false, error = ErrorResponse("redemption_limit_per_customer_exceeded", message))
+            }
+        }
+        return null
+    }
+
+    private fun ensureCategories(voucher: Voucher, categoryIds: List<UUID>?): ValidationResponse? {
+        if (voucher.categories.isNotEmpty()) {
+            if (categoryIds.isNullOrEmpty()) {
+                return ValidationResponse(false, error = ErrorResponse("voucher_category_mismatch", "Voucher is not applicable for provided categories."))
+            }
+            val overlap = voucher.categories.any { it.id != null && categoryIds.contains(it.id) }
+            if (!overlap) {
+                return ValidationResponse(false, error = ErrorResponse("voucher_category_mismatch", "Voucher is not applicable for provided categories."))
+            }
+        }
+        return null
     }
 
     private fun isWithinValidityWindow(voucher: Voucher, now: Instant): Boolean {

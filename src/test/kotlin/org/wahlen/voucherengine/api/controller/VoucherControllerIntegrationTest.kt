@@ -138,4 +138,24 @@ class VoucherControllerIntegrationTest @Autowired constructor(
             .andExpect(status().isOk)
             .andExpect { result -> assertEquals("image/png", result.response.contentType) }
     }
+
+    @Test
+    fun `invalid validity window rejected`() {
+        val code = "BAD-${UUID.randomUUID().toString().take(6)}"
+        val badBody = """
+            {
+              "code": "$code",
+              "type": "DISCOUNT_VOUCHER",
+              "discount": { "type": "PERCENT", "percent_off": 5 },
+              "redemption": { "quantity": 1 },
+              "validity_hours": { "daily": [ { "start_time": "12:00", "expiration_time": "10:00", "days_of_week": [1,2,3] } ] }
+            }
+        """.trimIndent()
+
+        mockMvc.perform(
+            post("/v1/vouchers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(badBody)
+        ).andExpect(status().isBadRequest)
+    }
 }
