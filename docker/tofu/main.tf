@@ -8,6 +8,14 @@ locals {
       name          = "acme"
       client_secret = "acme-dev-secret" # dev-only; ok to hardcode for local compose
       tenants_claim = ["acme"]
+      role_name     = "ROLE_TENANT"
+    }
+    manager = {
+      client_id     = "manager"
+      name          = "manager"
+      client_secret = "manager-dev-secret"
+      tenants_claim = null
+      role_name     = "ROLE_MANAGER"
     }
   }
 }
@@ -40,9 +48,24 @@ resource "keycloak_openid_client" "clients" {
   valid_redirect_uris = []
 }
 
+resource "keycloak_role" "roles" {
+  for_each = toset(["ROLE_TENANT", "ROLE_MANAGER"])
+
+  realm_id = keycloak_realm.voucherengine.id
+  name     = each.value
+}
+
+resource "keycloak_user_roles" "service_account_roles" {
+  for_each = local.clients
+
+  realm_id = keycloak_realm.voucherengine.id
+  user_id  = keycloak_openid_client.clients[each.key].service_account_user_id
+  role_ids = [keycloak_role.roles[each.value.role_name].id]
+}
+
 # Hardcoded claim "tenants"
 resource "keycloak_openid_hardcoded_claim_protocol_mapper" "tenants_claim" {
-  for_each = local.clients
+  for_each = { for key, value in local.clients : key => value if value.tenants_claim != null }
 
   realm_id  = keycloak_realm.voucherengine.id
   client_id = keycloak_openid_client.clients[each.key].id

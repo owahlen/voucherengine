@@ -21,16 +21,3 @@ data class RedemptionDetailResponse(
     @field:Schema(description = "Error payload if any")
     val error: ErrorResponse? = null
 )
-
-data class RedemptionRollbackResponse(
-    @field:Schema(description = "Rollback id")
-    val id: UUID?,
-    @field:Schema(description = "Redemption id")
-    val redemption_id: UUID?,
-    @field:Schema(description = "Reason for rollback")
-    val reason: String?,
-    @field:Schema(description = "Amount rolled back")
-    val amount: Long?,
-    @field:Schema(description = "Created at timestamp")
-    val created_at: Instant?
-)

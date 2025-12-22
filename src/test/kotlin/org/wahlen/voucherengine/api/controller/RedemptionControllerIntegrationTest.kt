@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.api.tenantJwt
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import tools.jackson.databind.ObjectMapper
@@ -45,6 +46,7 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
         ).andExpect(status().isCreated)
@@ -55,6 +57,7 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
         val redemptionResult = mockMvc.perform(
             post("/v1/redemptions")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(redemptionBody)
         ).andExpect(status().isOk)
@@ -62,11 +65,11 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
 
         val redemptionId = objectMapper.readTree(redemptionResult.response.contentAsString).get("redemptionId").asText()
 
-        mockMvc.perform(get("/v1/redemptions").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/redemptions").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].id").exists())
 
-        mockMvc.perform(get("/v1/redemptions/$redemptionId").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/redemptions/$redemptionId").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.id").value(redemptionId))
 
@@ -77,6 +80,7 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/redemptions/$redemptionId/rollback")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(rollbackBody)
         ).andExpect(status().isCreated)

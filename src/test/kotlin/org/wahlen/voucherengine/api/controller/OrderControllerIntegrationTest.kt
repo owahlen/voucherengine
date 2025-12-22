@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.api.tenantJwt
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 
@@ -52,6 +53,7 @@ class OrderControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/orders")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         )
@@ -59,11 +61,11 @@ class OrderControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.source_id").value("order-1"))
             .andExpect(jsonPath("$.customer_id").exists())
 
-        mockMvc.perform(get("/v1/orders").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/orders").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].source_id").value("order-1"))
 
-        mockMvc.perform(get("/v1/orders/order-1").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/orders/order-1").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.status").value("PAID"))
 
@@ -78,6 +80,7 @@ class OrderControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             put("/v1/orders/order-1")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateBody)
         )
@@ -85,10 +88,10 @@ class OrderControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.status").value("CANCELED"))
             .andExpect(jsonPath("$.discount_amount").value(300))
 
-        mockMvc.perform(delete("/v1/orders/order-1").header("tenant", tenantName))
+        mockMvc.perform(delete("/v1/orders/order-1").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNoContent)
 
-        mockMvc.perform(get("/v1/orders/order-1").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/orders/order-1").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNotFound)
     }
 
@@ -97,6 +100,7 @@ class OrderControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/orders")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}")
         ).andExpect(status().isBadRequest)

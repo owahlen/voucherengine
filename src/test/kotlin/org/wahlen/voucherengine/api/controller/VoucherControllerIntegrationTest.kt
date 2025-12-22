@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.api.tenantJwt
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import java.util.UUID
@@ -46,12 +47,13 @@ class VoucherControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
             .andExpect(jsonPath("$.code").value(code))
 
-        mockMvc.perform(get("/v1/vouchers/$code").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/vouchers/$code").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value(code))
 
@@ -62,6 +64,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/vouchers/$code/validate")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(validateBody)
         ).andExpect(status().isOk)
@@ -75,6 +78,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/redemptions")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(redeemBody)
         ).andExpect(status().isOk)
@@ -83,6 +87,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/vouchers/$code/validate")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(validateBody)
         ).andExpect(status().isBadRequest)
@@ -95,6 +100,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             put("/v1/vouchers/$code")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateBody)
         ).andExpect(status().isOk)
@@ -110,6 +116,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
@@ -128,6 +135,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/validations")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(stackBody)
         ).andExpect(status().isBadRequest)
@@ -146,15 +154,16 @@ class VoucherControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
 
-        mockMvc.perform(get("/v1/vouchers/$code/qr").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/vouchers/$code/qr").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect { result -> assertEquals("image/png", result.response.contentType) }
 
-        mockMvc.perform(get("/v1/vouchers/$code/barcode").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/vouchers/$code/barcode").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect { result -> assertEquals("image/png", result.response.contentType) }
     }
@@ -175,8 +184,33 @@ class VoucherControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(badBody)
         ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `tenant header missing or mismatched is forbidden`() {
+        val body = """
+            { "code": "TENANT-TEST", "type": "DISCOUNT_VOUCHER", "discount": { "type": "PERCENT", "percent_off": 5 }, "redemption": { "quantity": 1 } }
+        """.trimIndent()
+
+        mockMvc.perform(
+            post("/v1/vouchers")
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body)
+        ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.message").value("Tenant header required"))
+
+        mockMvc.perform(
+            post("/v1/vouchers")
+                .header("tenant", "other-tenant")
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body)
+        ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.message").value("Tenant not allowed"))
     }
 }

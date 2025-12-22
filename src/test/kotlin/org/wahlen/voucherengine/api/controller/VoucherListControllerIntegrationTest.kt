@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.api.tenantJwt
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 
@@ -43,18 +44,19 @@ class VoucherListControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
 
-        mockMvc.perform(get("/v1/vouchers").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/vouchers").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].code").exists())
 
-        mockMvc.perform(delete("/v1/vouchers/LIST-001").header("tenant", tenantName))
+        mockMvc.perform(delete("/v1/vouchers/LIST-001").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNoContent)
 
-        mockMvc.perform(get("/v1/vouchers/LIST-001").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/vouchers/LIST-001").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNotFound)
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.api.tenantJwt
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 
@@ -41,6 +42,7 @@ class CampaignControllerIntegrationTest @Autowired constructor(
         val createResult = mockMvc.perform(
             post("/v1/campaigns")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
@@ -49,11 +51,11 @@ class CampaignControllerIntegrationTest @Autowired constructor(
 
         val campaignId = objectMapper.readTree(createResult.response.contentAsString).get("id").asText()
 
-        mockMvc.perform(get("/v1/campaigns/$campaignId").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/campaigns/$campaignId").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("BF-2026"))
 
-        mockMvc.perform(get("/v1/campaigns").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/campaigns").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
 
         val voucherBody = """
@@ -63,12 +65,13 @@ class CampaignControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/campaigns/$campaignId/vouchers")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
         ).andExpect(status().isCreated)
             .andExpect(jsonPath("$.code").value("BF2026-0001"))
 
-        mockMvc.perform(get("/v1/campaigns/$campaignId/vouchers").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/campaigns/$campaignId/vouchers").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].code").value("BF2026-0001"))
 
@@ -76,15 +79,16 @@ class CampaignControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             put("/v1/campaigns/$campaignId")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateBody)
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("BF-UPDATED"))
 
-        mockMvc.perform(delete("/v1/campaigns/$campaignId").header("tenant", tenantName))
+        mockMvc.perform(delete("/v1/campaigns/$campaignId").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNoContent)
 
-        mockMvc.perform(get("/v1/campaigns/$campaignId").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/campaigns/$campaignId").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNotFound)
     }
 

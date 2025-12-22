@@ -55,17 +55,3 @@ data class VoucherResponse(
     @field:Schema(description = "Update timestamp", example = "2025-01-02T12:00:00Z")
     val updated_at: Instant? = null
 )
-
-data class VoucherAssetsDto(
-    @field:Schema(description = "QR code asset")
-    val qr: AssetDto? = null,
-    @field:Schema(description = "Barcode asset")
-    val barcode: AssetDto? = null
-)
-
-data class AssetDto(
-    @field:Schema(description = "Asset identifier", example = "qr_123")
-    val id: String? = null,
-    @field:Schema(description = "Public URL to the asset", example = "https://example.com/qr.png")
-    val url: String? = null
-)

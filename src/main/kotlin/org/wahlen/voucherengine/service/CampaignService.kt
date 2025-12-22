@@ -5,11 +5,13 @@ import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.CampaignCreateRequest
 import org.wahlen.voucherengine.persistence.model.campaign.Campaign
 import org.wahlen.voucherengine.persistence.repository.CampaignRepository
+import org.wahlen.voucherengine.persistence.repository.VoucherRepository
 import java.util.UUID
 
 @Service
 class CampaignService(
     private val campaignRepository: CampaignRepository,
+    private val voucherRepository: VoucherRepository,
     private val tenantService: TenantService
 ) {
 
@@ -55,6 +57,9 @@ class CampaignService(
     @Transactional
     fun delete(tenantName: String, id: UUID): Boolean {
         val existing = campaignRepository.findByIdAndTenantName(id, tenantName) ?: return false
+        val vouchers = voucherRepository.findAllByCampaignIdAndTenantName(id, tenantName)
+        vouchers.forEach { it.campaign = null }
+        voucherRepository.saveAll(vouchers)
         campaignRepository.delete(existing)
         return true
     }

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RestController
 import org.hamcrest.Matchers.nullValue
+import org.wahlen.voucherengine.api.tenantJwt
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 
@@ -40,6 +41,7 @@ class GlobalExceptionHandlerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)
         ).andExpect(status().isBadRequest)
@@ -55,6 +57,7 @@ class GlobalExceptionHandlerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/test/error")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
         ).andExpect(status().isInternalServerError)
             .andExpect(jsonPath("$.status").value(500))
             .andExpect(jsonPath("$.error").value("Internal Server Error"))

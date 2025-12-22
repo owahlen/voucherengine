@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.api.tenantJwt
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import tools.jackson.databind.ObjectMapper
@@ -42,6 +43,7 @@ class CategoryControllerIntegrationTest @Autowired constructor(
         val createResult = mockMvc.perform(
             post("/v1/categories")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"name":"electronics"}""")
         )
@@ -52,27 +54,28 @@ class CategoryControllerIntegrationTest @Autowired constructor(
         val created = objectMapper.readTree(createResult.response.contentAsString)
         val id = created.get("id").asText()
 
-        mockMvc.perform(get("/v1/categories/$id").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/categories/$id").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("electronics"))
 
-        mockMvc.perform(get("/v1/categories").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/categories").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].name").value("electronics"))
 
         mockMvc.perform(
             put("/v1/categories/$id")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"name":"updated"}""")
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("updated"))
 
-        mockMvc.perform(delete("/v1/categories/$id").header("tenant", tenantName))
+        mockMvc.perform(delete("/v1/categories/$id").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNoContent)
 
-        mockMvc.perform(get("/v1/categories/$id").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/categories/$id").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNotFound)
     }
 }

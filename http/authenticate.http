@@ -1,8 +1,8 @@
-### Get access token (client_credentials) from Keycloak
-# @name authenticate
+### Get access token (client_credentials) for manager from Keycloak
+# @name authenticate_manager
 < {%
-    const rawClientId = request.environment.get("client_id");
-    const rawSecret = request.environment.get("client_secret");
+    const rawClientId = request.environment.get("manager_client_id");
+    const rawSecret = request.environment.get("manager_client_secret");
     request.variables.set("encoded_client_id", encodeURIComponent(rawClientId));
     request.variables.set("encoded_client_secret", encodeURIComponent(rawSecret));
 %}
@@ -12,7 +12,40 @@ Content-Type: application/x-www-form-urlencoded
 grant_type=client_credentials&client_id={{encoded_client_id}}&client_secret={{encoded_client_secret}}
 
 > {%
-    client.global.set("access_token", response.body.access_token);
-    client.global.set("token_type", response.body.token_type);
-    client.global.set("expires_in", response.body.expires_in.toString());
+    import {decodeJwt} from './scripts/jwt-utils';
+    const token = response.body.access_token;
+    client.global.set("tenant_access_token", token);
+    client.global.set("tenant_token_type", response.body.token_type);
+    client.global.set("tenant_expires_in", response.body.expires_in.toString());
+    const jwt = decodeJwt(token);
+    client.log(JSON.stringify(jwt, null, 2));
+    client.test("client_id of JWT matches manager_client_id", () => {
+        client.assert(jwt.payload.client_id === request.environment.get("manager_client_id"));
+    });
+%}
+
+### Get access token (client_credentials) for tenant from Keycloak
+# @name authenticate_tenant
+< {%
+    const rawClientId = request.environment.get("tenant_client_id");
+    const rawSecret = request.environment.get("tenant_client_secret");
+    request.variables.set("encoded_client_id", encodeURIComponent(rawClientId));
+    request.variables.set("encoded_client_secret", encodeURIComponent(rawSecret));
+%}
+POST {{keycloak_base_url}}/realms/{{realm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&client_id={{encoded_client_id}}&client_secret={{encoded_client_secret}}
+
+> {%
+    import {decodeJwt} from './scripts/jwt-utils';
+    const token = response.body.access_token;
+    client.global.set("tenant_access_token", token);
+    client.global.set("tenant_token_type", response.body.token_type);
+    client.global.set("tenant_expires_in", response.body.expires_in.toString());
+    const jwt = decodeJwt(token);
+    client.log(JSON.stringify(jwt, null, 2));
+    client.test("client_id of JWT matches tenant_client_id", () => {
+        client.assert(jwt.payload.client_id === request.environment.get("tenant_client_id"));
+    });
 %}

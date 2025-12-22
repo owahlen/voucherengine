@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.wahlen.voucherengine.api.tenantJwt
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 
@@ -44,6 +45,7 @@ class VoucherE2ETest @Autowired constructor(
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
@@ -56,6 +58,7 @@ class VoucherE2ETest @Autowired constructor(
         mockMvc.perform(
             post("/v1/vouchers/E2E-10/validate")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(validateBody)
         ).andExpect(status().isOk)
@@ -68,6 +71,7 @@ class VoucherE2ETest @Autowired constructor(
         mockMvc.perform(
             post("/v1/redemptions")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(redeemBody)
         ).andExpect(status().isOk)

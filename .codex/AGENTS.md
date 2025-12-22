@@ -15,3 +15,11 @@ Purpose: keep agents aligned on a narrow Voucherify-inspired core (issue, valida
 - Services/controllers: validate request DTOs (`var` properties for Bean Validation); use POST for create, PUT for update; enforce redemption limits (total and per-customer) and holder checks as documented.
 - Testing: add Spring Boot + MockMvc tests for every endpoint and service branch; use the H2 profile. Repository tests should live per-entity (e.g., `VoucherRepositoryTest`).
 - Operations: run builds/tests with `GRADLE_USER_HOME=.gradle-tmp ./gradlew test` to avoid local Gradle cache contention. No destructive SQL or migration rewrites.
+
+## Security and tenancy
+- All endpoints require a `tenant` header; it must match a JWT `tenants` claim entry unless the caller is a manager.
+- JWTs are validated against Keycloak (`spring.security.oauth2.resourceserver.jwt.issuer-uri`).
+- Use realm roles `ROLE_TENANT` and `ROLE_MANAGER` from `realm_access.roles`; manager implies tenant.
+- `/v1/tenants/**` endpoints require role `MANAGER`; all other endpoints require role `TENANT`.
+- Local Keycloak configuration lives in `docker/tofu/main.tf` with clients `acme` (ROLE_TENANT + tenants claim) and `manager` (ROLE_MANAGER only).
+

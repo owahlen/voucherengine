@@ -2,6 +2,7 @@ package org.wahlen.voucherengine.api.controller
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -19,6 +20,12 @@ import java.util.UUID
 @RestController
 @RequestMapping("/v1")
 @Validated
+@ApiResponses(
+    value = [
+        ApiResponse(responseCode = "401", description = "Unauthorized"),
+        ApiResponse(responseCode = "403", description = "Forbidden")
+    ]
+)
 class CampaignController(
     private val campaignService: CampaignService,
     private val voucherService: VoucherService

@@ -14,6 +14,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.api.roleJwt
+import org.wahlen.voucherengine.api.tenantJwt
 import tools.jackson.databind.ObjectMapper
 
 @SpringBootTest
@@ -32,6 +34,7 @@ class TenantControllerIntegrationTest @Autowired constructor(
         val createResult = mockMvc.perform(
             post("/v1/tenants")
                 .header("tenant", tenantHeader)
+                .with(tenantJwt(tenantHeader, "manager"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         )
@@ -41,27 +44,47 @@ class TenantControllerIntegrationTest @Autowired constructor(
 
         val tenantId = objectMapper.readTree(createResult.response.contentAsString).get("id").asText()
 
-        mockMvc.perform(get("/v1/tenants/$tenantId").header("tenant", tenantHeader))
+        mockMvc.perform(get("/v1/tenants/$tenantId").header("tenant", tenantHeader).with(tenantJwt(tenantHeader, "manager")))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.id").value(tenantId))
 
-        mockMvc.perform(get("/v1/tenants").header("tenant", tenantHeader))
+        mockMvc.perform(get("/v1/tenants").header("tenant", tenantHeader).with(tenantJwt(tenantHeader, "manager")))
             .andExpect(status().isOk)
 
         val updateBody = """{ "name": "acme-updated" }"""
         mockMvc.perform(
             put("/v1/tenants/$tenantId")
                 .header("tenant", tenantHeader)
+                .with(tenantJwt(tenantHeader, "manager"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateBody)
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("acme-updated"))
 
-        mockMvc.perform(delete("/v1/tenants/$tenantId").header("tenant", tenantHeader))
+        mockMvc.perform(delete("/v1/tenants/$tenantId").header("tenant", tenantHeader).with(tenantJwt(tenantHeader, "manager")))
             .andExpect(status().isNoContent)
 
-        mockMvc.perform(get("/v1/tenants/$tenantId").header("tenant", tenantHeader))
+        mockMvc.perform(get("/v1/tenants/$tenantId").header("tenant", tenantHeader).with(tenantJwt(tenantHeader, "manager")))
             .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `tenant role cannot access tenant endpoints`() {
+        mockMvc.perform(
+            get("/v1/tenants")
+                .header("tenant", tenantHeader)
+                .with(tenantJwt(tenantHeader))
+        ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.message").value("Forbidden"))
+    }
+
+    @Test
+    fun `manager without tenants claim can access tenant endpoints`() {
+        mockMvc.perform(
+            get("/v1/tenants")
+                .header("tenant", tenantHeader)
+                .with(roleJwt("ROLE_MANAGER"))
+        ).andExpect(status().isOk)
     }
 }

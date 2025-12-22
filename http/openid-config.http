@@ -1,8 +1,8 @@
 import authenticate.http
 
 ### obtain the access_token
-run #authenticate
+run #authenticate_tenant
 
 ### Use the token in a follow-up request (example)
 GET {{keycloak_base_url}}/realms/{{realm}}/.well-known/openid-configuration
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {{tenant_access_token}}

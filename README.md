@@ -14,11 +14,22 @@ Voucherengine models a focused, API-first subset of Voucherify. It covers the vo
 - Services enforce the documented behavior: redemption quantity/per-customer limits (e.g., multi-use 1000 cap), holder checks, and metadata preservation. Responses include voucher assets, redemption counters, and timestamps per the docs.
 - All endpoints require a `tenant` header; tenants are managed via `/v1/tenants`.
 
+## Security and Keycloak
+- JWTs are validated by Spring against the configured Keycloak realm (`spring.security.oauth2.resourceserver.jwt.issuer-uri`).
+- The JWT must carry a `tenants` claim (array of strings). The `tenant` header must match one of these entries, except for manager tokens (see below).
+- Roles are read from `realm_access.roles`. Use realm roles `ROLE_TENANT` and `ROLE_MANAGER`.
+- Access rules: any endpoint requires role `TENANT`; `/v1/tenants/**` requires role `MANAGER` (manager implies tenant).
+- Manager tokens may omit the `tenants` claim but must still send the `tenant` header for request scoping.
+- Local Keycloak configuration lives in `docker/tofu/main.tf` with clients:
+  - `acme`: role `ROLE_TENANT` plus `tenants` claim `["acme"]`.
+  - `manager`: role `ROLE_MANAGER` only (no `tenants` claim).
+
 ## Tenant CRUD
 - `POST /v1/tenants` with `{ "name": "acme" }` creates a tenant.
 - `GET /v1/tenants` lists tenants, `GET /v1/tenants/{id}` fetches one.
 - `PUT /v1/tenants/{id}` updates name, `DELETE /v1/tenants/{id}` removes it.
 - All tenant endpoints require the `tenant` header (used to scope requests).
+- Access requires role `MANAGER`; other endpoints require role `TENANT` (manager implies tenant).
 
 ## Run locally
 1. Start PostgreSQL: `docker compose -f docker/docker-compose.yml up -d`

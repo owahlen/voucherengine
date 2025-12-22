@@ -1,5 +1,6 @@
 package org.wahlen.voucherengine.api.controller
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -15,6 +16,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.api.tenantJwt
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 
@@ -44,15 +46,16 @@ class CustomerControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             post("/v1/customers")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.sourceId").value("controller-customer-1"))
 
-        mockMvc.perform(get("/v1/customers").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/customers").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
 
-        mockMvc.perform(get("/v1/customers/controller-customer-1").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/customers/controller-customer-1").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.email").value("alice@example.com"))
 
@@ -62,15 +65,37 @@ class CustomerControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(
             put("/v1/customers/controller-customer-1")
                 .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateBody)
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.email").value("updated@example.com"))
 
-        mockMvc.perform(delete("/v1/customers/controller-customer-1").header("tenant", tenantName))
+        mockMvc.perform(delete("/v1/customers/controller-customer-1").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNoContent)
 
-        mockMvc.perform(get("/v1/customers/controller-customer-1").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/customers/controller-customer-1").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `creates tenant on first use when header is in tenants claim`() {
+        val lazyTenant = "lazy-tenant"
+        tenantRepository.findByName(lazyTenant)?.let { tenantRepository.delete(it) }
+
+        val body = """
+            { "source_id": "lazy-tenant-customer" }
+        """.trimIndent()
+
+        mockMvc.perform(
+            post("/v1/customers")
+                .header("tenant", lazyTenant)
+                .with(tenantJwt(lazyTenant))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body)
+        ).andExpect(status().isOk)
+
+        val createdTenant = tenantRepository.findByName(lazyTenant)
+        assertThat(createdTenant).isNotNull()
     }
 }

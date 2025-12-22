@@ -46,6 +46,10 @@ class TenantService(
     @Transactional(readOnly = true)
     fun getByName(tenantName: String): Tenant? = tenantRepository.findByName(tenantName)
 
+    @Transactional
+    fun ensureTenantExists(tenantName: String): Tenant =
+        tenantRepository.findByName(tenantName) ?: tenantRepository.save(Tenant(name = tenantName))
+
     @Transactional(readOnly = true)
     fun requireTenant(tenantName: String): Tenant =
         tenantRepository.findByName(tenantName)

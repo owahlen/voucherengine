@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    default: development
   application:
     name: voucherengine
   datasource:
@@ -16,3 +18,8 @@ spring:
       enabled: true
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/voucherengine
