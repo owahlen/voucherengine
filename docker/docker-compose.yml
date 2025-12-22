@@ -1,4 +1,73 @@
 services:
+
+  keycloak_init:
+    image: ghcr.io/opentofu/opentofu
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - voucherengine
+    working_dir: /workspace
+    environment:
+      KEYCLOAK_URL: "http://keycloak:8080"
+      KEYCLOAK_REALM: "master"
+      KEYCLOAK_CLIENT_ID: "admin-cli"
+      KEYCLOAK_USER: "admin"
+      KEYCLOAK_PASSWORD: "password"
+    volumes:
+      - ./tofu:/workspace-ro:ro
+      - tofu_workspace:/workspace
+      - tofu_state:/workspace/state
+    entrypoint: ["/bin/sh", "-lc"]
+    command: |
+      'set -e
+      cp -a /workspace-ro/. /workspace/
+      cd /workspace
+      tofu init -no-color
+      tofu apply -auto-approve -no-color -state=/workspace/state/terraform.tfstate'
+    restart: "no"
+
+  keycloak:
+    image: quay.io/phasetwo/phasetwo-keycloak
+    depends_on:
+      - keycloak_db
+    networks:
+      - voucherengine
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8180:8080"
+      - "8787:8787"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak_db/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: password
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: password
+      KC_HEALTH_ENABLED: true
+      KEYCLOAK_LOGLEVEL: INFO
+      ROOT_LOGLEVEL: INFO
+    command:
+      - "start-dev"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000;echo -e \"GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n\" >&3;grep \"HTTP/1.1 200 OK\" <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  keycloak_db:
+    image: postgres
+    restart: always
+    networks:
+      - voucherengine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: keycloak
+
   voucherengine_db:
     image: postgres
     restart: always
@@ -14,3 +83,7 @@ services:
 networks:
   voucherengine:
     name: "voucherengine"
+
+volumes:
+  tofu_workspace:
+  tofu_state:

@@ -38,8 +38,11 @@ class VoucherController(
         ]
     )
     @PostMapping("/vouchers")
-    fun createVoucher(@Valid @RequestBody body: VoucherCreateRequest): ResponseEntity<VoucherResponse> {
-        val voucher = voucherService.createVoucher(body)
+    fun createVoucher(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody body: VoucherCreateRequest
+    ): ResponseEntity<VoucherResponse> {
+        val voucher = voucherService.createVoucher(tenant, body)
         return ResponseEntity.status(HttpStatus.CREATED).body(voucherService.toVoucherResponse(voucher))
     }
 
@@ -54,10 +57,11 @@ class VoucherController(
     )
     @PostMapping("/vouchers/{code}/validate")
     fun validateVoucher(
+        @RequestHeader("tenant") tenant: String,
         @PathVariable code: String,
         @Valid @RequestBody body: VoucherValidationRequest
     ): ResponseEntity<ValidationResponse> {
-        val result = voucherService.validateVoucher(code, body)
+        val result = voucherService.validateVoucher(tenant, code, body)
         val status = if (result.valid) HttpStatus.OK else HttpStatus.BAD_REQUEST
         return ResponseEntity.status(status).body(result)
     }
@@ -71,8 +75,11 @@ class VoucherController(
         ]
     )
     @GetMapping("/vouchers/{code}")
-    fun getVoucher(@PathVariable code: String): ResponseEntity<VoucherResponse> {
-        val voucher = voucherService.getByCode(code) ?: return ResponseEntity.notFound().build()
+    fun getVoucher(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String
+    ): ResponseEntity<VoucherResponse> {
+        val voucher = voucherService.getByCode(tenant, code) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(voucherService.toVoucherResponse(voucher))
     }
 
@@ -86,10 +93,11 @@ class VoucherController(
     )
     @PutMapping("/vouchers/{code}")
     fun updateVoucher(
+        @RequestHeader("tenant") tenant: String,
         @PathVariable code: String,
         @Valid @RequestBody body: VoucherCreateRequest
     ): ResponseEntity<VoucherResponse> {
-        val updated = voucherService.updateVoucher(code, body) ?: return ResponseEntity.notFound().build()
+        val updated = voucherService.updateVoucher(tenant, code, body) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(voucherService.toVoucherResponse(updated))
     }
 
@@ -102,8 +110,11 @@ class VoucherController(
         ]
     )
     @DeleteMapping("/vouchers/{code}")
-    fun deleteVoucher(@PathVariable code: String): ResponseEntity<Void> {
-        return if (voucherService.deleteVoucher(code)) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
+    fun deleteVoucher(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String
+    ): ResponseEntity<Void> {
+        return if (voucherService.deleteVoucher(tenant, code)) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
     }
 
     @Operation(
@@ -114,8 +125,8 @@ class VoucherController(
         ]
     )
     @GetMapping("/vouchers")
-    fun listVouchers(): ResponseEntity<List<VoucherResponse>> =
-        ResponseEntity.ok(voucherService.listVouchers().map { voucherService.toVoucherResponse(it) })
+    fun listVouchers(@RequestHeader("tenant") tenant: String): ResponseEntity<List<VoucherResponse>> =
+        ResponseEntity.ok(voucherService.listVouchers(tenant).map { voucherService.toVoucherResponse(it) })
 
     @Operation(
         summary = "Validate multiple redeemables (stackable discounts)",
@@ -126,7 +137,10 @@ class VoucherController(
         ]
     )
     @PostMapping("/validations")
-    fun validateStack(@Valid @RequestBody body: ValidationStackRequest): ResponseEntity<ValidationStackResponse> {
+    fun validateStack(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody body: ValidationStackRequest
+    ): ResponseEntity<ValidationStackResponse> {
         val responses = body.redeemables.map { redeemable ->
             if (redeemable.`object` != "voucher") {
                 ValidationResponse(
@@ -135,6 +149,7 @@ class VoucherController(
                 )
             } else {
                 voucherService.validateVoucher(
+                    tenant,
                     redeemable.id,
                     VoucherValidationRequest(customer = body.customer, order = body.order)
                 )
@@ -154,8 +169,11 @@ class VoucherController(
         ]
     )
     @PostMapping("/redemptions")
-    fun redeem(@Valid @RequestBody body: RedemptionRequest): ResponseEntity<RedemptionResponse> {
-        val result = voucherService.redeem(body)
+    fun redeem(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody body: RedemptionRequest
+    ): ResponseEntity<RedemptionResponse> {
+        val result = voucherService.redeem(tenant, body)
         val status = if (result.error == null) HttpStatus.OK else HttpStatus.BAD_REQUEST
         return ResponseEntity.status(status).body(result)
     }
@@ -169,8 +187,11 @@ class VoucherController(
         ]
     )
     @GetMapping("/vouchers/{code}/qr", produces = [MediaType.IMAGE_PNG_VALUE])
-    fun getVoucherQr(@PathVariable code: String): ResponseEntity<ByteArray> {
-        val voucher = voucherService.getByCode(code) ?: return ResponseEntity.notFound().build()
+    fun getVoucherQr(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String
+    ): ResponseEntity<ByteArray> {
+        val voucher = voucherService.getByCode(tenant, code) ?: return ResponseEntity.notFound().build()
         val png = qrCodeService.generatePng(voucher.code ?: code)
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png)
     }
@@ -184,8 +205,11 @@ class VoucherController(
         ]
     )
     @GetMapping("/vouchers/{code}/barcode", produces = [MediaType.IMAGE_PNG_VALUE])
-    fun getVoucherBarcode(@PathVariable code: String): ResponseEntity<ByteArray> {
-        val voucher = voucherService.getByCode(code) ?: return ResponseEntity.notFound().build()
+    fun getVoucherBarcode(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String
+    ): ResponseEntity<ByteArray> {
+        val voucher = voucherService.getByCode(tenant, code) ?: return ResponseEntity.notFound().build()
         val png = barcodeService.generateCode128Png(voucher.code ?: code)
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png)
     }

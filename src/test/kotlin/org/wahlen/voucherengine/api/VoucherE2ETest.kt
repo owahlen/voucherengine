@@ -1,5 +1,6 @@
 package org.wahlen.voucherengine.api
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -10,13 +11,24 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.persistence.repository.TenantRepository
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class VoucherE2ETest @Autowired constructor(
-    private val mockMvc: MockMvc
+    private val mockMvc: MockMvc,
+    private val tenantRepository: TenantRepository
 ) {
+    private val tenantName = "test-tenant"
+
+    @BeforeEach
+    fun setUp() {
+        if (tenantRepository.findByName(tenantName) == null) {
+            tenantRepository.save(Tenant(name = tenantName))
+        }
+    }
 
     @Test
     fun `create validate and redeem voucher`() {
@@ -31,6 +43,7 @@ class VoucherE2ETest @Autowired constructor(
 
         mockMvc.perform(
             post("/v1/vouchers")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
@@ -42,6 +55,7 @@ class VoucherE2ETest @Autowired constructor(
 
         mockMvc.perform(
             post("/v1/vouchers/E2E-10/validate")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(validateBody)
         ).andExpect(status().isOk)
@@ -53,6 +67,7 @@ class VoucherE2ETest @Autowired constructor(
 
         mockMvc.perform(
             post("/v1/redemptions")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(redeemBody)
         ).andExpect(status().isOk)

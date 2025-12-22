@@ -1,5 +1,6 @@
 package org.wahlen.voucherengine.api.controller
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -13,14 +14,26 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.persistence.repository.TenantRepository
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
 class VoucherListControllerIntegrationTest @Autowired constructor(
-    private val mockMvc: MockMvc
+    private val mockMvc: MockMvc,
+    private val tenantRepository: TenantRepository
 ) {
+    private val tenantName = "test-tenant"
+
+    @BeforeEach
+    fun setUp() {
+        if (tenantRepository.findByName(tenantName) == null) {
+            tenantRepository.save(Tenant(name = tenantName))
+        }
+    }
+
     @Test
     fun `list and delete vouchers`() {
         val createBody = """
@@ -29,18 +42,19 @@ class VoucherListControllerIntegrationTest @Autowired constructor(
 
         mockMvc.perform(
             post("/v1/vouchers")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
 
-        mockMvc.perform(get("/v1/vouchers"))
+        mockMvc.perform(get("/v1/vouchers").header("tenant", tenantName))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].code").exists())
 
-        mockMvc.perform(delete("/v1/vouchers/LIST-001"))
+        mockMvc.perform(delete("/v1/vouchers/LIST-001").header("tenant", tenantName))
             .andExpect(status().isNoContent)
 
-        mockMvc.perform(get("/v1/vouchers/LIST-001"))
+        mockMvc.perform(get("/v1/vouchers/LIST-001").header("tenant", tenantName))
             .andExpect(status().isNotFound)
     }
 }

@@ -12,18 +12,19 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.CategoryCreateRequest
 import org.wahlen.voucherengine.api.dto.response.CategoryResponse
 import org.wahlen.voucherengine.persistence.model.voucher.Category
-import org.wahlen.voucherengine.persistence.repository.CategoryRepository
+import org.wahlen.voucherengine.service.CategoryService
 
 @RestController
 @RequestMapping("/v1")
 @Validated
 class CategoryController(
-    private val categoryRepository: CategoryRepository
+    private val categoryService: CategoryService
 ) {
 
     @Operation(
@@ -35,8 +36,11 @@ class CategoryController(
         ]
     )
     @PostMapping("/categories")
-    fun createCategory(@Valid @RequestBody body: CategoryCreateRequest): ResponseEntity<CategoryResponse> {
-        val saved = categoryRepository.save(Category(name = body.name))
+    fun createCategory(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody body: CategoryCreateRequest
+    ): ResponseEntity<CategoryResponse> {
+        val saved = categoryService.create(tenant, body)
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(saved))
     }
 
@@ -49,8 +53,11 @@ class CategoryController(
         ]
     )
     @GetMapping("/categories/{id}")
-    fun getCategory(@PathVariable id: java.util.UUID): ResponseEntity<CategoryResponse> {
-        val category = categoryRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
+    fun getCategory(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: java.util.UUID
+    ): ResponseEntity<CategoryResponse> {
+        val category = categoryService.get(tenant, id) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(toResponse(category))
     }
 
@@ -62,8 +69,8 @@ class CategoryController(
         ]
     )
     @GetMapping("/categories")
-    fun listCategories(): ResponseEntity<List<CategoryResponse>> =
-        ResponseEntity.ok(categoryRepository.findAll().map(::toResponse))
+    fun listCategories(@RequestHeader("tenant") tenant: String): ResponseEntity<List<CategoryResponse>> =
+        ResponseEntity.ok(categoryService.list(tenant).map(::toResponse))
 
     @Operation(
         summary = "Update category",
@@ -74,11 +81,13 @@ class CategoryController(
         ]
     )
     @PutMapping("/categories/{id}")
-    fun updateCategory(@PathVariable id: java.util.UUID, @Valid @RequestBody body: CategoryCreateRequest): ResponseEntity<CategoryResponse> {
-        val existing = categoryRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
-        existing.name = body.name
-        val saved = categoryRepository.save(existing)
-        return ResponseEntity.ok(toResponse(saved))
+    fun updateCategory(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: java.util.UUID,
+        @Valid @RequestBody body: CategoryCreateRequest
+    ): ResponseEntity<CategoryResponse> {
+        val updated = categoryService.update(tenant, id, body) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(toResponse(updated))
     }
 
     @Operation(
@@ -90,14 +99,11 @@ class CategoryController(
         ]
     )
     @DeleteMapping("/categories/{id}")
-    fun deleteCategory(@PathVariable id: java.util.UUID): ResponseEntity<Void> {
-        val existing = categoryRepository.findById(id)
-        return if (existing.isPresent) {
-            categoryRepository.delete(existing.get())
-            ResponseEntity.noContent().build()
-        } else {
-            ResponseEntity.notFound().build()
-        }
+    fun deleteCategory(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: java.util.UUID
+    ): ResponseEntity<Void> {
+        return if (categoryService.delete(tenant, id)) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
     }
 
     private fun toResponse(category: Category) = CategoryResponse(

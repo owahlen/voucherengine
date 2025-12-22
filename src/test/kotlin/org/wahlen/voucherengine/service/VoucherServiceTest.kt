@@ -1,5 +1,6 @@
 package org.wahlen.voucherengine.service
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -18,7 +19,9 @@ import org.wahlen.voucherengine.api.dto.request.VoucherCreateRequest
 import org.wahlen.voucherengine.api.dto.request.VoucherValidationRequest
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleAssignmentRequest
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleCreateRequest
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.CategoryRepository
+import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Bean
@@ -40,11 +43,22 @@ class VoucherServiceTest @Autowired constructor(
     private val voucherService: VoucherService,
     private val categoryRepository: CategoryRepository,
     private val validationRuleService: ValidationRuleService,
+    private val tenantRepository: TenantRepository,
     private val clock: MutableClock
 ) {
+    private val tenantName = "test-tenant"
+
+    @BeforeEach
+    fun setUp() {
+        if (tenantRepository.findByName(tenantName) == null) {
+            tenantRepository.save(Tenant(name = tenantName))
+        }
+    }
+
     @Test
     fun `redeem stops at total quantity limit`() {
         voucherService.createVoucher(
+            tenantName,
             VoucherCreateRequest(
                 code = "SUMMER2026",
                 type = "DISCOUNT_VOUCHER",
@@ -58,9 +72,9 @@ class VoucherServiceTest @Autowired constructor(
             customer = CustomerReferenceDto(source_id = "customer-1")
         )
 
-        val first = voucherService.redeem(redemptionRequest)
-        val second = voucherService.redeem(redemptionRequest)
-        val third = voucherService.redeem(redemptionRequest)
+        val first = voucherService.redeem(tenantName, redemptionRequest)
+        val second = voucherService.redeem(tenantName, redemptionRequest)
+        val third = voucherService.redeem(tenantName, redemptionRequest)
 
         assertTrue(first.error == null)
         assertTrue(second.error == null)
@@ -70,6 +84,7 @@ class VoucherServiceTest @Autowired constructor(
     @Test
     fun `per customer limit enforced`() {
         voucherService.createVoucher(
+            tenantName,
             VoucherCreateRequest(
                 code = "ONE-PER-CUSTOMER",
                 type = "DISCOUNT_VOUCHER",
@@ -83,8 +98,8 @@ class VoucherServiceTest @Autowired constructor(
             customer = CustomerReferenceDto(source_id = "cust-1")
         )
 
-        val first = voucherService.redeem(redemptionRequest)
-        val second = voucherService.redeem(redemptionRequest)
+        val first = voucherService.redeem(tenantName, redemptionRequest)
+        val second = voucherService.redeem(tenantName, redemptionRequest)
 
         assertTrue(first.error == null)
         assertEquals("redemption_limit_per_customer_exceeded", second.error?.code)
@@ -93,6 +108,7 @@ class VoucherServiceTest @Autowired constructor(
     @Test
     fun `voucher assigned to specific customer`() {
         voucherService.createVoucher(
+            tenantName,
             VoucherCreateRequest(
                 code = "ALICE-ONLY",
                 type = "DISCOUNT_VOUCHER",
@@ -103,11 +119,13 @@ class VoucherServiceTest @Autowired constructor(
         )
 
         val validationBob = voucherService.validateVoucher(
+            tenantName,
             "ALICE-ONLY",
             VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "bob"))
         )
 
         val validationAlice = voucherService.validateVoucher(
+            tenantName,
             "ALICE-ONLY",
             VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "alice"))
         )
@@ -120,6 +138,7 @@ class VoucherServiceTest @Autowired constructor(
     @Test
     fun `validation rule assignments enforce redemption limits`() {
         val voucher = voucherService.createVoucher(
+            tenantName,
             VoucherCreateRequest(
                 code = "RULE-BLOCKED",
                 type = "DISCOUNT_VOUCHER",
@@ -128,6 +147,7 @@ class VoucherServiceTest @Autowired constructor(
         )
 
         val rule = validationRuleService.createRule(
+            tenantName,
             ValidationRuleCreateRequest(
                 name = "Stop redemptions",
                 type = "basic",
@@ -137,6 +157,7 @@ class VoucherServiceTest @Autowired constructor(
             )
         )
         validationRuleService.assignRule(
+            tenantName,
             rule.id!!,
             ValidationRuleAssignmentRequest(
                 `object` = "voucher",
@@ -145,6 +166,7 @@ class VoucherServiceTest @Autowired constructor(
         )
 
         val validation = voucherService.validateVoucher(
+            tenantName,
             voucher.code!!,
             VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
         )
@@ -156,6 +178,7 @@ class VoucherServiceTest @Autowired constructor(
     @Test
     fun `voucher validation respects complex rule logic`() {
         val voucher = voucherService.createVoucher(
+            tenantName,
             VoucherCreateRequest(
                 code = "RULE-LOGIC",
                 type = "DISCOUNT_VOUCHER",
@@ -164,6 +187,7 @@ class VoucherServiceTest @Autowired constructor(
         )
 
         val rule = validationRuleService.createRule(
+            tenantName,
             ValidationRuleCreateRequest(
                 name = "amount and sku",
                 type = "expression",
@@ -183,11 +207,13 @@ class VoucherServiceTest @Autowired constructor(
             )
         )
         validationRuleService.assignRule(
+            tenantName,
             rule.id!!,
             ValidationRuleAssignmentRequest(`object` = "voucher", id = voucher.code)
         )
 
         val invalid = voucherService.validateVoucher(
+            tenantName,
             voucher.code!!,
             VoucherValidationRequest(
                 customer = CustomerReferenceDto(source_id = "cust"),
@@ -201,6 +227,7 @@ class VoucherServiceTest @Autowired constructor(
         assertFalse(invalid.valid)
 
         val valid = voucherService.validateVoucher(
+            tenantName,
             voucher.code!!,
             VoucherValidationRequest(
                 customer = CustomerReferenceDto(source_id = "cust"),
@@ -216,8 +243,12 @@ class VoucherServiceTest @Autowired constructor(
 
     @Test
     fun `category mismatch invalidates voucher`() {
-        val category = categoryRepository.save(org.wahlen.voucherengine.persistence.model.voucher.Category(name = "electronics"))
+        val tenant = tenantRepository.findByName(tenantName)!!
+        val category = categoryRepository.save(
+            org.wahlen.voucherengine.persistence.model.voucher.Category(name = "electronics").apply { this.tenant = tenant }
+        )
         voucherService.createVoucher(
+            tenantName,
             VoucherCreateRequest(
                 code = "CAT-ONLY",
                 type = "DISCOUNT_VOUCHER",
@@ -228,6 +259,7 @@ class VoucherServiceTest @Autowired constructor(
         )
 
         val invalid = voucherService.validateVoucher(
+            tenantName,
             "CAT-ONLY",
             VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"), categories = listOf(UUID.randomUUID()))
         )
@@ -235,6 +267,7 @@ class VoucherServiceTest @Autowired constructor(
         assertEquals("voucher_category_mismatch", invalid.error?.code)
 
         val missingCategoryContext = voucherService.validateVoucher(
+            tenantName,
             "CAT-ONLY",
             VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
         )
@@ -242,6 +275,7 @@ class VoucherServiceTest @Autowired constructor(
         assertEquals("voucher_category_mismatch", missingCategoryContext.error?.code)
 
         val valid = voucherService.validateVoucher(
+            tenantName,
             "CAT-ONLY",
             VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"), categories = listOf(category.id!!))
         )
@@ -251,6 +285,7 @@ class VoucherServiceTest @Autowired constructor(
     @Test
     fun `unit discount applies per item quantity`() {
         voucherService.createVoucher(
+            tenantName,
             VoucherCreateRequest(
                 code = "UNIT-10",
                 type = "DISCOUNT_VOUCHER",
@@ -260,6 +295,7 @@ class VoucherServiceTest @Autowired constructor(
         )
 
         val response = voucherService.validateVoucher(
+            tenantName,
             "UNIT-10",
             VoucherValidationRequest(
                 order = org.wahlen.voucherengine.api.dto.request.OrderRequest(
@@ -283,6 +319,7 @@ class VoucherServiceTest @Autowired constructor(
         clock.setZone(ZoneOffset.UTC)
 
         voucherService.createVoucher(
+            tenantName,
             VoucherCreateRequest(
                 code = "WEEKDAY-ONLY",
                 type = "DISCOUNT_VOUCHER",
@@ -297,6 +334,7 @@ class VoucherServiceTest @Autowired constructor(
         )
 
         val invalidDay = voucherService.validateVoucher(
+            tenantName,
             "WEEKDAY-ONLY",
             VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
         )
@@ -304,6 +342,7 @@ class VoucherServiceTest @Autowired constructor(
 
         clock.instant = Instant.parse("2025-01-06T10:00:00Z") // Monday 10:00 UTC
         val valid = voucherService.validateVoucher(
+            tenantName,
             "WEEKDAY-ONLY",
             VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
         )
@@ -311,6 +350,7 @@ class VoucherServiceTest @Autowired constructor(
 
         clock.instant = Instant.parse("2025-01-06T13:00:00Z") // outside hours
         val invalidHour = voucherService.validateVoucher(
+            tenantName,
             "WEEKDAY-ONLY",
             VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
         )
@@ -324,6 +364,7 @@ class VoucherServiceTest @Autowired constructor(
         clock.setZone(ZoneOffset.UTC)
 
         voucherService.createVoucher(
+            tenantName,
             VoucherCreateRequest(
                 code = "WINDOWED",
                 type = "DISCOUNT_VOUCHER",
@@ -334,6 +375,7 @@ class VoucherServiceTest @Autowired constructor(
         )
 
         val valid = voucherService.validateVoucher(
+            tenantName,
             "WINDOWED",
             VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
         )
@@ -341,6 +383,7 @@ class VoucherServiceTest @Autowired constructor(
 
         clock.instant = start.plusSeconds(7200)
         val invalid = voucherService.validateVoucher(
+            tenantName,
             "WINDOWED",
             VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
         )

@@ -15,11 +15,13 @@ import java.util.UUID
 @Service
 class ValidationRuleService(
     private val validationRuleRepository: ValidationRuleRepository,
-    private val validationRulesAssignmentRepository: ValidationRulesAssignmentRepository
+    private val validationRulesAssignmentRepository: ValidationRulesAssignmentRepository,
+    private val tenantService: TenantService
 ) {
 
     @Transactional
-    fun createRule(request: ValidationRuleCreateRequest): ValidationRuleResponse {
+    fun createRule(tenantName: String, request: ValidationRuleCreateRequest): ValidationRuleResponse {
+        val tenant = tenantService.requireTenant(tenantName)
         val rulesPayload = assembleRulesPayload(request)
         val rule = ValidationRule(
             name = request.name,
@@ -30,53 +32,58 @@ class ValidationRuleService(
             applicableTo = request.applicable_to,
             error = request.error
         )
+        rule.tenant = tenant
         return toResponse(validationRuleRepository.save(rule))
     }
 
     @Transactional
-    fun assignRule(ruleId: UUID, request: ValidationRuleAssignmentRequest): ValidationRuleAssignmentResponse {
+    fun assignRule(tenantName: String, ruleId: UUID, request: ValidationRuleAssignmentRequest): ValidationRuleAssignmentResponse {
+        val tenant = tenantService.requireTenant(tenantName)
         val assignment = ValidationRulesAssignment(
             ruleId = ruleId,
             relatedObjectId = request.id,
             relatedObjectType = request.`object`
         )
+        assignment.tenant = tenant
         return toAssignmentResponse(validationRulesAssignmentRepository.save(assignment))
     }
 
     @Transactional(readOnly = true)
-    fun getRule(id: UUID): ValidationRuleResponse? = validationRuleRepository.findById(id).orElse(null)?.let(::toResponse)
+    fun getRule(tenantName: String, id: UUID): ValidationRuleResponse? =
+        validationRuleRepository.findByIdAndTenantName(id, tenantName)?.let(::toResponse)
 
     @Transactional(readOnly = true)
-    fun listRules(): List<ValidationRuleResponse> = validationRuleRepository.findAll().map(::toResponse)
+    fun listRules(tenantName: String): List<ValidationRuleResponse> =
+        validationRuleRepository.findAllByTenantName(tenantName).map(::toResponse)
 
     @Transactional(readOnly = true)
-    fun listAssignments(): List<ValidationRuleAssignmentResponse> =
-        validationRulesAssignmentRepository.findAll().map(::toAssignmentResponse)
+    fun listAssignments(tenantName: String): List<ValidationRuleAssignmentResponse> =
+        validationRulesAssignmentRepository.findAllByTenantName(tenantName).map(::toAssignmentResponse)
 
     @Transactional(readOnly = true)
-    fun listAssignmentsForRule(ruleId: UUID): List<ValidationRuleAssignmentResponse> =
-        validationRulesAssignmentRepository.findAll()
-            .filter { it.ruleId == ruleId }
+    fun listAssignmentsForRule(tenantName: String, ruleId: UUID): List<ValidationRuleAssignmentResponse> =
+        validationRulesAssignmentRepository.findAllByRuleIdAndTenantName(ruleId, tenantName)
             .map(::toAssignmentResponse)
 
     @Transactional
-    fun deleteRule(id: UUID) {
-        validationRuleRepository.findById(id).ifPresent { validationRuleRepository.delete(it) }
+    fun deleteRule(tenantName: String, id: UUID) {
+        val existing = validationRuleRepository.findByIdAndTenantName(id, tenantName) ?: return
+        validationRuleRepository.delete(existing)
     }
 
     @Transactional
-    fun deleteAssignment(id: UUID): Boolean {
-        val exists = validationRulesAssignmentRepository.findById(id)
-        if (exists.isPresent) {
-            validationRulesAssignmentRepository.delete(exists.get())
+    fun deleteAssignment(tenantName: String, id: UUID): Boolean {
+        val existing = validationRulesAssignmentRepository.findByIdAndTenantName(id, tenantName) ?: return false
+        if (existing.id != null) {
+            validationRulesAssignmentRepository.delete(existing)
             return true
         }
         return false
     }
 
     @Transactional
-    fun updateRule(id: UUID, request: ValidationRuleCreateRequest): ValidationRuleResponse? {
-        val existing = validationRuleRepository.findById(id).orElse(null) ?: return null
+    fun updateRule(tenantName: String, id: UUID, request: ValidationRuleCreateRequest): ValidationRuleResponse? {
+        val existing = validationRuleRepository.findByIdAndTenantName(id, tenantName) ?: return null
         val rulesPayload = assembleRulesPayload(request)
         existing.name = request.name ?: existing.name
         existing.type = request.type?.let { org.wahlen.voucherengine.persistence.model.validation.ValidationRuleType.fromString(it) } ?: existing.type

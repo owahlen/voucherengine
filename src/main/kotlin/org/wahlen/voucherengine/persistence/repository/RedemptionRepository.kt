@@ -5,6 +5,8 @@ import org.wahlen.voucherengine.persistence.model.redemption.Redemption
 import java.util.UUID
 
 interface RedemptionRepository : JpaRepository<Redemption, UUID> {
-    fun countByVoucherId(voucherId: UUID): Long
-    fun countByVoucherIdAndCustomerId(voucherId: UUID, customerId: UUID): Long
+    fun countByVoucherIdAndTenantName(voucherId: UUID, tenantName: String): Long
+    fun countByVoucherIdAndCustomerIdAndTenantName(voucherId: UUID, customerId: UUID, tenantName: String): Long
+    fun findAllByTenantName(tenantName: String): List<Redemption>
+    fun findByIdAndTenantName(id: UUID, tenantName: String): Redemption?
 }

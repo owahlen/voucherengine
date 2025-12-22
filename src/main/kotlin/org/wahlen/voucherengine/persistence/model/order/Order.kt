@@ -6,6 +6,7 @@ import org.hibernate.type.SqlTypes
 import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
 import org.wahlen.voucherengine.persistence.model.customer.Customer
 import org.wahlen.voucherengine.persistence.model.redemption.Redemption
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 
 @Entity
 @Table(name = "orders")
@@ -33,6 +34,10 @@ class Order(
     @JoinColumn(name = "customer_id")
     var customer: Customer? = null,
 ) : AuditablePersistable() {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    var tenant: Tenant? = null
+
     @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], orphanRemoval = false, fetch = FetchType.LAZY)
     var redemptions: MutableList<Redemption> = mutableListOf()
 }

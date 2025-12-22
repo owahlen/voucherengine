@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.OrderCreateRequest
@@ -34,8 +35,11 @@ class OrderController(
         ]
     )
     @PostMapping("/orders")
-    fun createOrder(@Valid @RequestBody body: OrderCreateRequest): ResponseEntity<OrderResponse> {
-        val created = orderService.create(body)
+    fun createOrder(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody body: OrderCreateRequest
+    ): ResponseEntity<OrderResponse> {
+        val created = orderService.create(tenant, body)
         return ResponseEntity.status(HttpStatus.CREATED).body(created)
     }
 
@@ -47,7 +51,8 @@ class OrderController(
         ]
     )
     @GetMapping("/orders")
-    fun listOrders(): ResponseEntity<List<OrderResponse>> = ResponseEntity.ok(orderService.list())
+    fun listOrders(@RequestHeader("tenant") tenant: String): ResponseEntity<List<OrderResponse>> =
+        ResponseEntity.ok(orderService.list(tenant))
 
     @Operation(
         summary = "Get order by id or source id",
@@ -58,8 +63,11 @@ class OrderController(
         ]
     )
     @GetMapping("/orders/{orderId}")
-    fun getOrder(@PathVariable orderId: String): ResponseEntity<OrderResponse> {
-        val order = orderService.getByIdOrSource(orderId) ?: return ResponseEntity.notFound().build()
+    fun getOrder(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable orderId: String
+    ): ResponseEntity<OrderResponse> {
+        val order = orderService.getByIdOrSource(tenant, orderId) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(order)
     }
 
@@ -74,10 +82,11 @@ class OrderController(
     )
     @PutMapping("/orders/{orderId}")
     fun updateOrder(
+        @RequestHeader("tenant") tenant: String,
         @PathVariable orderId: String,
         @Valid @RequestBody body: OrderCreateRequest
     ): ResponseEntity<OrderResponse> {
-        val updated = orderService.update(orderId, body) ?: return ResponseEntity.notFound().build()
+        val updated = orderService.update(tenant, orderId, body) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(updated)
     }
 
@@ -90,8 +99,11 @@ class OrderController(
         ]
     )
     @DeleteMapping("/orders/{orderId}")
-    fun deleteOrder(@PathVariable orderId: String): ResponseEntity<Void> {
-        val deleted = orderService.delete(orderId)
+    fun deleteOrder(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable orderId: String
+    ): ResponseEntity<Void> {
+        val deleted = orderService.delete(tenant, orderId)
         return if (deleted) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
     }
 }

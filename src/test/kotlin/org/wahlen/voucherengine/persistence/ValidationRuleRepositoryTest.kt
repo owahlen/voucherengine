@@ -1,5 +1,6 @@
 package org.wahlen.voucherengine.persistence
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -9,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.persistence.model.validation.ValidationRule
 import org.wahlen.voucherengine.persistence.model.validation.ValidationRuleContextType
 import org.wahlen.voucherengine.persistence.model.validation.ValidationRuleType
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import org.wahlen.voucherengine.persistence.repository.ValidationRuleRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -18,8 +21,16 @@ import kotlin.test.assertNull
 @ActiveProfiles("test")
 @Transactional
 class ValidationRuleRepositoryTest @Autowired constructor(
-    private val validationRuleRepository: ValidationRuleRepository
+    private val validationRuleRepository: ValidationRuleRepository,
+    private val tenantRepository: TenantRepository
 ) {
+    private val tenantName = "test-tenant"
+    private lateinit var tenant: Tenant
+
+    @BeforeEach
+    fun setUp() {
+        tenant = tenantRepository.findByName(tenantName) ?: tenantRepository.save(Tenant(name = tenantName))
+    }
 
     @Test
     fun `validation rule CRUD persists rules json`() {
@@ -34,7 +45,7 @@ class ValidationRuleRepositoryTest @Autowired constructor(
                 )
             ),
             error = mapOf("code" to "limit_exceeded", "message" to "Only once per customer")
-        )
+        ).apply { this.tenant = tenant }
 
         val saved = validationRuleRepository.save(validationRule)
         val fetched = validationRuleRepository.findByIdOrNull(saved.id!!)

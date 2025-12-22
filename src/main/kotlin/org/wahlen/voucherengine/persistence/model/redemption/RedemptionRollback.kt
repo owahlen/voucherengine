@@ -5,6 +5,7 @@ import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
 import org.wahlen.voucherengine.persistence.model.common.AbstractPersistable
 import org.wahlen.voucherengine.persistence.model.customer.Customer
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import java.time.Instant
 import java.util.UUID
 
@@ -52,4 +53,8 @@ class RedemptionRollback(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     var customer: Customer? = null
-) : AbstractPersistable()
+) : AbstractPersistable() {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    var tenant: Tenant? = null
+}

@@ -13,6 +13,7 @@ import org.wahlen.voucherengine.persistence.model.campaign.Campaign
 import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
 import org.wahlen.voucherengine.persistence.model.customer.Customer
 import org.wahlen.voucherengine.persistence.model.redemption.Redemption
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import java.time.Instant
 
 /**
@@ -25,14 +26,18 @@ import java.time.Instant
  * Voucherengine API Docs: Vouchers.
  */
 @Entity
-@Table
+@Table(
+    uniqueConstraints = [
+        UniqueConstraint(name = "uc_voucher_tenant_code", columnNames = ["tenant_id", "code"])
+    ]
+)
 class Voucher(
 
     /**
      * A code that identifies a voucher.
      * Pattern can use all letters of the English alphabet, Arabic numerals, and special characters.
      */
-    @Column(unique = true)
+    @Column
     var code: String? = null,
 
     /**
@@ -130,6 +135,10 @@ class Voucher(
     var holder: Customer? = null,
 
 ) : AuditablePersistable() {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    var tenant: Tenant? = null
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "voucher_categories",

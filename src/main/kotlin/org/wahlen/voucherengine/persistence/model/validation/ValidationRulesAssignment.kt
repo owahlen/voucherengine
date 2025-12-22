@@ -2,6 +2,7 @@ package org.wahlen.voucherengine.persistence.model.validation
 
 import jakarta.persistence.*
 import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import java.util.UUID
 
 /**
@@ -45,4 +46,8 @@ class ValidationRulesAssignment(
     @Column(name = "omitted_rule")
     var omittedRules: MutableSet<String> = mutableSetOf(),
 
-) : AuditablePersistable()
+) : AuditablePersistable() {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    var tenant: Tenant? = null
+}

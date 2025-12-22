@@ -5,6 +5,7 @@ import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 import java.util.UUID
 
 interface VoucherRepository : JpaRepository<Voucher, UUID> {
-    fun findByCode(code: String): Voucher?
-    fun findAllByCampaignId(campaignId: UUID): List<Voucher>
+    fun findByCodeAndTenantName(code: String, tenantName: String): Voucher?
+    fun findAllByCampaignIdAndTenantName(campaignId: UUID, tenantName: String): List<Voucher>
+    fun findAllByTenantName(tenantName: String): List<Voucher>
 }

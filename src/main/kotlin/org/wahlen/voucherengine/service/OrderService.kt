@@ -12,60 +12,66 @@ import java.util.UUID
 class OrderService(
     private val orderRepository: OrderRepository,
     private val customerService: CustomerService,
+    private val tenantService: TenantService,
 ) {
 
     @Transactional
-    fun create(request: OrderCreateRequest): OrderResponse {
-        val entity = (request.source_id?.let { orderRepository.findBySourceId(it) }) ?: Order()
-        applyRequest(entity, request)
+    fun create(tenantName: String, request: OrderCreateRequest): OrderResponse {
+        val tenant = tenantService.requireTenant(tenantName)
+        val entity = (request.source_id?.let { orderRepository.findBySourceIdAndTenantName(it, tenantName) }) ?: Order()
+        applyRequest(tenantName, entity, request)
+        entity.tenant = tenant
         return toResponse(orderRepository.save(entity))
     }
 
     @Transactional
-    fun update(orderId: String, request: OrderCreateRequest): OrderResponse? {
-        val entity = find(orderId) ?: return null
-        applyRequest(entity, request.copy(source_id = orderId))
+    fun update(tenantName: String, orderId: String, request: OrderCreateRequest): OrderResponse? {
+        val entity = find(tenantName, orderId) ?: return null
+        applyRequest(tenantName, entity, request.copy(source_id = orderId))
         return toResponse(orderRepository.save(entity))
     }
 
     @Transactional(readOnly = true)
-    fun list(): List<OrderResponse> = orderRepository.findAll().map(::toResponse)
+    fun list(tenantName: String): List<OrderResponse> = orderRepository.findAllByTenantName(tenantName).map(::toResponse)
 
     @Transactional(readOnly = true)
-    fun get(id: UUID): OrderResponse? = orderRepository.findById(id).orElse(null)?.let(::toResponse)
+    fun get(tenantName: String, id: UUID): OrderResponse? =
+        orderRepository.findByIdAndTenantName(id, tenantName)?.let(::toResponse)
 
     @Transactional(readOnly = true)
-    fun getBySource(sourceId: String): OrderResponse? = orderRepository.findBySourceId(sourceId)?.let(::toResponse)
+    fun getBySource(tenantName: String, sourceId: String): OrderResponse? =
+        orderRepository.findBySourceIdAndTenantName(sourceId, tenantName)?.let(::toResponse)
 
     @Transactional(readOnly = true)
-    fun getByIdOrSource(idOrSource: String): OrderResponse? = find(idOrSource)?.let(::toResponse)
+    fun getByIdOrSource(tenantName: String, idOrSource: String): OrderResponse? =
+        find(tenantName, idOrSource)?.let(::toResponse)
 
     @Transactional
-    fun delete(sourceId: String): Boolean {
-        val existing = find(sourceId) ?: return false
+    fun delete(tenantName: String, sourceId: String): Boolean {
+        val existing = find(tenantName, sourceId) ?: return false
         orderRepository.delete(existing)
         return true
     }
 
-    private fun find(idOrSource: String): Order? {
+    private fun find(tenantName: String, idOrSource: String): Order? {
         val uuid = runCatching { UUID.fromString(idOrSource) }.getOrNull()
         if (uuid != null) {
-            val byUuid = orderRepository.findById(uuid).orElse(null)
+            val byUuid = orderRepository.findByIdAndTenantName(uuid, tenantName)
             if (byUuid != null) {
                 return byUuid
             }
         }
-        return orderRepository.findBySourceId(idOrSource)
+        return orderRepository.findBySourceIdAndTenantName(idOrSource, tenantName)
     }
 
-    private fun applyRequest(entity: Order, request: OrderCreateRequest) {
+    private fun applyRequest(tenantName: String, entity: Order, request: OrderCreateRequest) {
         entity.sourceId = request.source_id ?: entity.sourceId
         entity.status = request.status ?: entity.status
         entity.amount = request.amount ?: entity.amount
         entity.initialAmount = request.initial_amount ?: entity.initialAmount
         entity.discountAmount = request.discount_amount ?: entity.discountAmount
         entity.metadata = request.metadata ?: entity.metadata
-        entity.customer = customerService.ensureCustomer(request.customer)
+        entity.customer = customerService.ensureCustomer(tenantName, request.customer)
     }
 
     private fun toResponse(order: Order): OrderResponse =

@@ -1,5 +1,6 @@
 package org.wahlen.voucherengine.service
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -7,7 +8,9 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleAssignmentRequest
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleCreateRequest
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.ValidationRuleRepository
+import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -16,12 +19,22 @@ import kotlin.test.assertNotNull
 @Transactional
 class ValidationRuleServiceTest @Autowired constructor(
     private val validationRuleService: ValidationRuleService,
-    private val validationRuleRepository: ValidationRuleRepository
+    private val validationRuleRepository: ValidationRuleRepository,
+    private val tenantRepository: TenantRepository
 ) {
+    private val tenantName = "test-tenant"
+
+    @BeforeEach
+    fun setUp() {
+        if (tenantRepository.findByName(tenantName) == null) {
+            tenantRepository.save(Tenant(name = tenantName))
+        }
+    }
 
     @Test
     fun `create rule persists`() {
         val created = validationRuleService.createRule(
+            tenantName,
             ValidationRuleCreateRequest(
                 name = "One per customer",
                 type = "redemptions",
@@ -36,6 +49,7 @@ class ValidationRuleServiceTest @Autowired constructor(
     @Test
     fun `assign rule links target`() {
         val rule = validationRuleService.createRule(
+            tenantName,
             ValidationRuleCreateRequest(
                 name = "Global",
                 type = "global",
@@ -43,6 +57,7 @@ class ValidationRuleServiceTest @Autowired constructor(
             )
         )
         val assignment = validationRuleService.assignRule(
+            tenantName,
             rule.id!!,
             ValidationRuleAssignmentRequest(`object` = "voucher", id = "TEST")
         )

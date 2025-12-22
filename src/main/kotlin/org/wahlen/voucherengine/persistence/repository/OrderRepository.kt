@@ -5,5 +5,7 @@ import org.wahlen.voucherengine.persistence.model.order.Order
 import java.util.UUID
 
 interface OrderRepository : JpaRepository<Order, UUID> {
-    fun findBySourceId(sourceId: String): Order?
+    fun findBySourceIdAndTenantName(sourceId: String, tenantName: String): Order?
+    fun findByIdAndTenantName(id: UUID, tenantName: String): Order?
+    fun findAllByTenantName(tenantName: String): List<Order>
 }

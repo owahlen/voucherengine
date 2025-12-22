@@ -12,7 +12,7 @@ import org.wahlen.voucherengine.api.dto.request.VoucherCreateRequest
 import org.wahlen.voucherengine.api.dto.response.CampaignResponse
 import org.wahlen.voucherengine.api.dto.response.VoucherResponse
 import org.wahlen.voucherengine.persistence.model.campaign.Campaign
-import org.wahlen.voucherengine.persistence.repository.CampaignRepository
+import org.wahlen.voucherengine.service.CampaignService
 import org.wahlen.voucherengine.service.VoucherService
 import java.util.UUID
 
@@ -20,7 +20,7 @@ import java.util.UUID
 @RequestMapping("/v1")
 @Validated
 class CampaignController(
-    private val campaignRepository: CampaignRepository,
+    private val campaignService: CampaignService,
     private val voucherService: VoucherService
 ) {
 
@@ -33,20 +33,11 @@ class CampaignController(
         ]
     )
     @PostMapping("/campaigns")
-    fun createCampaign(@Valid @RequestBody body: CampaignCreateRequest): ResponseEntity<CampaignResponse> {
-        val saved = campaignRepository.save(
-            Campaign(
-                name = body.name,
-                type = body.type,
-                mode = body.mode,
-                description = body.description,
-                codePattern = body.code_pattern,
-                startDate = body.start_date,
-                expirationDate = body.expiration_date,
-                metadata = body.metadata,
-                active = body.active ?: true
-            )
-        )
+    fun createCampaign(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody body: CampaignCreateRequest
+    ): ResponseEntity<CampaignResponse> {
+        val saved = campaignService.create(tenant, body)
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(saved))
     }
 
@@ -58,8 +49,8 @@ class CampaignController(
         ]
     )
     @GetMapping("/campaigns")
-    fun listCampaigns(): ResponseEntity<List<CampaignResponse>> =
-        ResponseEntity.ok(campaignRepository.findAll().map(::toResponse))
+    fun listCampaigns(@RequestHeader("tenant") tenant: String): ResponseEntity<List<CampaignResponse>> =
+        ResponseEntity.ok(campaignService.list(tenant).map(::toResponse))
 
     @Operation(
         summary = "Get campaign",
@@ -70,8 +61,11 @@ class CampaignController(
         ]
     )
     @GetMapping("/campaigns/{id}")
-    fun getCampaign(@PathVariable id: UUID): ResponseEntity<CampaignResponse> {
-        val campaign = campaignRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
+    fun getCampaign(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID
+    ): ResponseEntity<CampaignResponse> {
+        val campaign = campaignService.get(tenant, id) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(toResponse(campaign))
     }
 
@@ -84,18 +78,13 @@ class CampaignController(
         ]
     )
     @PutMapping("/campaigns/{id}")
-    fun updateCampaign(@PathVariable id: UUID, @Valid @RequestBody body: CampaignCreateRequest): ResponseEntity<CampaignResponse> {
-        val campaign = campaignRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
-        campaign.name = body.name ?: campaign.name
-        campaign.type = body.type ?: campaign.type
-        campaign.mode = body.mode ?: campaign.mode
-        campaign.description = body.description ?: campaign.description
-        campaign.codePattern = body.code_pattern ?: campaign.codePattern
-        campaign.startDate = body.start_date ?: campaign.startDate
-        campaign.expirationDate = body.expiration_date ?: campaign.expirationDate
-        campaign.metadata = body.metadata ?: campaign.metadata
-        campaign.active = body.active ?: campaign.active
-        return ResponseEntity.ok(toResponse(campaignRepository.save(campaign)))
+    fun updateCampaign(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID,
+        @Valid @RequestBody body: CampaignCreateRequest
+    ): ResponseEntity<CampaignResponse> {
+        val updated = campaignService.update(tenant, id, body) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(toResponse(updated))
     }
 
     @Operation(
@@ -107,10 +96,11 @@ class CampaignController(
         ]
     )
     @DeleteMapping("/campaigns/{id}")
-    fun deleteCampaign(@PathVariable id: UUID): ResponseEntity<Void> {
-        val campaign = campaignRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
-        campaignRepository.delete(campaign)
-        return ResponseEntity.noContent().build()
+    fun deleteCampaign(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID
+    ): ResponseEntity<Void> {
+        return if (campaignService.delete(tenant, id)) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
     }
 
     @Operation(
@@ -124,11 +114,12 @@ class CampaignController(
     )
     @PostMapping("/campaigns/{id}/vouchers")
     fun createVoucherInCampaign(
+        @RequestHeader("tenant") tenant: String,
         @PathVariable id: UUID,
         @Valid @RequestBody body: VoucherCreateRequest
     ): ResponseEntity<VoucherResponse> {
-        val campaign = campaignRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
-        val voucher = voucherService.createVoucher(body.copy(campaign_id = campaign.id))
+        val campaign = campaignService.get(tenant, id) ?: return ResponseEntity.notFound().build()
+        val voucher = voucherService.createVoucher(tenant, body.copy(campaign_id = campaign.id))
         return ResponseEntity.status(HttpStatus.CREATED).body(voucherService.toVoucherResponse(voucher))
     }
 
@@ -141,9 +132,12 @@ class CampaignController(
         ]
     )
     @GetMapping("/campaigns/{id}/vouchers")
-    fun listCampaignVouchers(@PathVariable id: UUID): ResponseEntity<List<VoucherResponse>> {
-        val campaign = campaignRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
-        val vouchers = voucherService.listVouchersByCampaign(campaign.id!!)
+    fun listCampaignVouchers(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID
+    ): ResponseEntity<List<VoucherResponse>> {
+        val campaign = campaignService.get(tenant, id) ?: return ResponseEntity.notFound().build()
+        val vouchers = voucherService.listVouchersByCampaign(tenant, campaign.id!!)
         return ResponseEntity.ok(vouchers.map { voucherService.toVoucherResponse(it) })
     }
 

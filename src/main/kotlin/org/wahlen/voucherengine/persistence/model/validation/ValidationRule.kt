@@ -4,6 +4,7 @@ import jakarta.persistence.*
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
 import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 
 /**
  * Represents a Voucherengine validation rule definition.
@@ -50,6 +51,10 @@ class ValidationRule(
     @Column
     var objectType: String? = null,
 ) : AuditablePersistable() {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    var tenant: Tenant? = null
+
     @OneToMany(mappedBy = "rule", fetch = FetchType.LAZY)
     var assignments: MutableList<ValidationRulesAssignment> = mutableListOf()
 }

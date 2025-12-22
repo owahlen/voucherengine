@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.CustomerCreateRequest
@@ -33,8 +34,11 @@ class CustomerController(
         ]
     )
     @PostMapping("/customers")
-    fun createCustomer(@Valid @RequestBody body: CustomerCreateRequest): ResponseEntity<Any> =
-        ResponseEntity.status(HttpStatus.OK).body(customerService.upsert(body))
+    fun createCustomer(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody body: CustomerCreateRequest
+    ): ResponseEntity<Any> =
+        ResponseEntity.status(HttpStatus.OK).body(customerService.upsert(tenant, body))
 
     @Operation(
         summary = "List customers",
@@ -44,7 +48,8 @@ class CustomerController(
         ]
     )
     @GetMapping("/customers")
-    fun listCustomers(): ResponseEntity<Any> = ResponseEntity.ok(customerService.list())
+    fun listCustomers(@RequestHeader("tenant") tenant: String): ResponseEntity<Any> =
+        ResponseEntity.ok(customerService.list(tenant))
 
     @Operation(
         summary = "Get customer",
@@ -55,8 +60,11 @@ class CustomerController(
         ]
     )
     @GetMapping("/customers/{id}")
-    fun getCustomer(@PathVariable id: String): ResponseEntity<Any> {
-        val customer = customerService.getByIdOrSource(id) ?: return ResponseEntity.notFound().build()
+    fun getCustomer(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: String
+    ): ResponseEntity<Any> {
+        val customer = customerService.getByIdOrSource(tenant, id) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(customer)
     }
 
@@ -70,12 +78,13 @@ class CustomerController(
     )
     @PutMapping("/customers/{id}")
     fun updateCustomer(
+        @RequestHeader("tenant") tenant: String,
         @PathVariable id: String,
         @Valid @RequestBody body: CustomerCreateRequest
     ): ResponseEntity<Any> {
-        val existing = customerService.getByIdOrSource(id) ?: return ResponseEntity.notFound().build()
+        val existing = customerService.getByIdOrSource(tenant, id) ?: return ResponseEntity.notFound().build()
         val merged = body.copy(source_id = existing.sourceId ?: body.source_id)
-        return ResponseEntity.ok(customerService.upsert(merged))
+        return ResponseEntity.ok(customerService.upsert(tenant, merged))
     }
 
     @Operation(
@@ -87,9 +96,12 @@ class CustomerController(
         ]
     )
     @DeleteMapping("/customers/{id}")
-    fun deleteCustomer(@PathVariable id: String): ResponseEntity<Void> {
-        val existing = customerService.getByIdOrSource(id) ?: return ResponseEntity.notFound().build()
-        customerService.delete(existing.id?.toString() ?: existing.sourceId!!)
+    fun deleteCustomer(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: String
+    ): ResponseEntity<Void> {
+        val existing = customerService.getByIdOrSource(tenant, id) ?: return ResponseEntity.notFound().build()
+        customerService.delete(tenant, existing.id?.toString() ?: existing.sourceId!!)
         return ResponseEntity.noContent().build()
     }
 }

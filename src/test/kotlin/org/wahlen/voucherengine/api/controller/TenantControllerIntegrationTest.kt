@@ -1,6 +1,5 @@
 package org.wahlen.voucherengine.api.controller
 
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -15,64 +14,54 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
-import org.wahlen.voucherengine.persistence.model.tenant.Tenant
-import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import tools.jackson.databind.ObjectMapper
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
-class CategoryControllerIntegrationTest @Autowired constructor(
-    private val mockMvc: MockMvc,
-    private val tenantRepository: TenantRepository
+class TenantControllerIntegrationTest @Autowired constructor(
+    private val mockMvc: MockMvc
 ) {
-    private val tenantName = "test-tenant"
+    private val tenantHeader = "bootstrap"
     private val objectMapper = ObjectMapper()
 
-    @BeforeEach
-    fun setUp() {
-        if (tenantRepository.findByName(tenantName) == null) {
-            tenantRepository.save(Tenant(name = tenantName))
-        }
-    }
-
     @Test
-    fun `category CRUD endpoints`() {
+    fun `tenant CRUD endpoints`() {
+        val createBody = """{ "name": "acme" }"""
         val createResult = mockMvc.perform(
-            post("/v1/categories")
-                .header("tenant", tenantName)
+            post("/v1/tenants")
+                .header("tenant", tenantHeader)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"name":"electronics"}""")
+                .content(createBody)
         )
             .andExpect(status().isCreated)
-            .andExpect(jsonPath("$.name").value("electronics"))
+            .andExpect(jsonPath("$.name").value("acme"))
             .andReturn()
 
-        val created = objectMapper.readTree(createResult.response.contentAsString)
-        val id = created.get("id").asText()
+        val tenantId = objectMapper.readTree(createResult.response.contentAsString).get("id").asText()
 
-        mockMvc.perform(get("/v1/categories/$id").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/tenants/$tenantId").header("tenant", tenantHeader))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.name").value("electronics"))
+            .andExpect(jsonPath("$.id").value(tenantId))
 
-        mockMvc.perform(get("/v1/categories").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/tenants").header("tenant", tenantHeader))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$[0].name").value("electronics"))
 
+        val updateBody = """{ "name": "acme-updated" }"""
         mockMvc.perform(
-            put("/v1/categories/$id")
-                .header("tenant", tenantName)
+            put("/v1/tenants/$tenantId")
+                .header("tenant", tenantHeader)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"name":"updated"}""")
+                .content(updateBody)
         )
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.name").value("updated"))
+            .andExpect(jsonPath("$.name").value("acme-updated"))
 
-        mockMvc.perform(delete("/v1/categories/$id").header("tenant", tenantName))
+        mockMvc.perform(delete("/v1/tenants/$tenantId").header("tenant", tenantHeader))
             .andExpect(status().isNoContent)
 
-        mockMvc.perform(get("/v1/categories/$id").header("tenant", tenantName))
+        mockMvc.perform(get("/v1/tenants/$tenantId").header("tenant", tenantHeader))
             .andExpect(status().isNotFound)
     }
 }

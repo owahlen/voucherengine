@@ -1,5 +1,6 @@
 package org.wahlen.voucherengine.api.controller
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -11,14 +12,25 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.persistence.repository.TenantRepository
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
 class CampaignControllerIntegrationTest @Autowired constructor(
-    private val mockMvc: MockMvc
+    private val mockMvc: MockMvc,
+    private val tenantRepository: TenantRepository
 ) {
+    private val tenantName = "test-tenant"
+
+    @BeforeEach
+    fun setUp() {
+        if (tenantRepository.findByName(tenantName) == null) {
+            tenantRepository.save(Tenant(name = tenantName))
+        }
+    }
 
     @Test
     fun `campaign CRUD and voucher issuance`() {
@@ -28,6 +40,7 @@ class CampaignControllerIntegrationTest @Autowired constructor(
 
         val createResult = mockMvc.perform(
             post("/v1/campaigns")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
@@ -36,11 +49,11 @@ class CampaignControllerIntegrationTest @Autowired constructor(
 
         val campaignId = objectMapper.readTree(createResult.response.contentAsString).get("id").asText()
 
-        mockMvc.perform(get("/v1/campaigns/$campaignId"))
+        mockMvc.perform(get("/v1/campaigns/$campaignId").header("tenant", tenantName))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("BF-2026"))
 
-        mockMvc.perform(get("/v1/campaigns"))
+        mockMvc.perform(get("/v1/campaigns").header("tenant", tenantName))
             .andExpect(status().isOk)
 
         val voucherBody = """
@@ -49,27 +62,29 @@ class CampaignControllerIntegrationTest @Autowired constructor(
 
         mockMvc.perform(
             post("/v1/campaigns/$campaignId/vouchers")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
         ).andExpect(status().isCreated)
             .andExpect(jsonPath("$.code").value("BF2026-0001"))
 
-        mockMvc.perform(get("/v1/campaigns/$campaignId/vouchers"))
+        mockMvc.perform(get("/v1/campaigns/$campaignId/vouchers").header("tenant", tenantName))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].code").value("BF2026-0001"))
 
         val updateBody = """{ "name": "BF-UPDATED", "type": "DISCOUNT_COUPONS", "mode": "STATIC" }"""
         mockMvc.perform(
             put("/v1/campaigns/$campaignId")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateBody)
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("BF-UPDATED"))
 
-        mockMvc.perform(delete("/v1/campaigns/$campaignId"))
+        mockMvc.perform(delete("/v1/campaigns/$campaignId").header("tenant", tenantName))
             .andExpect(status().isNoContent)
 
-        mockMvc.perform(get("/v1/campaigns/$campaignId"))
+        mockMvc.perform(get("/v1/campaigns/$campaignId").header("tenant", tenantName))
             .andExpect(status().isNotFound)
     }
 

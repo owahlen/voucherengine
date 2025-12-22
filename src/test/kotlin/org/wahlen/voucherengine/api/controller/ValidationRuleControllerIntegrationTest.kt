@@ -1,5 +1,6 @@
 package org.wahlen.voucherengine.api.controller
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -14,6 +15,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delet
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import tools.jackson.databind.ObjectMapper
 
 @SpringBootTest
@@ -21,10 +24,19 @@ import tools.jackson.databind.ObjectMapper
 @ActiveProfiles("test")
 @Transactional
 class ValidationRuleControllerIntegrationTest @Autowired constructor(
-    private val mockMvc: MockMvc
+    private val mockMvc: MockMvc,
+    private val tenantRepository: TenantRepository
 ) {
 
     private val objectMapper = ObjectMapper()
+    private val tenantName = "test-tenant"
+
+    @BeforeEach
+    fun setUp() {
+        if (tenantRepository.findByName(tenantName) == null) {
+            tenantRepository.save(Tenant(name = tenantName))
+        }
+    }
 
     @Test
     fun `create and assign validation rule via controller`() {
@@ -34,6 +46,7 @@ class ValidationRuleControllerIntegrationTest @Autowired constructor(
 
         val createResult = mockMvc.perform(
             post("/v1/validation-rules")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
@@ -49,6 +62,7 @@ class ValidationRuleControllerIntegrationTest @Autowired constructor(
 
         mockMvc.perform(
             post("/v1/validation-rules/$createdId/assignments")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(assignBody)
         ).andExpect(status().isOk)
@@ -62,41 +76,42 @@ class ValidationRuleControllerIntegrationTest @Autowired constructor(
 
         mockMvc.perform(
             put("/v1/validation-rules/$createdId")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateBody)
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("Updated Rule"))
 
         // get rule
-        mockMvc.perform(get("/v1/validation-rules/$createdId"))
+        mockMvc.perform(get("/v1/validation-rules/$createdId").header("tenant", tenantName))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.id").value(createdId))
 
         // list rules
-        mockMvc.perform(get("/v1/validation-rules"))
+        mockMvc.perform(get("/v1/validation-rules").header("tenant", tenantName))
             .andExpect(status().isOk)
 
-        mockMvc.perform(get("/v1/validation-rules-assignments"))
+        mockMvc.perform(get("/v1/validation-rules-assignments").header("tenant", tenantName))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].rule_id").value(createdId))
 
-        mockMvc.perform(get("/v1/validation-rules/$createdId/assignments"))
+        mockMvc.perform(get("/v1/validation-rules/$createdId/assignments").header("tenant", tenantName))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].related_object_id").value("TEST"))
 
         val assignmentId = objectMapper.readTree(
-            mockMvc.perform(get("/v1/validation-rules-assignments"))
+            mockMvc.perform(get("/v1/validation-rules-assignments").header("tenant", tenantName))
                 .andReturn().response.contentAsString
         ).first().get("id").asText()
 
-        mockMvc.perform(delete("/v1/validation-rules-assignments/$assignmentId"))
+        mockMvc.perform(delete("/v1/validation-rules-assignments/$assignmentId").header("tenant", tenantName))
             .andExpect(status().isNoContent)
 
         // delete rule
-        mockMvc.perform(delete("/v1/validation-rules/$createdId"))
+        mockMvc.perform(delete("/v1/validation-rules/$createdId").header("tenant", tenantName))
             .andExpect(status().isNoContent)
 
-        mockMvc.perform(get("/v1/validation-rules/$createdId"))
+        mockMvc.perform(get("/v1/validation-rules/$createdId").header("tenant", tenantName))
             .andExpect(status().isNotFound)
     }
 }

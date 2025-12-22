@@ -4,6 +4,7 @@ import jakarta.persistence.*
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
 import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 import java.time.LocalDate
 
@@ -70,6 +71,10 @@ class Customer(
     var metadata: Map<String, Any?>? = null,
 
     ) : AuditablePersistable() {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    var tenant: Tenant? = null
+
     @OneToMany(mappedBy = "holder", fetch = FetchType.LAZY)
     var heldVouchers: MutableList<Voucher> = mutableListOf()
 }

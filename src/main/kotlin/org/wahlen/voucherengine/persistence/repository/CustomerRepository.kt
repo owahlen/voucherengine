@@ -5,5 +5,7 @@ import org.wahlen.voucherengine.persistence.model.customer.Customer
 import java.util.UUID
 
 interface CustomerRepository : JpaRepository<Customer, UUID> {
-    fun findBySourceId(sourceId: String): Customer?
+    fun findBySourceIdAndTenantName(sourceId: String, tenantName: String): Customer?
+    fun findByIdAndTenantName(id: UUID, tenantName: String): Customer?
+    fun findAllByTenantName(tenantName: String): List<Customer>
 }

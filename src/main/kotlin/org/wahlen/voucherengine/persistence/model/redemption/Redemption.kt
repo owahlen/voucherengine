@@ -3,12 +3,11 @@ package org.wahlen.voucherengine.persistence.model.redemption
 import jakarta.persistence.*
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
-import org.wahlen.voucherengine.persistence.model.common.AbstractPersistable
 import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
 import org.wahlen.voucherengine.persistence.model.customer.Customer
 import org.wahlen.voucherengine.persistence.model.order.Order
 import org.wahlen.voucherengine.persistence.model.voucher.Voucher
-import java.time.Instant
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import java.util.UUID
 
 /**
@@ -85,6 +84,10 @@ class Redemption(
     @Column(name = "parent_redemption_id")
     var parentRedemptionId: UUID? = null
 ) : AuditablePersistable() {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    var tenant: Tenant? = null
+
     @OneToMany(mappedBy = "redemption", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
     var rollbacks: MutableList<RedemptionRollback> = mutableListOf()
 }

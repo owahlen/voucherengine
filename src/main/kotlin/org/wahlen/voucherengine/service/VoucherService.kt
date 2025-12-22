@@ -47,13 +47,15 @@ class VoucherService(
     private val validationRulesAssignmentRepository: ValidationRulesAssignmentRepository,
     private val validationRuleRepository: ValidationRuleRepository,
     private val redemptionRollbackRepository: RedemptionRollbackRepository,
+    private val tenantService: TenantService,
     private val clock: Clock,
 ) {
 
     @Transactional
-    fun createVoucher(request: VoucherCreateRequest): Voucher {
-        val holder = customerService.ensureCustomer(request.customer)
-        val campaign = request.campaign_id?.let { campaignRepository.findById(it).orElse(null) }
+    fun createVoucher(tenantName: String, request: VoucherCreateRequest): Voucher {
+        val tenant = tenantService.requireTenant(tenantName)
+        val holder = customerService.ensureCustomer(tenantName, request.customer)
+        val campaign = request.campaign_id?.let { campaignRepository.findByIdAndTenantName(it, tenantName) }
         validateValidity(request)
         val voucher = Voucher(
             code = request.code,
@@ -69,6 +71,7 @@ class VoucherService(
             startDate = request.start_date,
             expirationDate = request.expiration_date
         )
+        voucher.tenant = tenant
         voucher.validityTimeframe = request.validity_timeframe
         voucher.validityDayOfWeek = request.validity_day_of_week
         voucher.validityHours = request.validity_hours
@@ -78,13 +81,13 @@ class VoucherService(
             per_customer = request.redemption?.per_customer
         )
         generateAssetsIfMissing(voucher)
-        attachCategories(voucher, request.category_ids)
+        attachCategories(voucher, request.category_ids, tenantName)
         return voucherRepository.save(voucher)
     }
 
     @Transactional
-    fun updateVoucher(code: String, request: VoucherCreateRequest): Voucher? {
-        val existing = voucherRepository.findByCode(code) ?: return null
+    fun updateVoucher(tenantName: String, code: String, request: VoucherCreateRequest): Voucher? {
+        val existing = voucherRepository.findByCodeAndTenantName(code, tenantName) ?: return null
         validateValidity(request)
         existing.type = request.type?.let { VoucherType.valueOf(it) } ?: existing.type
         existing.discountJson = request.discount ?: existing.discountJson
@@ -106,40 +109,40 @@ class VoucherService(
             per_customer = request.redemption?.per_customer,
             redeemed_quantity = 0
         )
-        val holder = customerService.ensureCustomer(request.customer)
+        val holder = customerService.ensureCustomer(tenantName, request.customer)
         if (holder != null) {
             existing.holder = holder
         }
-        existing.campaign = request.campaign_id?.let { campaignRepository.findById(it).orElse(null) } ?: existing.campaign
-        attachCategories(existing, request.category_ids)
+        existing.campaign = request.campaign_id?.let { campaignRepository.findByIdAndTenantName(it, tenantName) } ?: existing.campaign
+        attachCategories(existing, request.category_ids, tenantName)
         return voucherRepository.save(existing)
     }
 
     @Transactional(readOnly = true)
-    fun getByCode(code: String): Voucher? = voucherRepository.findByCode(code)
+    fun getByCode(tenantName: String, code: String): Voucher? = voucherRepository.findByCodeAndTenantName(code, tenantName)
 
     @Transactional(readOnly = true)
-    fun validateVoucher(code: String, request: VoucherValidationRequest): ValidationResponse {
-        val voucher = voucherRepository.findByCode(code)
+    fun validateVoucher(tenantName: String, code: String, request: VoucherValidationRequest): ValidationResponse {
+        val voucher = voucherRepository.findByCodeAndTenantName(code, tenantName)
             ?: return ValidationResponse(false, error = ErrorResponse("voucher_not_found", "Voucher does not exist."))
 
         val now = Instant.now(clock)
         ensureActiveWindow(voucher, now)?.let { return it }
 
-        val customer = customerService.ensureCustomer(request.customer)
+        val customer = customerService.ensureCustomer(tenantName, request.customer)
         ensureOwnership(voucher, customer)?.let { return it }
 
-        val totalRedemptions = voucher.id?.let { redemptionRepository.countByVoucherId(it).toInt() } ?: 0
+        val totalRedemptions = voucher.id?.let { redemptionRepository.countByVoucherIdAndTenantName(it, tenantName).toInt() } ?: 0
         val perCustomerLimit = voucher.redemptionJson?.per_customer
         val quantityLimit = voucher.redemptionJson?.quantity
 
-        ensureLimits(perCustomerLimit, quantityLimit, totalRedemptions, voucher, customer)?.let { return it }
+        ensureLimits(tenantName, perCustomerLimit, quantityLimit, totalRedemptions, voucher, customer)?.let { return it }
 
         val customerRedemptions = if (customer?.id != null && voucher.id != null) {
-            redemptionRepository.countByVoucherIdAndCustomerId(voucher.id!!, customer.id!!).toInt()
+            redemptionRepository.countByVoucherIdAndCustomerIdAndTenantName(voucher.id!!, customer.id!!, tenantName).toInt()
         } else 0
 
-        applyValidationRules(voucher, customer, customerRedemptions, totalRedemptions, request)?.let { return it }
+        applyValidationRules(tenantName, voucher, customer, customerRedemptions, totalRedemptions, request)?.let { return it }
 
         ensureCategories(voucher, request.categories)?.let { return it }
 
@@ -169,7 +172,7 @@ class VoucherService(
     }
 
     @Transactional
-    fun redeem(request: RedemptionRequest): RedemptionResponse {
+    fun redeem(tenantName: String, request: RedemptionRequest): RedemptionResponse {
         if (request.redeemables.isEmpty()) {
             return RedemptionResponse("failure", error = ErrorResponse("invalid_request", "No redeemables provided"))
         }
@@ -177,15 +180,16 @@ class VoucherService(
         if (redeemable.`object` != "voucher") {
             return RedemptionResponse("failure", error = ErrorResponse("unsupported_redeemable", "Only vouchers are supported"))
         }
-        val voucher = voucherRepository.findByCode(redeemable.id)
+        val voucher = voucherRepository.findByCodeAndTenantName(redeemable.id, tenantName)
             ?: return RedemptionResponse("failure", error = ErrorResponse("voucher_not_found", "Voucher does not exist."))
 
-        val validation = validateVoucher(voucher.code ?: redeemable.id, VoucherValidationRequest(request.customer, request.order))
+        val validation = validateVoucher(tenantName, voucher.code ?: redeemable.id, VoucherValidationRequest(request.customer, request.order))
         if (!validation.valid) {
             return RedemptionResponse("failure", error = validation.error)
         }
 
-        val customer = customerService.ensureCustomer(request.customer)
+        val tenant = tenantService.requireTenant(tenantName)
+        val customer = customerService.ensureCustomer(tenantName, request.customer)
 
         val redemption = Redemption(
             voucher = voucher,
@@ -194,6 +198,7 @@ class VoucherService(
             result = RedemptionResult.SUCCESS,
             status = RedemptionStatus.SUCCEEDED
         )
+        redemption.tenant = tenant
         val saved = redemptionRepository.save(redemption)
 
         val redemptionJson = voucher.redemptionJson
@@ -246,18 +251,18 @@ class VoucherService(
             campaign_id = voucher.campaign?.id,
             created_at = voucher.createdAt,
             updated_at = voucher.updatedAt
-        )
+    )
 
     @Transactional(readOnly = true)
-    fun listVouchers(): List<Voucher> = voucherRepository.findAll()
+    fun listVouchers(tenantName: String): List<Voucher> = voucherRepository.findAllByTenantName(tenantName)
 
     @Transactional(readOnly = true)
-    fun listVouchersByCampaign(campaignId: UUID): List<Voucher> =
-        voucherRepository.findAllByCampaignId(campaignId)
+    fun listVouchersByCampaign(tenantName: String, campaignId: UUID): List<Voucher> =
+        voucherRepository.findAllByCampaignIdAndTenantName(campaignId, tenantName)
 
     @Transactional
-    fun deleteVoucher(code: String): Boolean {
-        val existing = voucherRepository.findByCode(code) ?: return false
+    fun deleteVoucher(tenantName: String, code: String): Boolean {
+        val existing = voucherRepository.findByCodeAndTenantName(code, tenantName) ?: return false
         voucherRepository.delete(existing)
         return true
     }
@@ -276,9 +281,9 @@ class VoucherService(
         voucher.assets = assets
     }
 
-    private fun attachCategories(voucher: Voucher, categoryIds: List<UUID>?) {
+    private fun attachCategories(voucher: Voucher, categoryIds: List<UUID>?, tenantName: String) {
         if (categoryIds == null) return
-        val categories = categoryRepository.findAllById(categoryIds)
+        val categories = categoryRepository.findAllByIdInAndTenantName(categoryIds, tenantName)
         if (categories.size != categoryIds.size) {
             throw org.springframework.web.server.ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
@@ -289,21 +294,32 @@ class VoucherService(
         voucher.categories.addAll(categories)
     }
 
-    private fun applyValidationRules(voucher: Voucher, customer: Customer?, customerRedemptions: Int, totalRedemptions: Int, request: VoucherValidationRequest): ValidationResponse? {
+    private fun applyValidationRules(
+        tenantName: String,
+        voucher: Voucher,
+        customer: Customer?,
+        customerRedemptions: Int,
+        totalRedemptions: Int,
+        request: VoucherValidationRequest
+    ): ValidationResponse? {
         val assignments = mutableListOf<org.wahlen.voucherengine.persistence.model.validation.ValidationRulesAssignment>()
-        voucher.id?.let { id -> assignments += validationRulesAssignmentRepository.findByRelatedObjectIdAndRelatedObjectType(id.toString(), "voucher") }
-        voucher.code?.let { code -> assignments += validationRulesAssignmentRepository.findByRelatedObjectIdAndRelatedObjectType(code, "voucher") }
+        voucher.id?.let { id ->
+            assignments += validationRulesAssignmentRepository.findByRelatedObjectIdAndRelatedObjectTypeAndTenantName(id.toString(), "voucher", tenantName)
+        }
+        voucher.code?.let { code ->
+            assignments += validationRulesAssignmentRepository.findByRelatedObjectIdAndRelatedObjectTypeAndTenantName(code, "voucher", tenantName)
+        }
         if (assignments.isEmpty()) return null
 
         assignments.forEach { assignment ->
-            val rule = assignment.rule ?: assignment.ruleId?.let { validationRuleRepository.findById(it).orElse(null) }
+            val rule = assignment.rule ?: assignment.ruleId?.let { validationRuleRepository.findByIdAndTenantName(it, tenantName) }
                 ?: return@forEach
             val rulesMap = rule.rules ?: return@forEach
             val ok = RuleEvaluator.evaluate(
                 rulesMap,
                 RuleEvaluator.Context(
                     voucher = voucher,
-                    customer = customer ?: customerService.ensureCustomer(request.customer),
+                    customer = customer ?: customerService.ensureCustomer(tenantName, request.customer),
                     request = request,
                     totalRedemptions = totalRedemptions,
                     perCustomerRedemptions = customerRedemptions
@@ -406,12 +422,19 @@ class VoucherService(
         return null
     }
 
-    private fun ensureLimits(perCustomerLimit: Int?, quantityLimit: Int?, totalRedemptions: Int, voucher: Voucher, customer: Customer?): ValidationResponse? {
+    private fun ensureLimits(
+        tenantName: String,
+        perCustomerLimit: Int?,
+        quantityLimit: Int?,
+        totalRedemptions: Int,
+        voucher: Voucher,
+        customer: Customer?
+    ): ValidationResponse? {
         if (quantityLimit != null && totalRedemptions >= quantityLimit) {
             return ValidationResponse(false, error = ErrorResponse("redemption_limit_exceeded", "This voucher reached its total redemption limit."))
         }
         if (perCustomerLimit != null && customer?.id != null && voucher.id != null) {
-            val customerRedemptions = redemptionRepository.countByVoucherIdAndCustomerId(voucher.id!!, customer.id!!).toInt()
+            val customerRedemptions = redemptionRepository.countByVoucherIdAndCustomerIdAndTenantName(voucher.id!!, customer.id!!, tenantName).toInt()
             if (customerRedemptions >= perCustomerLimit) {
                 val message = if (perCustomerLimit == 1) {
                     "This voucher can be redeemed only once per customer."
@@ -425,8 +448,13 @@ class VoucherService(
     }
 
     @Transactional
-    fun rollbackRedemption(redemptionId: UUID, request: org.wahlen.voucherengine.api.dto.request.RollbackRequest): org.wahlen.voucherengine.persistence.model.redemption.RedemptionRollback? {
-        val redemption = redemptionRepository.findById(redemptionId).orElse(null) ?: return null
+    fun rollbackRedemption(
+        tenantName: String,
+        redemptionId: UUID,
+        request: org.wahlen.voucherengine.api.dto.request.RollbackRequest
+    ): org.wahlen.voucherengine.persistence.model.redemption.RedemptionRollback? {
+        val tenant = tenantService.requireTenant(tenantName)
+        val redemption = redemptionRepository.findByIdAndTenantName(redemptionId, tenantName) ?: return null
         val rollback = org.wahlen.voucherengine.persistence.model.redemption.RedemptionRollback(
             date = Instant.now(clock),
             trackingId = request.reason,
@@ -439,6 +467,7 @@ class VoucherService(
             customer = redemption.customer,
             customerId = redemption.customer?.id
         )
+        rollback.tenant = tenant
         return redemptionRollbackRepository.save(rollback)
     }
 

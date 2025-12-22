@@ -1,5 +1,6 @@
 package org.wahlen.voucherengine.persistence
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -12,6 +13,8 @@ import org.wahlen.voucherengine.api.dto.common.DiscountType
 import org.wahlen.voucherengine.api.dto.common.RedemptionDto
 import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 import org.wahlen.voucherengine.persistence.model.voucher.VoucherType
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import org.wahlen.voucherengine.persistence.repository.VoucherRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -22,7 +25,15 @@ import kotlin.test.assertNull
 @Transactional
 class VoucherRepositoryTest @Autowired constructor(
     private val voucherRepository: VoucherRepository,
+    private val tenantRepository: TenantRepository
 ) {
+    private val tenantName = "test-tenant"
+    private lateinit var tenant: Tenant
+
+    @BeforeEach
+    fun setUp() {
+        tenant = tenantRepository.findByName(tenantName) ?: tenantRepository.save(Tenant(name = tenantName))
+    }
 
     @Test
     fun `voucher CRUD persists discount and redemption DTO`() {
@@ -36,6 +47,7 @@ class VoucherRepositoryTest @Autowired constructor(
             metadata = mapOf("audience" to "vip"),
         ).apply {
             redemptionJson = RedemptionDto(quantity = 2, redeemed_quantity = 0)
+            tenant = this@VoucherRepositoryTest.tenant
         }
 
         val saved = voucherRepository.save(voucher)

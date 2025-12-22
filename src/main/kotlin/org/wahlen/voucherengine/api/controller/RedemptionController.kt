@@ -10,13 +10,13 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.RollbackRequest
 import org.wahlen.voucherengine.api.dto.response.RedemptionDetailResponse
 import org.wahlen.voucherengine.api.dto.response.RedemptionRollbackResponse
-import org.wahlen.voucherengine.persistence.repository.RedemptionRepository
-import org.wahlen.voucherengine.persistence.repository.RedemptionRollbackRepository
+import org.wahlen.voucherengine.service.RedemptionService
 import org.wahlen.voucherengine.service.VoucherService
 import java.util.UUID
 
@@ -24,8 +24,7 @@ import java.util.UUID
 @RequestMapping("/v1")
 @Validated
 class RedemptionController(
-    private val redemptionRepository: RedemptionRepository,
-    private val redemptionRollbackRepository: RedemptionRollbackRepository,
+    private val redemptionService: RedemptionService,
     private val voucherService: VoucherService
 ) {
 
@@ -35,9 +34,9 @@ class RedemptionController(
         responses = [ApiResponse(responseCode = "200", description = "List of redemptions")]
     )
     @GetMapping("/redemptions")
-    fun listRedemptions(): ResponseEntity<List<RedemptionDetailResponse>> =
+    fun listRedemptions(@RequestHeader("tenant") tenant: String): ResponseEntity<List<RedemptionDetailResponse>> =
         ResponseEntity.ok(
-            redemptionRepository.findAll().map {
+            redemptionService.list(tenant).map {
                 RedemptionDetailResponse(
                     id = it.id,
                     voucher_code = it.voucher?.code,
@@ -58,8 +57,11 @@ class RedemptionController(
         ]
     )
     @GetMapping("/redemptions/{id}")
-    fun getRedemption(@PathVariable id: UUID): ResponseEntity<RedemptionDetailResponse> {
-        val redemption = redemptionRepository.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
+    fun getRedemption(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID
+    ): ResponseEntity<RedemptionDetailResponse> {
+        val redemption = redemptionService.get(tenant, id) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(
             RedemptionDetailResponse(
                 id = redemption.id,
@@ -82,10 +84,11 @@ class RedemptionController(
     )
     @PostMapping("/redemptions/{id}/rollback")
     fun rollback(
+        @RequestHeader("tenant") tenant: String,
         @PathVariable id: UUID,
         @Valid @RequestBody body: RollbackRequest
     ): ResponseEntity<RedemptionRollbackResponse> {
-        val rollback = voucherService.rollbackRedemption(id, body) ?: return ResponseEntity.notFound().build()
+        val rollback = voucherService.rollbackRedemption(tenant, id, body) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.status(HttpStatus.CREATED).body(
             RedemptionRollbackResponse(
                 id = rollback.id,

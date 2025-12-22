@@ -1,5 +1,6 @@
 package org.wahlen.voucherengine.persistence
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -7,7 +8,9 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.persistence.model.customer.Customer
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.CustomerRepository
+import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -16,8 +19,16 @@ import kotlin.test.assertNull
 @ActiveProfiles("test")
 @Transactional
 class CustomerRepositoryTest @Autowired constructor(
-    private val customerRepository: CustomerRepository
+    private val customerRepository: CustomerRepository,
+    private val tenantRepository: TenantRepository
 ) {
+    private val tenantName = "test-tenant"
+    private lateinit var tenant: Tenant
+
+    @BeforeEach
+    fun setUp() {
+        tenant = tenantRepository.findByName(tenantName) ?: tenantRepository.save(Tenant(name = tenantName))
+    }
 
     @Test
     fun `customer CRUD persists metadata`() {
@@ -25,7 +36,7 @@ class CustomerRepositoryTest @Autowired constructor(
             sourceId = "customer-123",
             name = "Alice Example",
             metadata = mapOf("tier" to "gold")
-        )
+        ).apply { this.tenant = tenant }
 
         val saved = customerRepository.save(customer)
         val fetched = customerRepository.findByIdOrNull(saved.id!!)

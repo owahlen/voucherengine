@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleAssignmentRequest
@@ -37,8 +38,11 @@ class ValidationRuleController(
         ]
     )
     @PostMapping("/validation-rules")
-    fun createValidationRule(@Valid @RequestBody body: ValidationRuleCreateRequest): ResponseEntity<ValidationRuleResponse> =
-        ResponseEntity.status(HttpStatus.CREATED).body(validationRuleService.createRule(body))
+    fun createValidationRule(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody body: ValidationRuleCreateRequest
+    ): ResponseEntity<ValidationRuleResponse> =
+        ResponseEntity.status(HttpStatus.CREATED).body(validationRuleService.createRule(tenant, body))
 
     @Operation(
         summary = "Assign a validation rule to an object (voucher or campaign)",
@@ -51,11 +55,12 @@ class ValidationRuleController(
     )
     @PostMapping("/validation-rules/{id}/assignments")
     fun assignRule(
+        @RequestHeader("tenant") tenant: String,
         @PathVariable id: String,
         @Valid @RequestBody body: ValidationRuleAssignmentRequest
     ): ResponseEntity<ValidationRuleAssignmentResponse> =
         ResponseEntity.status(HttpStatus.OK)
-            .body(validationRuleService.assignRule(UUID.fromString(id), body))
+            .body(validationRuleService.assignRule(tenant, UUID.fromString(id), body))
 
     @Operation(
         summary = "Get validation rule",
@@ -66,8 +71,11 @@ class ValidationRuleController(
         ]
     )
     @GetMapping("/validation-rules/{id}")
-    fun getRule(@PathVariable id: String): ResponseEntity<ValidationRuleResponse> {
-        val rule = validationRuleService.getRule(UUID.fromString(id)) ?: return ResponseEntity.notFound().build()
+    fun getRule(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: String
+    ): ResponseEntity<ValidationRuleResponse> {
+        val rule = validationRuleService.getRule(tenant, UUID.fromString(id)) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(rule)
     }
 
@@ -79,7 +87,8 @@ class ValidationRuleController(
         ]
     )
     @GetMapping("/validation-rules")
-    fun listRules(): ResponseEntity<List<ValidationRuleResponse>> = ResponseEntity.ok(validationRuleService.listRules())
+    fun listRules(@RequestHeader("tenant") tenant: String): ResponseEntity<List<ValidationRuleResponse>> =
+        ResponseEntity.ok(validationRuleService.listRules(tenant))
 
     @Operation(
         summary = "List validation rule assignments",
@@ -89,8 +98,8 @@ class ValidationRuleController(
         ]
     )
     @GetMapping("/validation-rules-assignments")
-    fun listAssignments(): ResponseEntity<List<ValidationRuleAssignmentResponse>> =
-        ResponseEntity.ok(validationRuleService.listAssignments())
+    fun listAssignments(@RequestHeader("tenant") tenant: String): ResponseEntity<List<ValidationRuleAssignmentResponse>> =
+        ResponseEntity.ok(validationRuleService.listAssignments(tenant))
 
     @Operation(
         summary = "List assignments for a rule",
@@ -101,11 +110,14 @@ class ValidationRuleController(
         ]
     )
     @GetMapping("/validation-rules/{id}/assignments")
-    fun listAssignmentsForRule(@PathVariable id: String): ResponseEntity<List<ValidationRuleAssignmentResponse>> {
-        if (validationRuleService.getRule(UUID.fromString(id)) == null) {
+    fun listAssignmentsForRule(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: String
+    ): ResponseEntity<List<ValidationRuleAssignmentResponse>> {
+        if (validationRuleService.getRule(tenant, UUID.fromString(id)) == null) {
             return ResponseEntity.notFound().build()
         }
-        return ResponseEntity.ok(validationRuleService.listAssignmentsForRule(UUID.fromString(id)))
+        return ResponseEntity.ok(validationRuleService.listAssignmentsForRule(tenant, UUID.fromString(id)))
     }
 
     @Operation(
@@ -117,8 +129,11 @@ class ValidationRuleController(
         ]
     )
     @DeleteMapping("/validation-rules-assignments/{assignmentId}")
-    fun deleteAssignment(@PathVariable assignmentId: String): ResponseEntity<Void> {
-        val deleted = validationRuleService.deleteAssignment(UUID.fromString(assignmentId))
+    fun deleteAssignment(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable assignmentId: String
+    ): ResponseEntity<Void> {
+        val deleted = validationRuleService.deleteAssignment(tenant, UUID.fromString(assignmentId))
         return if (deleted) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
     }
 
@@ -131,9 +146,12 @@ class ValidationRuleController(
         ]
     )
     @DeleteMapping("/validation-rules/{id}")
-    fun deleteRule(@PathVariable id: String): ResponseEntity<Void> {
-        val existing = validationRuleService.getRule(UUID.fromString(id)) ?: return ResponseEntity.notFound().build()
-        validationRuleService.deleteRule(existing.id!!)
+    fun deleteRule(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: String
+    ): ResponseEntity<Void> {
+        val existing = validationRuleService.getRule(tenant, UUID.fromString(id)) ?: return ResponseEntity.notFound().build()
+        validationRuleService.deleteRule(tenant, existing.id!!)
         return ResponseEntity.noContent().build()
     }
 
@@ -147,10 +165,11 @@ class ValidationRuleController(
     )
     @PutMapping("/validation-rules/{id}")
     fun updateRule(
+        @RequestHeader("tenant") tenant: String,
         @PathVariable id: String,
         @Valid @RequestBody body: ValidationRuleCreateRequest
     ): ResponseEntity<Any> {
-        val updated = validationRuleService.updateRule(UUID.fromString(id), body) ?: return ResponseEntity.notFound().build()
+        val updated = validationRuleService.updateRule(tenant, UUID.fromString(id), body) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(updated)
     }
 }

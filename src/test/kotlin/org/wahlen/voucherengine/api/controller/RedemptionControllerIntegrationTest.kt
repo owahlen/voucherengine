@@ -1,5 +1,6 @@
 package org.wahlen.voucherengine.api.controller
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -12,6 +13,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import tools.jackson.databind.ObjectMapper
 import java.util.UUID
 
@@ -20,9 +23,18 @@ import java.util.UUID
 @ActiveProfiles("test")
 @Transactional
 class RedemptionControllerIntegrationTest @Autowired constructor(
-    private val mockMvc: MockMvc
+    private val mockMvc: MockMvc,
+    private val tenantRepository: TenantRepository
 ) {
     private val objectMapper = ObjectMapper()
+    private val tenantName = "test-tenant"
+
+    @BeforeEach
+    fun setUp() {
+        if (tenantRepository.findByName(tenantName) == null) {
+            tenantRepository.save(Tenant(name = tenantName))
+        }
+    }
 
     @Test
     fun `list get and rollback redemptions`() {
@@ -32,6 +44,7 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
         """.trimIndent()
         mockMvc.perform(
             post("/v1/vouchers")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
         ).andExpect(status().isCreated)
@@ -41,6 +54,7 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
         """.trimIndent()
         val redemptionResult = mockMvc.perform(
             post("/v1/redemptions")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(redemptionBody)
         ).andExpect(status().isOk)
@@ -48,11 +62,11 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
 
         val redemptionId = objectMapper.readTree(redemptionResult.response.contentAsString).get("redemptionId").asText()
 
-        mockMvc.perform(get("/v1/redemptions"))
+        mockMvc.perform(get("/v1/redemptions").header("tenant", tenantName))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].id").exists())
 
-        mockMvc.perform(get("/v1/redemptions/$redemptionId"))
+        mockMvc.perform(get("/v1/redemptions/$redemptionId").header("tenant", tenantName))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.id").value(redemptionId))
 
@@ -62,6 +76,7 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
 
         mockMvc.perform(
             post("/v1/redemptions/$redemptionId/rollback")
+                .header("tenant", tenantName)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(rollbackBody)
         ).andExpect(status().isCreated)

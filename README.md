@@ -12,6 +12,13 @@ Voucherengine models a focused, API-first subset of Voucherify. It covers the vo
 - DTOs mirror Voucherify payloads for vouchers (discount/gift/loyalty), redemptions, validation rules, and customers; requests are validated with `@Valid`.
 - Controllers expose Voucherify-like verbs: voucher CRUD/validate/redeem, customer CRUD, validation-rule CRUD/assignment, and stack validations.
 - Services enforce the documented behavior: redemption quantity/per-customer limits (e.g., multi-use 1000 cap), holder checks, and metadata preservation. Responses include voucher assets, redemption counters, and timestamps per the docs.
+- All endpoints require a `tenant` header; tenants are managed via `/v1/tenants`.
+
+## Tenant CRUD
+- `POST /v1/tenants` with `{ "name": "acme" }` creates a tenant.
+- `GET /v1/tenants` lists tenants, `GET /v1/tenants/{id}` fetches one.
+- `PUT /v1/tenants/{id}` updates name, `DELETE /v1/tenants/{id}` removes it.
+- All tenant endpoints require the `tenant` header (used to scope requests).
 
 ## Run locally
 1. Start PostgreSQL: `docker compose -f docker/docker-compose.yml up -d`
