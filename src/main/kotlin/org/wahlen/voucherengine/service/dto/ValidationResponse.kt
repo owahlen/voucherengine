@@ -1,9 +1,20 @@
 package org.wahlen.voucherengine.service.dto
 
+import org.wahlen.voucherengine.api.dto.common.DiscountDto
+import org.wahlen.voucherengine.api.dto.response.VoucherResponse
+
 data class ValidationResponse(
     val valid: Boolean,
-    val voucherCode: String? = null,
+    val voucher: VoucherResponse? = null,
+    val discount: DiscountDto? = null,
+    val order: ValidationOrderSummary? = null,
     val error: ErrorResponse? = null
+)
+
+data class ValidationOrderSummary(
+    val amount: Long? = null,
+    val discount_amount: Long? = null,
+    val total_amount: Long? = null
 )
 
 data class ErrorResponse(

@@ -4,6 +4,8 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleAssignmentRequest
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleCreateRequest
+import org.wahlen.voucherengine.api.dto.response.ValidationRuleAssignmentResponse
+import org.wahlen.voucherengine.api.dto.response.ValidationRuleResponse
 import org.wahlen.voucherengine.persistence.model.validation.ValidationRule
 import org.wahlen.voucherengine.persistence.model.validation.ValidationRulesAssignment
 import org.wahlen.voucherengine.persistence.repository.ValidationRuleRepository
@@ -17,31 +19,35 @@ class ValidationRuleService(
 ) {
 
     @Transactional
-    fun createRule(request: ValidationRuleCreateRequest): ValidationRule {
+    fun createRule(request: ValidationRuleCreateRequest): ValidationRuleResponse {
+        val rulesPayload = assembleRulesPayload(request)
         val rule = ValidationRule(
             name = request.name,
-            type = null, // left null; mapping to enum not specified in request
-            contextType = null,
-            rules = request.conditions
+            type = request.type?.let { org.wahlen.voucherengine.persistence.model.validation.ValidationRuleType.fromString(it) },
+            contextType = request.context_type?.let { org.wahlen.voucherengine.persistence.model.validation.ValidationRuleContextType.fromString(it) },
+            rules = rulesPayload,
+            bundleRules = request.bundle_rules,
+            applicableTo = request.applicable_to,
+            error = request.error
         )
-        return validationRuleRepository.save(rule)
+        return toResponse(validationRuleRepository.save(rule))
     }
 
     @Transactional
-    fun assignRule(ruleId: UUID, request: ValidationRuleAssignmentRequest): ValidationRulesAssignment {
+    fun assignRule(ruleId: UUID, request: ValidationRuleAssignmentRequest): ValidationRuleAssignmentResponse {
         val assignment = ValidationRulesAssignment(
             ruleId = ruleId,
             relatedObjectId = request.id,
             relatedObjectType = request.`object`
         )
-        return validationRulesAssignmentRepository.save(assignment)
+        return toAssignmentResponse(validationRulesAssignmentRepository.save(assignment))
     }
 
     @Transactional(readOnly = true)
-    fun getRule(id: UUID): ValidationRule? = validationRuleRepository.findById(id).orElse(null)
+    fun getRule(id: UUID): ValidationRuleResponse? = validationRuleRepository.findById(id).orElse(null)?.let(::toResponse)
 
     @Transactional(readOnly = true)
-    fun listRules(): List<ValidationRule> = validationRuleRepository.findAll()
+    fun listRules(): List<ValidationRuleResponse> = validationRuleRepository.findAll().map(::toResponse)
 
     @Transactional
     fun deleteRule(id: UUID) {
@@ -49,11 +55,50 @@ class ValidationRuleService(
     }
 
     @Transactional
-    fun updateRule(id: UUID, request: ValidationRuleCreateRequest): ValidationRule? {
+    fun updateRule(id: UUID, request: ValidationRuleCreateRequest): ValidationRuleResponse? {
         val existing = validationRuleRepository.findById(id).orElse(null) ?: return null
+        val rulesPayload = assembleRulesPayload(request)
         existing.name = request.name ?: existing.name
-        existing.type = existing.type
-        existing.rules = request.conditions ?: existing.rules
-        return validationRuleRepository.save(existing)
+        existing.type = request.type?.let { org.wahlen.voucherengine.persistence.model.validation.ValidationRuleType.fromString(it) } ?: existing.type
+        existing.contextType = request.context_type?.let { org.wahlen.voucherengine.persistence.model.validation.ValidationRuleContextType.fromString(it) } ?: existing.contextType
+        existing.rules = rulesPayload ?: existing.rules
+        existing.bundleRules = request.bundle_rules ?: existing.bundleRules
+        existing.applicableTo = request.applicable_to ?: existing.applicableTo
+        existing.error = request.error ?: existing.error
+        return toResponse(validationRuleRepository.save(existing))
+    }
+
+    private fun toResponse(rule: ValidationRule): ValidationRuleResponse = ValidationRuleResponse(
+        id = rule.id,
+        name = rule.name,
+        type = rule.type?.name?.lowercase(),
+        context_type = rule.contextType?.value,
+        conditions = rule.rules,
+        logic = (rule.rules?.get("logic") as? String),
+        bundle_rules = rule.bundleRules,
+        applicable_to = rule.applicableTo,
+        error = rule.error,
+        created_at = rule.createdAt
+    )
+    private fun toAssignmentResponse(assignment: ValidationRulesAssignment): ValidationRuleAssignmentResponse =
+        ValidationRuleAssignmentResponse(
+            id = assignment.id,
+            rule_id = assignment.ruleId,
+            related_object_id = assignment.relatedObjectId,
+            related_object_type = assignment.relatedObjectType,
+            validation_status = assignment.validationStatus,
+            validation_omitted_rules = assignment.omittedRules,
+            created_at = assignment.createdAt,
+            updated_at = assignment.updatedAt
+        )
+
+    private fun assembleRulesPayload(request: ValidationRuleCreateRequest): Map<String, Any?>? {
+        val base = request.rules ?: request.conditions ?: return null
+        val mutable = LinkedHashMap<String, Any?>()
+        mutable.putAll(base)
+        if (!mutable.containsKey("logic") && request.logic != null) {
+            mutable["logic"] = request.logic
+        }
+        return mutable
     }
 }

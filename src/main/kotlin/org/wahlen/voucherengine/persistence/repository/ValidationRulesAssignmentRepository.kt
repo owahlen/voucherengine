@@ -5,3 +5,6 @@ import org.wahlen.voucherengine.persistence.model.validation.ValidationRulesAssi
 import java.util.UUID
 
 interface ValidationRulesAssignmentRepository : JpaRepository<ValidationRulesAssignment, UUID>
+{
+    fun findByRelatedObjectIdAndRelatedObjectType(relatedObjectId: String, relatedObjectType: String): List<ValidationRulesAssignment>
+}

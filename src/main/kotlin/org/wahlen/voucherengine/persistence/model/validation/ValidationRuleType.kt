@@ -10,4 +10,9 @@ enum class ValidationRuleType(val value: String) {
     BASIC("basic"),
     ADVANCED("advanced"),
     COMPLEX("complex");
+
+    companion object {
+        fun fromString(value: String): ValidationRuleType? =
+            entries.firstOrNull { it.value.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true) }
+    }
 }

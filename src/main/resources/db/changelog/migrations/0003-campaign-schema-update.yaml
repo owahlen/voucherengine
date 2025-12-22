@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0003-campaign-schema-update
+      author: codex
+      changes:
+        - dropColumn:
+            columnName: auto_join
+            tableName: campaign
+        - dropColumn:
+            columnName: join_once
+            tableName: campaign
+        - renameColumn:
+            tableName: campaign
+            oldColumnName: campaign_type
+            newColumnName: type
+            columnDataType: VARCHAR(255)
+        - addColumn:
+            tableName: campaign
+            columns:
+              - column:
+                  name: code_pattern
+                  type: VARCHAR(255)
+              - column:
+                  name: start_date
+                  type: DATETIME
+              - column:
+                  name: expiration_date
+                  type: DATETIME
+              - column:
+                  name: metadata
+                  type: jsonb
+              - column:
+                  name: active
+                  type: BOOLEAN

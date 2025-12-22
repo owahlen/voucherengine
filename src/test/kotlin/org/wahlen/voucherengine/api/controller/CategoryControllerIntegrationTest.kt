@@ -1,0 +1,64 @@
+package org.wahlen.voucherengine.api.controller
+
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.http.MediaType
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.annotation.Transactional
+import tools.jackson.databind.ObjectMapper
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Transactional
+class CategoryControllerIntegrationTest @Autowired constructor(
+    private val mockMvc: MockMvc
+) {
+    private val objectMapper = ObjectMapper()
+
+    @Test
+    fun `category CRUD endpoints`() {
+        val createResult = mockMvc.perform(
+            post("/v1/categories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"name":"electronics"}""")
+        )
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.name").value("electronics"))
+            .andReturn()
+
+        val created = objectMapper.readTree(createResult.response.contentAsString)
+        val id = created.get("id").asText()
+
+        mockMvc.perform(get("/v1/categories/$id"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.name").value("electronics"))
+
+        mockMvc.perform(get("/v1/categories"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[0].name").value("electronics"))
+
+        mockMvc.perform(
+            put("/v1/categories/$id")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"name":"updated"}""")
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.name").value("updated"))
+
+        mockMvc.perform(delete("/v1/categories/$id"))
+            .andExpect(status().isNoContent)
+
+        mockMvc.perform(get("/v1/categories/$id"))
+            .andExpect(status().isNotFound)
+    }
+}

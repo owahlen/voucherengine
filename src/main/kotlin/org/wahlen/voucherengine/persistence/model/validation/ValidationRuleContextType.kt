@@ -31,20 +31,6 @@ enum class ValidationRuleContextType(val value: String) {
     CAMPAIGN_GIFT_VOUCHERS("campaign.gift_vouchers"),
     CAMPAIGN_GIFT_VOUCHERS_GIFT_APPLY_TO_ORDER("campaign.gift_vouchers.gift.apply_to_order"),
     CAMPAIGN_GIFT_VOUCHERS_GIFT_APPLY_TO_ITEMS("campaign.gift_vouchers.gift.apply_to_items"),
-    CAMPAIGN_REFERRAL_PROGRAM("campaign.referral_program"),
-    CAMPAIGN_REFERRAL_PROGRAM_DISCOUNT_APPLY_TO_ORDER("campaign.referral_program.discount.apply_to_order"),
-    CAMPAIGN_REFERRAL_PROGRAM_DISCOUNT_APPLY_TO_ITEMS("campaign.referral_program.discount.apply_to_items"),
-    CAMPAIGN_REFERRAL_PROGRAM_DISCOUNT_APPLY_TO_ITEMS_PROPORTIONALLY(
-        "campaign.referral_program.discount.apply_to_items_proportionally"
-    ),
-    CAMPAIGN_REFERRAL_PROGRAM_DISCOUNT_APPLY_TO_ITEMS_PROPORTIONALLY_BY_QUANTITY(
-        "campaign.referral_program.discount.apply_to_items_proportionally_by_quantity"
-    ),
-    CAMPAIGN_REFERRAL_PROGRAM_DISCOUNT_APPLY_TO_ITEMS_BY_QUANTITY(
-        "campaign.referral_program.discount.apply_to_items_by_quantity"
-    ),
-    CAMPAIGN_REFERRAL_PROGRAM_DISCOUNT_FIXED_APPLY_TO_ITEMS("campaign.referral_program.discount.fixed.apply_to_items"),
-    CAMPAIGN_REFERRAL_PROGRAM_DISCOUNT_PERCENT_APPLY_TO_ITEMS("campaign.referral_program.discount.percent.apply_to_items"),
     CAMPAIGN_PROMOTION("campaign.promotion"),
     CAMPAIGN_PROMOTION_DISCOUNT_APPLY_TO_ORDER("campaign.promotion.discount.apply_to_order"),
     CAMPAIGN_PROMOTION_DISCOUNT_APPLY_TO_ITEMS("campaign.promotion.discount.apply_to_items"),
@@ -83,4 +69,9 @@ enum class ValidationRuleContextType(val value: String) {
     DISTRIBUTION_ORDER_UPDATED("distribution.order.updated"),
     REWARD_ASSIGNMENT_PAY_WITH_POINTS("reward_assignment.pay_with_points"),
     GLOBAL("global");
+
+    companion object {
+        fun fromString(value: String): ValidationRuleContextType? =
+            entries.firstOrNull { it.value.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true) }
+    }
 }

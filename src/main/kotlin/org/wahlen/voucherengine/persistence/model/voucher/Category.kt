@@ -22,8 +22,6 @@ class Category(
 
     @Column
     var name: String? = null,
-    @Column
-    var hierarchy: Int? = null,
 ) : AuditablePersistable() {
     @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
     var vouchers: MutableSet<Voucher> = mutableSetOf()

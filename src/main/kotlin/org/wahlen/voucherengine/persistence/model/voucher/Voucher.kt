@@ -120,12 +120,6 @@ class Voucher(
     var assets: VoucherAssetsEmbeddable? = null,
 
     /**
-     * Flag indicating whether this voucher is a referral code; true for campaign type REFERRAL_PROGRAM.
-     */
-    @Column
-    var isReferralCode: Boolean? = null,
-
-    /**
      * Unique customer identifier of the redeemable holder. It equals to the customer assigned by Voucherify.
      * Example: cust_eWgXlBBiY6THFRJwX45Iakv4
      */

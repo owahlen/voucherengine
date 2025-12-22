@@ -28,6 +28,8 @@ data class VoucherResponse(
     val loyalty_card: LoyaltyCardDto? = null,
     @field:Schema(description = "Redemption limits and counters")
     val redemption: RedemptionDto? = null,
+    @field:Schema(description = "Additional voucher info/description", example = "Black Friday special")
+    val additional_info: String? = null,
     @field:Schema(description = "UTC start date of validity", example = "2025-01-01T00:00:00Z")
     val start_date: Instant? = null,
     @field:Schema(description = "UTC expiration date", example = "2025-12-31T23:59:59Z")
@@ -36,6 +38,10 @@ data class VoucherResponse(
     val metadata: Map<String, Any?>? = null,
     @field:Schema(description = "Voucher assets such as QR/barcode")
     val assets: VoucherAssetsDto? = null,
+    @field:Schema(description = "Assigned categories")
+    val categories: List<CategoryResponse>? = null,
+    @field:Schema(description = "Campaign identifier")
+    val campaign_id: UUID? = null,
     @field:Schema(description = "Creation timestamp", example = "2025-01-01T12:00:00Z")
     val created_at: Instant? = null,
     @field:Schema(description = "Update timestamp", example = "2025-01-02T12:00:00Z")

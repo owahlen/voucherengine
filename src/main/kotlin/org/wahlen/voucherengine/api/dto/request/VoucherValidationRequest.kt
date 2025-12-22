@@ -9,5 +9,7 @@ data class VoucherValidationRequest(
     var customer: CustomerReferenceDto? = null,
     @field:Valid
     @field:Schema(description = "Order context used during validation")
-    var order: OrderRequest? = null
+    var order: OrderRequest? = null,
+    @field:Schema(description = "Categories related to this validation", example = """["11111111-1111-1111-1111-111111111111"]""")
+    var categories: List<java.util.UUID>? = null
 )

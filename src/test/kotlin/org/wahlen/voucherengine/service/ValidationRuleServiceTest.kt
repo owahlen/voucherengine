@@ -47,7 +47,7 @@ class ValidationRuleServiceTest @Autowired constructor(
             ValidationRuleAssignmentRequest(`object` = "voucher", id = "TEST")
         )
         assertNotNull(assignment.id)
-        assertEquals("voucher", assignment.relatedObjectType)
-        assertEquals("TEST", assignment.relatedObjectId)
+        assertEquals("voucher", assignment.related_object_type)
+        assertEquals("TEST", assignment.related_object_id)
     }
 }

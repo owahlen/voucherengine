@@ -37,6 +37,8 @@ class ValidationRuleControllerIntegrationTest @Autowired constructor(
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         ).andExpect(status().isCreated)
+            .andExpect(jsonPath("$.object").value("validation_rule"))
+            .andExpect(jsonPath("$.conditions.redemptions.per_customer").value(1))
             .andReturn()
 
         val createdId = objectMapper.readTree(createResult.response.contentAsString).get("id").asText()
@@ -50,7 +52,9 @@ class ValidationRuleControllerIntegrationTest @Autowired constructor(
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(assignBody)
         ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.id").exists())
+            .andExpect(jsonPath("$.object").value("validation_rules_assignment"))
+            .andExpect(jsonPath("$.related_object_id").value("TEST"))
+            .andExpect(jsonPath("$.rule_id").value(createdId))
 
         val updateBody = """
             { "name": "Updated Rule", "type": "redemptions", "conditions": { "redemptions": { "per_customer": 2 } } }

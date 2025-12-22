@@ -1,6 +1,8 @@
 package org.wahlen.voucherengine.persistence.model.campaign
 
 import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
 import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 
@@ -26,8 +28,8 @@ class Campaign(
 
     /** Type of campaign. */
     @Enumerated(EnumType.STRING)
-    @Column
-    var campaignType: CampaignType? = null,
+    @Column(name = "type")
+    var type: CampaignType? = null,
 
     /** Defines whether the campaign can be updated with new vouchers after campaign creation
      *  or if the campaign consists of generic (standalone) vouchers. */
@@ -35,15 +37,22 @@ class Campaign(
     @Column
     var mode: CampaignMode? = null,
 
-    /** Indicates whether customers will be able to auto-join a loyalty campaign if any earning rule is fulfilled. */
-    @Column
-    var autoJoin: Boolean? = null,
+    /** Code pattern to be used when issuing vouchers under this campaign. */
+    @Column(name = "code_pattern")
+    var codePattern: String? = null,
 
-    /** If this value is set to true, customers will be able to join the campaign only once.
-     *  It is always false for generic (standalone) vouchers campaigns and it cannot be changed in them.
-     *  It is always true for loyalty campaigns and it cannot be changed in them. */
+    @Column(name = "start_date")
+    var startDate: java.time.Instant? = null,
+
+    @Column(name = "expiration_date")
+    var expirationDate: java.time.Instant? = null,
+
+    @Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    var metadata: Map<String, Any?>? = null,
+
     @Column
-    var joinOnce: Boolean? = null,
+    var active: Boolean? = true,
 
 ) : AuditablePersistable() {
     @OneToMany(mappedBy = "campaign", cascade = [CascadeType.ALL], orphanRemoval = false, fetch = FetchType.LAZY)

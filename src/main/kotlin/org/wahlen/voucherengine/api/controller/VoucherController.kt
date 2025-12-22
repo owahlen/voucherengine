@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.MediaType
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import org.wahlen.voucherengine.api.dto.request.*
@@ -16,12 +17,16 @@ import org.wahlen.voucherengine.service.dto.ErrorResponse
 import org.wahlen.voucherengine.service.dto.RedemptionResponse
 import org.wahlen.voucherengine.service.dto.ValidationResponse
 import org.wahlen.voucherengine.service.dto.ValidationStackResponse
+import org.wahlen.voucherengine.service.QrCodeService
+import org.wahlen.voucherengine.service.BarcodeService
 
 @RestController
 @RequestMapping("/v1")
 @Validated
 class VoucherController(
-    private val voucherService: VoucherService
+    private val voucherService: VoucherService,
+    private val qrCodeService: QrCodeService,
+    private val barcodeService: BarcodeService
 ) {
 
     @Operation(
@@ -46,6 +51,7 @@ class VoucherController(
                 gift = voucher.giftJson,
                 loyalty_card = voucher.loyaltyCardJson,
                 redemption = voucher.redemptionJson,
+                additional_info = voucher.additionalInfo,
                 start_date = voucher.startDate,
                 expiration_date = voucher.expirationDate,
                 metadata = voucher.metadata,
@@ -53,6 +59,15 @@ class VoucherController(
                     qr = AssetDto(id = voucher.assets?.qrId, url = voucher.assets?.qrUrl),
                     barcode = AssetDto(id = voucher.assets?.barcodeId, url = voucher.assets?.barcodeUrl)
                 ),
+                categories = voucher.categories.map {
+                    org.wahlen.voucherengine.api.dto.response.CategoryResponse(
+                        it.id,
+                        it.name,
+                        it.createdAt,
+                        it.updatedAt
+                    )
+                },
+                campaign_id = voucher.campaign?.id,
                 created_at = voucher.createdAt,
                 updated_at = voucher.updatedAt
             )
@@ -100,6 +115,7 @@ class VoucherController(
                 gift = voucher.giftJson,
                 loyalty_card = voucher.loyaltyCardJson,
                 redemption = voucher.redemptionJson,
+                additional_info = voucher.additionalInfo,
                 start_date = voucher.startDate,
                 expiration_date = voucher.expirationDate,
                 metadata = voucher.metadata,
@@ -107,6 +123,15 @@ class VoucherController(
                     qr = AssetDto(id = voucher.assets?.qrId, url = voucher.assets?.qrUrl),
                     barcode = AssetDto(id = voucher.assets?.barcodeId, url = voucher.assets?.barcodeUrl)
                 ),
+                categories = voucher.categories.map {
+                    org.wahlen.voucherengine.api.dto.response.CategoryResponse(
+                        it.id,
+                        it.name,
+                        it.createdAt,
+                        it.updatedAt
+                    )
+                },
+                campaign_id = voucher.campaign?.id,
                 created_at = voucher.createdAt,
                 updated_at = voucher.updatedAt
             )
@@ -138,6 +163,7 @@ class VoucherController(
                 gift = updated.giftJson,
                 loyalty_card = updated.loyaltyCardJson,
                 redemption = updated.redemptionJson,
+                additional_info = updated.additionalInfo,
                 start_date = updated.startDate,
                 expiration_date = updated.expirationDate,
                 metadata = updated.metadata,
@@ -145,6 +171,15 @@ class VoucherController(
                     qr = AssetDto(id = updated.assets?.qrId, url = updated.assets?.qrUrl),
                     barcode = AssetDto(id = updated.assets?.barcodeId, url = updated.assets?.barcodeUrl)
                 ),
+                categories = updated.categories.map {
+                    org.wahlen.voucherengine.api.dto.response.CategoryResponse(
+                        it.id,
+                        it.name,
+                        it.createdAt,
+                        it.updatedAt
+                    )
+                },
+                campaign_id = updated.campaign?.id,
                 created_at = updated.createdAt,
                 updated_at = updated.updatedAt
             )
@@ -192,5 +227,35 @@ class VoucherController(
         val result = voucherService.redeem(body)
         val status = if (result.error == null) HttpStatus.OK else HttpStatus.BAD_REQUEST
         return ResponseEntity.status(status).body(result)
+    }
+
+    @Operation(
+        summary = "Get voucher QR code",
+        operationId = "getVoucherQr",
+        responses = [
+            ApiResponse(responseCode = "200", description = "QR code PNG for voucher"),
+            ApiResponse(responseCode = "404", description = "Voucher not found")
+        ]
+    )
+    @GetMapping("/vouchers/{code}/qr", produces = [MediaType.IMAGE_PNG_VALUE])
+    fun getVoucherQr(@PathVariable code: String): ResponseEntity<ByteArray> {
+        val voucher = voucherService.getByCode(code) ?: return ResponseEntity.notFound().build()
+        val png = qrCodeService.generatePng(voucher.code ?: code)
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png)
+    }
+
+    @Operation(
+        summary = "Get voucher barcode (Code 128)",
+        operationId = "getVoucherBarcode",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Barcode PNG for voucher"),
+            ApiResponse(responseCode = "404", description = "Voucher not found")
+        ]
+    )
+    @GetMapping("/vouchers/{code}/barcode", produces = [MediaType.IMAGE_PNG_VALUE])
+    fun getVoucherBarcode(@PathVariable code: String): ResponseEntity<ByteArray> {
+        val voucher = voucherService.getByCode(code) ?: return ResponseEntity.notFound().build()
+        val png = barcodeService.generateCode128Png(voucher.code ?: code)
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png)
     }
 }

@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleAssignmentRequest
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleCreateRequest
+import org.wahlen.voucherengine.api.dto.response.ValidationRuleAssignmentResponse
+import org.wahlen.voucherengine.api.dto.response.ValidationRuleResponse
 import org.wahlen.voucherengine.service.ValidationRuleService
 import java.util.UUID
 
@@ -35,7 +37,7 @@ class ValidationRuleController(
         ]
     )
     @PostMapping("/validation-rules")
-    fun createValidationRule(@Valid @RequestBody body: ValidationRuleCreateRequest): ResponseEntity<Any> =
+    fun createValidationRule(@Valid @RequestBody body: ValidationRuleCreateRequest): ResponseEntity<ValidationRuleResponse> =
         ResponseEntity.status(HttpStatus.CREATED).body(validationRuleService.createRule(body))
 
     @Operation(
@@ -51,7 +53,7 @@ class ValidationRuleController(
     fun assignRule(
         @PathVariable id: String,
         @Valid @RequestBody body: ValidationRuleAssignmentRequest
-    ): ResponseEntity<Any> =
+    ): ResponseEntity<ValidationRuleAssignmentResponse> =
         ResponseEntity.status(HttpStatus.OK)
             .body(validationRuleService.assignRule(UUID.fromString(id), body))
 
@@ -64,7 +66,7 @@ class ValidationRuleController(
         ]
     )
     @GetMapping("/validation-rules/{id}")
-    fun getRule(@PathVariable id: String): ResponseEntity<Any> {
+    fun getRule(@PathVariable id: String): ResponseEntity<ValidationRuleResponse> {
         val rule = validationRuleService.getRule(UUID.fromString(id)) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(rule)
     }
@@ -77,7 +79,7 @@ class ValidationRuleController(
         ]
     )
     @GetMapping("/validation-rules")
-    fun listRules(): ResponseEntity<Any> = ResponseEntity.ok(validationRuleService.listRules())
+    fun listRules(): ResponseEntity<List<ValidationRuleResponse>> = ResponseEntity.ok(validationRuleService.listRules())
 
     @Operation(
         summary = "Delete validation rule",

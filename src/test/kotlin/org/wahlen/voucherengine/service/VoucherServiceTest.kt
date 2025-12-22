@@ -13,7 +13,9 @@ import org.wahlen.voucherengine.api.dto.request.RedeemableDto
 import org.wahlen.voucherengine.api.dto.request.RedemptionRequest
 import org.wahlen.voucherengine.api.dto.request.VoucherCreateRequest
 import org.wahlen.voucherengine.api.dto.request.VoucherValidationRequest
-import org.wahlen.voucherengine.persistence.repository.VoucherRepository
+import org.wahlen.voucherengine.api.dto.request.ValidationRuleAssignmentRequest
+import org.wahlen.voucherengine.api.dto.request.ValidationRuleCreateRequest
+import org.wahlen.voucherengine.persistence.repository.CategoryRepository
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -25,7 +27,8 @@ import kotlin.test.assertTrue
 @Transactional
 class VoucherServiceTest @Autowired constructor(
     private val voucherService: VoucherService,
-    private val voucherRepository: VoucherRepository
+    private val categoryRepository: CategoryRepository,
+    private val validationRuleService: ValidationRuleService
 ) {
 
     @Test
@@ -101,5 +104,165 @@ class VoucherServiceTest @Autowired constructor(
         assertFalse(validationBob.valid)
         assertEquals("voucher_not_assigned", validationBob.error?.code)
         assertTrue(validationAlice.valid)
+    }
+
+    @Test
+    fun `validation rule assignments enforce redemption limits`() {
+        val voucher = voucherService.createVoucher(
+            VoucherCreateRequest(
+                code = "RULE-BLOCKED",
+                type = "DISCOUNT_VOUCHER",
+                discount = DiscountDto(type = DiscountType.PERCENT, percent_off = 10)
+            )
+        )
+
+        val rule = validationRuleService.createRule(
+            ValidationRuleCreateRequest(
+                name = "Stop redemptions",
+                type = "basic",
+                context_type = "voucher.discount_voucher",
+                rules = mapOf("redemptions" to mapOf("quantity" to 0)),
+                error = mapOf("code" to "rule_blocked", "message" to "Rule prevents redemption")
+            )
+        )
+        validationRuleService.assignRule(
+            rule.id!!,
+            ValidationRuleAssignmentRequest(
+                `object` = "voucher",
+                id = voucher.code
+            )
+        )
+
+        val validation = voucherService.validateVoucher(
+            voucher.code!!,
+            VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
+        )
+
+        assertFalse(validation.valid)
+        assertEquals("rule_blocked", validation.error?.code)
+    }
+
+    @Test
+    fun `voucher validation respects complex rule logic`() {
+        val voucher = voucherService.createVoucher(
+            VoucherCreateRequest(
+                code = "RULE-LOGIC",
+                type = "DISCOUNT_VOUCHER",
+                discount = DiscountDto(type = DiscountType.PERCENT, percent_off = 10)
+            )
+        )
+
+        val rule = validationRuleService.createRule(
+            ValidationRuleCreateRequest(
+                name = "amount and sku",
+                type = "expression",
+                rules = mapOf(
+                    "rules" to mapOf(
+                        "1" to mapOf(
+                            "name" to "order.amount",
+                            "conditions" to mapOf("\$gte" to 1000)
+                        ),
+                        "2" to mapOf(
+                            "name" to "order.items.sku",
+                            "conditions" to mapOf("\$contains_any" to listOf("SKU_A"))
+                        )
+                    ),
+                    "logic" to "1 and 2"
+                )
+            )
+        )
+        validationRuleService.assignRule(
+            rule.id!!,
+            ValidationRuleAssignmentRequest(`object` = "voucher", id = voucher.code)
+        )
+
+        val invalid = voucherService.validateVoucher(
+            voucher.code!!,
+            VoucherValidationRequest(
+                customer = CustomerReferenceDto(source_id = "cust"),
+                order = org.wahlen.voucherengine.api.dto.request.OrderRequest(
+                    id = "order-1",
+                    amount = 500,
+                    items = listOf(org.wahlen.voucherengine.api.dto.request.OrderItemDto(product_id = "SKU_A", quantity = 1, price = 500))
+                )
+            )
+        )
+        assertFalse(invalid.valid)
+
+        val valid = voucherService.validateVoucher(
+            voucher.code!!,
+            VoucherValidationRequest(
+                customer = CustomerReferenceDto(source_id = "cust"),
+                order = org.wahlen.voucherengine.api.dto.request.OrderRequest(
+                    id = "order-2",
+                    amount = 1500,
+                    items = listOf(org.wahlen.voucherengine.api.dto.request.OrderItemDto(product_id = "SKU_A", quantity = 1, price = 1500))
+                )
+            )
+        )
+        assertTrue(valid.valid)
+    }
+
+    @Test
+    fun `category mismatch invalidates voucher`() {
+        val category = categoryRepository.save(org.wahlen.voucherengine.persistence.model.voucher.Category(name = "electronics"))
+        voucherService.createVoucher(
+            VoucherCreateRequest(
+                code = "CAT-ONLY",
+                type = "DISCOUNT_VOUCHER",
+                discount = DiscountDto(type = DiscountType.PERCENT, percent_off = 10),
+                redemption = RedemptionDto(quantity = 1),
+                category_ids = listOf(category.id!!)
+            )
+        )
+
+        val invalid = voucherService.validateVoucher(
+            "CAT-ONLY",
+            VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"), categories = listOf(UUID.randomUUID()))
+        )
+        assertFalse(invalid.valid)
+        assertEquals("voucher_category_mismatch", invalid.error?.code)
+
+        val missingCategoryContext = voucherService.validateVoucher(
+            "CAT-ONLY",
+            VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"))
+        )
+        assertFalse(missingCategoryContext.valid)
+        assertEquals("voucher_category_mismatch", missingCategoryContext.error?.code)
+
+        val valid = voucherService.validateVoucher(
+            "CAT-ONLY",
+            VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"), categories = listOf(category.id!!))
+        )
+        assertTrue(valid.valid)
+    }
+
+    @Test
+    fun `unit discount applies per item quantity`() {
+        voucherService.createVoucher(
+            VoucherCreateRequest(
+                code = "UNIT-10",
+                type = "DISCOUNT_VOUCHER",
+                discount = DiscountDto(type = DiscountType.UNIT, amount_off = 100),
+                redemption = RedemptionDto(quantity = 10)
+            )
+        )
+
+        val response = voucherService.validateVoucher(
+            "UNIT-10",
+            VoucherValidationRequest(
+                order = org.wahlen.voucherengine.api.dto.request.OrderRequest(
+                    id = "order-1",
+                    amount = 1000,
+                    items = listOf(
+                        org.wahlen.voucherengine.api.dto.request.OrderItemDto(product_id = "sku-1", quantity = 2, price = 500)
+                    )
+                )
+            )
+        )
+
+        assertTrue(response.valid)
+        assertEquals(200, response.order?.discount_amount)
+        assertEquals(800, response.order?.total_amount)
     }
 }

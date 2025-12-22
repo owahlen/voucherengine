@@ -16,7 +16,9 @@ data class OrderRequest(
     var currency: String? = null,
     @field:Valid
     @field:Schema(description = "Line items for the order")
-    var items: List<OrderItemDto>? = null
+    var items: List<OrderItemDto>? = null,
+    @field:Schema(description = "Arbitrary order metadata for validation rules", example = """{"channel":"mobile","is_test":false}""")
+    var metadata: Map<String, Any?>? = null
 )
 
 data class OrderItemDto(

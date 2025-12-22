@@ -5,5 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 @Schema(description = "Supported discount types")
 enum class DiscountType {
     PERCENT,
-    AMOUNT
+    AMOUNT,
+    UNIT,
+    FIXED
 }

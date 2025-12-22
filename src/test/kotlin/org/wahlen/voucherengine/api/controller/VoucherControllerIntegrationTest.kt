@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
+import kotlin.test.assertEquals
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -114,5 +115,27 @@ class VoucherControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.validations[0].valid").value(true))
             .andExpect(jsonPath("$.validations[1].valid").value(false))
             .andExpect(jsonPath("$.validations[1].error.code").value("voucher_not_found"))
+    }
+
+    @Test
+    fun `qr and barcode endpoints return images`() {
+        val code = "QR-${UUID.randomUUID().toString().take(6)}"
+        val createBody = """
+            { "code": "$code", "type": "DISCOUNT_VOUCHER", "discount": { "type": "PERCENT", "percent_off": 5 }, "redemption": { "quantity": 1 } }
+        """.trimIndent()
+
+        mockMvc.perform(
+            post("/v1/vouchers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createBody)
+        ).andExpect(status().isCreated)
+
+        mockMvc.perform(get("/v1/vouchers/$code/qr"))
+            .andExpect(status().isOk)
+            .andExpect { result -> assertEquals("image/png", result.response.contentType) }
+
+        mockMvc.perform(get("/v1/vouchers/$code/barcode"))
+            .andExpect(status().isOk)
+            .andExpect { result -> assertEquals("image/png", result.response.contentType) }
     }
 }

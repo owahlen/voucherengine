@@ -34,4 +34,10 @@ data class VoucherCreateRequest(
     var metadata: Map<String, Any?>? = null,
     @field:Schema(description = "Explicit active flag", example = "true")
     var active: Boolean? = null,
+    @field:Schema(description = "Additional voucher info/description", example = "Black Friday special")
+    var additional_info: String? = null,
+    @field:Schema(description = "Category IDs to assign to the voucher", example = """["11111111-1111-1111-1111-111111111111"]""")
+    var category_ids: List<java.util.UUID>? = null,
+    @field:Schema(description = "Campaign ID to link the voucher to", example = "22222222-2222-2222-2222-222222222222")
+    var campaign_id: java.util.UUID? = null
 )
