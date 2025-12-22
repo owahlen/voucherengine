@@ -51,7 +51,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .content(productBody)
         ).andExpect(status().isCreated)
             .andReturn()
-        val productId = objectMapper.readTree(productResult.response.contentAsString).get("id").asText()
+        val productId = objectMapper.readTree(productResult.response.contentAsString).get("id").asString()
 
         val skuBody = """
             { "sku": "Premium Monthly", "source_id": "sku-premium-monthly", "price": 10000, "currency": "USD" }
@@ -64,7 +64,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .content(skuBody)
         ).andExpect(status().isCreated)
             .andReturn()
-        val skuId = objectMapper.readTree(skuResult.response.contentAsString).get("id").asText()
+        val skuId = objectMapper.readTree(skuResult.response.contentAsString).get("id").asString()
 
         val collectionBody = """
             {
@@ -85,7 +85,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
         ).andExpect(status().isCreated)
             .andExpect(jsonPath("$.name").value("Featured"))
             .andReturn()
-        val collectionId = objectMapper.readTree(createCollection.response.contentAsString).get("id").asText()
+        val collectionId = objectMapper.readTree(createCollection.response.contentAsString).get("id").asString()
 
         mockMvc.perform(
             get("/v1/product-collections")
@@ -162,7 +162,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
         ).andExpect(status().isCreated)
             .andExpect(jsonPath("$.type").value("AUTO_UPDATE"))
             .andReturn()
-        val collectionId = objectMapper.readTree(createCollection.response.contentAsString).get("id").asText()
+        val collectionId = objectMapper.readTree(createCollection.response.contentAsString).get("id").asString()
 
         mockMvc.perform(
             get("/v1/product-collections/$collectionId/products")
@@ -185,7 +185,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .content(productBody)
         ).andExpect(status().isCreated)
             .andReturn()
-        val productId = objectMapper.readTree(productResult.response.contentAsString).get("id").asText()
+        val productId = objectMapper.readTree(productResult.response.contentAsString).get("id").asString()
 
         val skuBody = """
             { "sku": "Base Gold", "source_id": "sku-base-gold", "price": 8000, "currency": "USD", "metadata": { "tier": "gold" } }
@@ -218,7 +218,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .content(collectionBody)
         ).andExpect(status().isCreated)
             .andReturn()
-        val collectionId = objectMapper.readTree(createCollection.response.contentAsString).get("id").asText()
+        val collectionId = objectMapper.readTree(createCollection.response.contentAsString).get("id").asString()
 
         mockMvc.perform(
             get("/v1/product-collections/$collectionId/products")

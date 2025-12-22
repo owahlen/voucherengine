@@ -53,7 +53,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
         ).andExpect(status().isCreated)
             .andReturn()
 
-        val campaignId = UUID.fromString(objectMapper.readTree(campaignResult.response.contentAsString).get("id").asText())
+        val campaignId = UUID.fromString(objectMapper.readTree(campaignResult.response.contentAsString).get("id").asString())
         val voucherCode = "PUB-${UUID.randomUUID().toString().take(6)}"
         val voucherBody = """
             { "code": "$voucherCode", "type": "DISCOUNT_VOUCHER", "discount": { "type": "PERCENT", "percent_off": 10 }, "redemption": { "quantity": 1 } }
@@ -83,8 +83,8 @@ class PublicationControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.voucher.code").value(voucherCode))
             .andReturn()
 
-        val firstPublicationId = objectMapper.readTree(firstPublication.response.contentAsString).get("id").asText()
-        val customerId = objectMapper.readTree(firstPublication.response.contentAsString).get("customer_id").asText()
+        val firstPublicationId = objectMapper.readTree(firstPublication.response.contentAsString).get("id").asString()
+        val customerId = objectMapper.readTree(firstPublication.response.contentAsString).get("customer_id").asString()
 
         mockMvc.perform(
             post("/v1/publications?join_once=true")
@@ -181,7 +181,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
         ).andExpect(status().isCreated)
             .andReturn()
 
-        val campaignId = UUID.fromString(objectMapper.readTree(campaignResult.response.contentAsString).get("id").asText())
+        val campaignId = UUID.fromString(objectMapper.readTree(campaignResult.response.contentAsString).get("id").asString())
         val voucherBody = { code: String ->
             """
             { "code": "$code", "type": "DISCOUNT_VOUCHER", "discount": { "type": "PERCENT", "percent_off": 15 }, "redemption": { "quantity": 1 } }

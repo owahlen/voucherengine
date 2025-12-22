@@ -52,7 +52,7 @@ class CategoryControllerIntegrationTest @Autowired constructor(
             .andReturn()
 
         val created = objectMapper.readTree(createResult.response.contentAsString)
-        val id = created.get("id").asText()
+        val id = created.get("id").asString()
 
         mockMvc.perform(get("/v1/categories/$id").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)

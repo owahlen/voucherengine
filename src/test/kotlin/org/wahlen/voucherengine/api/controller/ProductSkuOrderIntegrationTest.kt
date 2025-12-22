@@ -54,7 +54,7 @@ class ProductSkuOrderIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.name").value("Premium Plan"))
             .andReturn()
 
-        val productId = objectMapper.readTree(createProduct.response.contentAsString).get("id").asText()
+        val productId = objectMapper.readTree(createProduct.response.contentAsString).get("id").asString()
 
         mockMvc.perform(get("/v1/products").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
@@ -135,7 +135,7 @@ class ProductSkuOrderIntegrationTest @Autowired constructor(
                     .header("tenant", tenantName)
                     .with(tenantJwt(tenantName))
             ).andReturn().response.contentAsString
-        ).get("id").asText()
+        ).get("id").asString()
 
         mockMvc.perform(
             post("/v1/products/$productId/skus")

@@ -166,7 +166,7 @@ class CascadeDeleteIntegrationTest @Autowired constructor(
                 .content(body)
         ).andExpect(status().isOk)
             .andReturn()
-        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asText()).also {
+        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asString()).also {
             assertEquals(it, customerRepository.findBySourceIdAndTenantName(sourceId, tenantName)?.id)
         }
     }
@@ -183,7 +183,7 @@ class CascadeDeleteIntegrationTest @Autowired constructor(
                 .content(body)
         ).andExpect(status().isCreated)
             .andReturn()
-        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asText())
+        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asString())
     }
 
     private fun createCampaign(name: String): UUID {
@@ -198,7 +198,7 @@ class CascadeDeleteIntegrationTest @Autowired constructor(
                 .content(body)
         ).andExpect(status().isCreated)
             .andReturn()
-        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asText())
+        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asString())
     }
 
     private fun createCampaignVoucher(campaignId: UUID, code: String): UUID {
@@ -213,7 +213,7 @@ class CascadeDeleteIntegrationTest @Autowired constructor(
                 .content(body)
         ).andExpect(status().isCreated)
             .andReturn()
-        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asText())
+        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asString())
     }
 
     private fun createPublicationForVoucher(code: String, customerSource: String): UUID {
@@ -228,7 +228,7 @@ class CascadeDeleteIntegrationTest @Autowired constructor(
                 .content(body)
         ).andExpect(status().isOk)
             .andReturn()
-        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asText())
+        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asString())
     }
 
     private fun createPublicationForCampaign(campaignName: String, customerSource: String): UUID {
@@ -243,7 +243,7 @@ class CascadeDeleteIntegrationTest @Autowired constructor(
                 .content(body)
         ).andExpect(status().isOk)
             .andReturn()
-        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asText())
+        return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asString())
     }
 
     private fun createRedemption(code: String, customerSource: String) {
@@ -271,7 +271,7 @@ class CascadeDeleteIntegrationTest @Autowired constructor(
                 .content(ruleBody)
         ).andExpect(status().isCreated)
             .andReturn()
-        val ruleId = objectMapper.readTree(ruleResponse.response.contentAsString).get("id").asText()
+        val ruleId = objectMapper.readTree(ruleResponse.response.contentAsString).get("id").asString()
 
         val assignmentBody = """
             { "object": "$objectType", "id": "$objectId" }

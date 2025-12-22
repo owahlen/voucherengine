@@ -56,7 +56,7 @@ class ValidationRuleControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.conditions.redemptions.per_customer").value(1))
             .andReturn()
 
-        val createdId = objectMapper.readTree(createResult.response.contentAsString).get("id").asText()
+        val createdId = objectMapper.readTree(createResult.response.contentAsString).get("id").asString()
 
         val assignBody = """
             { "object": "voucher", "id": "TEST" }
@@ -106,7 +106,7 @@ class ValidationRuleControllerIntegrationTest @Autowired constructor(
         val assignmentId = objectMapper.readTree(
             mockMvc.perform(get("/v1/validation-rules-assignments").header("tenant", tenantName).with(tenantJwt(tenantName)))
                 .andReturn().response.contentAsString
-        ).first().get("id").asText()
+        ).first().get("id").asString()
 
         mockMvc.perform(delete("/v1/validation-rules-assignments/$assignmentId").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isNoContent)

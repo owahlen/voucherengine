@@ -212,7 +212,7 @@ class QualificationControllerIntegrationTest @Autowired constructor(
         ).andExpect(status().isCreated)
             .andReturn()
 
-        val ruleId = objectMapper.readTree(ruleResult.response.contentAsString).get("id").asText()
+        val ruleId = objectMapper.readTree(ruleResult.response.contentAsString).get("id").asString()
         val assignBody = """
             { "object": "voucher", "id": "QUAL-RULE" }
         """.trimIndent()
@@ -276,7 +276,7 @@ class QualificationControllerIntegrationTest @Autowired constructor(
         ).andExpect(status().isCreated)
             .andReturn()
 
-        val ruleId = objectMapper.readTree(ruleResult.response.contentAsString).get("id").asText()
+        val ruleId = objectMapper.readTree(ruleResult.response.contentAsString).get("id").asString()
         val assignBody = """
             { "object": "voucher", "id": "QUAL-AUDIENCE" }
         """.trimIndent()

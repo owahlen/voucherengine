@@ -152,6 +152,7 @@ class OrderService(
                     subtotal_amount = it.subtotalAmount,
                     price = it.price,
                     product = it.productSnapshot?.let { snapshot ->
+                        @Suppress("UNCHECKED_CAST")
                         org.wahlen.voucherengine.api.dto.response.OrderItemProductResponse(
                             id = snapshot["id"] as? String,
                             source_id = snapshot["source_id"] as? String,
@@ -161,6 +162,7 @@ class OrderService(
                         )
                     },
                     sku = it.skuSnapshot?.let { snapshot ->
+                        @Suppress("UNCHECKED_CAST")
                         org.wahlen.voucherengine.api.dto.response.OrderItemSkuResponse(
                             id = snapshot["id"] as? String,
                             source_id = snapshot["source_id"] as? String,

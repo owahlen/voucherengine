@@ -42,7 +42,7 @@ class TenantControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.name").value("acme"))
             .andReturn()
 
-        val tenantId = objectMapper.readTree(createResult.response.contentAsString).get("id").asText()
+        val tenantId = objectMapper.readTree(createResult.response.contentAsString).get("id").asString()
 
         mockMvc.perform(get("/v1/tenants/$tenantId").header("tenant", tenantHeader).with(tenantJwt(tenantHeader, "manager")))
             .andExpect(status().isOk)

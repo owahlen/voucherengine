@@ -63,7 +63,7 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
         ).andExpect(status().isOk)
             .andReturn()
 
-        val redemptionId = objectMapper.readTree(redemptionResult.response.contentAsString).get("redemptionId").asText()
+        val redemptionId = objectMapper.readTree(redemptionResult.response.contentAsString).get("redemptionId").asString()
 
         mockMvc.perform(get("/v1/redemptions").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)

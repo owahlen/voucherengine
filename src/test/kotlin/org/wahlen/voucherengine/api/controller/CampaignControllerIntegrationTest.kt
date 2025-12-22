@@ -49,7 +49,7 @@ class CampaignControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.object").value("campaign"))
             .andReturn()
 
-        val campaignId = objectMapper.readTree(createResult.response.contentAsString).get("id").asText()
+        val campaignId = objectMapper.readTree(createResult.response.contentAsString).get("id").asString()
 
         mockMvc.perform(get("/v1/campaigns/$campaignId").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
