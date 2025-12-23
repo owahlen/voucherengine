@@ -1,6 +1,13 @@
+# Production logging
+logging:
+  level:
+    io.awspring.cloud.sqs: WARN
+    org.wahlen.voucherengine: INFO
+    root: INFO
+
 spring:
   profiles:
-    default: development
+    default: dev
   application:
     name: voucherengine
   datasource:
@@ -23,3 +30,28 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8180/realms/voucherengine
+  # AWS Configuration - LocalStack for local development
+  # For production, remove 'endpoint' and 'credentials' to use real AWS with IAM roles
+  cloud:
+    aws:
+      region:
+        static: eu-central-1
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID:test}
+        secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+      sqs:
+        enabled: true
+        endpoint: ${AWS_ENDPOINT_URL:http://localhost:4566}  # Remove for production (uses real AWS)
+        listener:
+          auto-startup: true
+          max-concurrent-messages: 10
+          max-messages-per-poll: 10
+      sns:
+        endpoint: ${AWS_ENDPOINT_URL:http://localhost:4566}  # Remove for production (uses real AWS)
+
+# AWS SQS Queue names (must match docker/tofu-localstack/main.tf)
+aws:
+  sqs:
+    queues:
+      async-jobs: voucher-async-jobs
+      async-jobs-dlq: voucher-async-jobs-dlq

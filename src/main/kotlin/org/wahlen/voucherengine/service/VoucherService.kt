@@ -25,10 +25,10 @@ import org.wahlen.voucherengine.persistence.repository.CategoryRepository
 import org.wahlen.voucherengine.persistence.repository.VoucherRepository
 import org.wahlen.voucherengine.persistence.repository.ValidationRulesAssignmentRepository
 import org.wahlen.voucherengine.persistence.repository.ValidationRuleRepository
-import org.wahlen.voucherengine.service.dto.ErrorResponse
-import org.wahlen.voucherengine.service.dto.RedemptionResponse
-import org.wahlen.voucherengine.service.dto.ValidationOrderSummary
-import org.wahlen.voucherengine.service.dto.ValidationResponse
+import org.wahlen.voucherengine.api.dto.response.ErrorResponse
+import org.wahlen.voucherengine.api.dto.response.RedemptionResponse
+import org.wahlen.voucherengine.api.dto.response.ValidationOrderSummary
+import org.wahlen.voucherengine.api.dto.response.ValidationResponse
 import org.wahlen.voucherengine.service.rules.RuleEvaluator
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
@@ -133,6 +133,11 @@ class VoucherService(
 
     @Transactional(readOnly = true)
     fun getByCode(tenantName: String, code: String): Voucher? = voucherRepository.findByCodeAndTenantName(code, tenantName)
+
+    @Transactional
+    fun save(voucher: Voucher): Voucher {
+        return voucherRepository.save(voucher)
+    }
 
     @Transactional(readOnly = true)
     fun validateVoucher(tenantName: String, code: String, request: VoucherValidationRequest): ValidationResponse =

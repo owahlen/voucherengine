@@ -3,10 +3,8 @@ package org.wahlen.voucherengine.api.controller
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
@@ -16,13 +14,13 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.tenantJwt
+import org.wahlen.voucherengine.config.IntegrationTest
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import tools.jackson.databind.ObjectMapper
 
-@SpringBootTest
+@IntegrationTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
 @Transactional
 class ProductCollectionControllerIntegrationTest @Autowired constructor(
     private val mockMvc: MockMvc,

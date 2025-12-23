@@ -3,10 +3,9 @@ package org.wahlen.voucherengine.persistence
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.repository.findByIdOrNull
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.config.IntegrationTest
 import org.wahlen.voucherengine.persistence.model.customer.Customer
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.CustomerRepository
@@ -15,8 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-@SpringBootTest
-@ActiveProfiles("test")
+@IntegrationTest
 @Transactional
 class CustomerRepositoryTest @Autowired constructor(
     private val customerRepository: CustomerRepository,

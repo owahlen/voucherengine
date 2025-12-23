@@ -1,6 +1,63 @@
 databaseChangeLog:
   - changeSet:
-      id: 1766408502759-1
+      id: 1766492011894-1
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_asyncjob
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  constraints:
+                    nullable: false
+                  name: type
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: status
+                  type: VARCHAR(255)
+              - column:
+                  name: progress
+                  type: INT
+              - column:
+                  name: total
+                  type: INT
+              - column:
+                  name: parameters
+                  type: jsonb
+              - column:
+                  name: result
+                  type: jsonb
+              - column:
+                  name: error_message
+                  type: TEXT
+              - column:
+                  name: started_at
+                  type: DATETIME
+              - column:
+                  name: completed_at
+                  type: DATETIME
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: async_job
+  - changeSet:
+      id: 1766492011894-2
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -55,7 +112,7 @@ databaseChangeLog:
                   type: UUID
             tableName: campaign
   - changeSet:
-      id: 1766408502759-2
+      id: 1766492011894-3
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -84,7 +141,7 @@ databaseChangeLog:
                   type: UUID
             tableName: category
   - changeSet:
-      id: 1766408502759-3
+      id: 1766492011894-4
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -149,7 +206,125 @@ databaseChangeLog:
                   type: TEXT
             tableName: customer
   - changeSet:
-      id: 1766408502759-4
+      id: 1766492011894-5
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_export
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  constraints:
+                    nullable: false
+                  name: exported_object
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: status
+                  type: VARCHAR(255)
+              - column:
+                  name: channel
+                  type: VARCHAR(255)
+              - column:
+                  name: result_url
+                  type: VARCHAR(255)
+              - column:
+                  name: result_token
+                  type: VARCHAR(255)
+              - column:
+                  name: user_id
+                  type: VARCHAR(255)
+              - column:
+                  name: parameters
+                  type: jsonb
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: export
+  - changeSet:
+      id: 1766492011894-6
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_order_item
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  name: product_id
+                  type: VARCHAR(255)
+              - column:
+                  name: sku_id
+                  type: VARCHAR(255)
+              - column:
+                  name: source_id
+                  type: VARCHAR(255)
+              - column:
+                  name: related_object
+                  type: VARCHAR(255)
+              - column:
+                  name: quantity
+                  type: INT
+              - column:
+                  name: amount
+                  type: BIGINT
+              - column:
+                  name: discount_amount
+                  type: BIGINT
+              - column:
+                  name: subtotal_amount
+                  type: BIGINT
+              - column:
+                  name: price
+                  type: BIGINT
+              - column:
+                  name: product_snapshot
+                  type: jsonb
+              - column:
+                  name: sku_snapshot
+                  type: jsonb
+              - column:
+                  name: metadata
+                  type: jsonb
+              - column:
+                  constraints:
+                    nullable: false
+                  name: order_id
+                  type: UUID
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: order_item
+  - changeSet:
+      id: 1766492011894-7
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -196,7 +371,201 @@ databaseChangeLog:
                   type: UUID
             tableName: orders
   - changeSet:
-      id: 1766408502759-5
+      id: 1766492011894-8
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_product
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  name: source_id
+                  type: VARCHAR(255)
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+              - column:
+                  name: price
+                  type: BIGINT
+              - column:
+                  name: attributes
+                  type: jsonb
+              - column:
+                  name: metadata
+                  type: jsonb
+              - column:
+                  name: image_url
+                  type: TEXT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: product
+  - changeSet:
+      id: 1766492011894-9
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_product_collection
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+              - column:
+                  name: type
+                  type: VARCHAR(255)
+              - column:
+                  name: filter
+                  type: jsonb
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: product_collection
+  - changeSet:
+      id: 1766492011894-10
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_product_collection_item
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  name: item_id
+                  type: VARCHAR(255)
+              - column:
+                  name: product_id
+                  type: VARCHAR(255)
+              - column:
+                  name: object_type
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: product_collection_id
+                  type: UUID
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: product_collection_item
+  - changeSet:
+      id: 1766492011894-11
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_publication
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  name: voucher_id
+                  type: UUID
+              - column:
+                  name: customer_id
+                  type: UUID
+              - column:
+                  name: campaign_id
+                  type: UUID
+              - column:
+                  name: result
+                  type: VARCHAR(255)
+              - column:
+                  name: failure_code
+                  type: VARCHAR(255)
+              - column:
+                  name: failure_message
+                  type: TEXT
+              - column:
+                  name: source_id
+                  type: VARCHAR(255)
+              - column:
+                  name: channel
+                  type: VARCHAR(255)
+              - column:
+                  name: metadata
+                  type: jsonb
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: publication
+  - changeSet:
+      id: 1766492011894-12
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_publication_vouchers
+                  name: publication_id
+                  type: UUID
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_publication_vouchers
+                  name: voucher_id
+                  type: UUID
+            tableName: publication_vouchers
+  - changeSet:
+      id: 1766492011894-13
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -252,7 +621,7 @@ databaseChangeLog:
                   type: UUID
             tableName: redemption
   - changeSet:
-      id: 1766408502759-6
+      id: 1766492011894-14
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -296,7 +665,103 @@ databaseChangeLog:
                   type: UUID
             tableName: redemption_rollback
   - changeSet:
-      id: 1766408502759-7
+      id: 1766492011894-15
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_sessionlock
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  constraints:
+                    nullable: false
+                  name: session_key
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: redeemable_id
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: redeemable_object
+                  type: VARCHAR(255)
+              - column:
+                  name: expires_at
+                  type: DATETIME
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: session_lock
+  - changeSet:
+      id: 1766492011894-16
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_sku
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  name: source_id
+                  type: VARCHAR(255)
+              - column:
+                  name: sku
+                  type: VARCHAR(255)
+              - column:
+                  name: price
+                  type: BIGINT
+              - column:
+                  name: currency
+                  type: VARCHAR(255)
+              - column:
+                  name: attributes
+                  type: jsonb
+              - column:
+                  name: metadata
+                  type: jsonb
+              - column:
+                  name: image_url
+                  type: TEXT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: product_id
+                  type: UUID
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: sku
+  - changeSet:
+      id: 1766492011894-17
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -322,7 +787,7 @@ databaseChangeLog:
                   type: VARCHAR(255)
             tableName: tenant
   - changeSet:
-      id: 1766408502759-8
+      id: 1766492011894-18
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -375,7 +840,7 @@ databaseChangeLog:
                   type: UUID
             tableName: validation_rule
   - changeSet:
-      id: 1766408502759-9
+      id: 1766492011894-19
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -413,7 +878,7 @@ databaseChangeLog:
                   type: UUID
             tableName: validation_rules_assignment
   - changeSet:
-      id: 1766408502759-10
+      id: 1766492011894-20
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -429,7 +894,7 @@ databaseChangeLog:
                   type: VARCHAR(255)
             tableName: validation_rules_assignment_omitted_rules
   - changeSet:
-      id: 1766408502759-11
+      id: 1766492011894-21
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -515,7 +980,7 @@ databaseChangeLog:
                   type: TEXT
             tableName: voucher
   - changeSet:
-      id: 1766408502759-12
+      id: 1766492011894-22
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -537,7 +1002,100 @@ databaseChangeLog:
                   type: UUID
             tableName: voucher_categories
   - changeSet:
-      id: 1766408502759-13
+      id: 1766492011894-23
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_vouchertransaction
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  name: source_id
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: voucher_id
+                  type: UUID
+              - column:
+                  name: campaign_id
+                  type: UUID
+              - column:
+                  constraints:
+                    nullable: false
+                  name: type
+                  type: VARCHAR(255)
+              - column:
+                  name: source
+                  type: VARCHAR(255)
+              - column:
+                  name: reason
+                  type: TEXT
+              - column:
+                  name: amount
+                  type: BIGINT
+              - column:
+                  name: balance_after
+                  type: BIGINT
+              - column:
+                  name: redemption_id
+                  type: UUID
+              - column:
+                  name: rollback_id
+                  type: UUID
+              - column:
+                  name: related_transaction_id
+                  type: UUID
+              - column:
+                  name: details
+                  type: jsonb
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: voucher_transaction
+  - changeSet:
+      id: 1766492011894-24
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addUniqueConstraint:
+            columnNames: tenant_id, name
+            constraintName: uc_product_collection_tenant_name
+            tableName: product_collection
+  - changeSet:
+      id: 1766492011894-25
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addUniqueConstraint:
+            columnNames: tenant_id, source_id
+            constraintName: uc_product_tenant_source
+            tableName: product
+  - changeSet:
+      id: 1766492011894-26
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addUniqueConstraint:
+            columnNames: tenant_id, source_id
+            constraintName: uc_sku_tenant_source
+            tableName: sku
+  - changeSet:
+      id: 1766492011894-27
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -546,7 +1104,7 @@ databaseChangeLog:
             constraintName: uc_tenant_name
             tableName: tenant
   - changeSet:
-      id: 1766408502759-14
+      id: 1766492011894-28
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -555,7 +1113,7 @@ databaseChangeLog:
             constraintName: uc_voucher_tenant_code
             tableName: voucher
   - changeSet:
-      id: 1766408502759-15
+      id: 1766492011894-29
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -568,7 +1126,18 @@ databaseChangeLog:
             indexName: idx_vra_related_object
             tableName: validation_rules_assignment
   - changeSet:
-      id: 1766408502759-17
+      id: 1766492011894-31
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: async_job
+            constraintName: FK_ASYNCJOB_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+  - changeSet:
+      id: 1766492011894-32
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -579,7 +1148,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766408502759-18
+      id: 1766492011894-33
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -590,7 +1159,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766408502759-19
+      id: 1766492011894-34
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -601,7 +1170,18 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766408502759-20
+      id: 1766492011894-35
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: export
+            constraintName: FK_EXPORT_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+  - changeSet:
+      id: 1766492011894-36
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -612,7 +1192,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766408502759-21
+      id: 1766492011894-37
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -623,7 +1203,117 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766408502759-22
+      id: 1766492011894-38
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: order_id
+            baseTableName: order_item
+            constraintName: FK_ORDER_ITEM_ON_ORDER
+            referencedColumnNames: id
+            referencedTableName: orders
+  - changeSet:
+      id: 1766492011894-39
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: order_item
+            constraintName: FK_ORDER_ITEM_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+  - changeSet:
+      id: 1766492011894-40
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: product_collection_id
+            baseTableName: product_collection_item
+            constraintName: FK_PRODUCT_COLLECTION_ITEM_ON_PRODUCT_COLLECTION
+            referencedColumnNames: id
+            referencedTableName: product_collection
+  - changeSet:
+      id: 1766492011894-41
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: product_collection_item
+            constraintName: FK_PRODUCT_COLLECTION_ITEM_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+  - changeSet:
+      id: 1766492011894-42
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: product_collection
+            constraintName: FK_PRODUCT_COLLECTION_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+  - changeSet:
+      id: 1766492011894-43
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: product
+            constraintName: FK_PRODUCT_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+  - changeSet:
+      id: 1766492011894-44
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: campaign_id
+            baseTableName: publication
+            constraintName: FK_PUBLICATION_ON_CAMPAIGN
+            referencedColumnNames: id
+            referencedTableName: campaign
+  - changeSet:
+      id: 1766492011894-45
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: customer_id
+            baseTableName: publication
+            constraintName: FK_PUBLICATION_ON_CUSTOMER
+            referencedColumnNames: id
+            referencedTableName: customer
+  - changeSet:
+      id: 1766492011894-46
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: publication
+            constraintName: FK_PUBLICATION_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+  - changeSet:
+      id: 1766492011894-47
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: voucher_id
+            baseTableName: publication
+            constraintName: FK_PUBLICATION_ON_VOUCHER
+            referencedColumnNames: id
+            referencedTableName: voucher
+  - changeSet:
+      id: 1766492011894-48
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -634,7 +1324,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766408502759-23
+      id: 1766492011894-49
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -645,7 +1335,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: redemption
   - changeSet:
-      id: 1766408502759-24
+      id: 1766492011894-50
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -656,7 +1346,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766408502759-25
+      id: 1766492011894-51
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -667,7 +1357,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766408502759-26
+      id: 1766492011894-52
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -678,7 +1368,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: orders
   - changeSet:
-      id: 1766408502759-27
+      id: 1766492011894-53
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -689,7 +1379,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766408502759-28
+      id: 1766492011894-54
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -700,7 +1390,40 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: voucher
   - changeSet:
-      id: 1766408502759-29
+      id: 1766492011894-55
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: session_lock
+            constraintName: FK_SESSIONLOCK_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+  - changeSet:
+      id: 1766492011894-56
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: product_id
+            baseTableName: sku
+            constraintName: FK_SKU_ON_PRODUCT
+            referencedColumnNames: id
+            referencedTableName: product
+  - changeSet:
+      id: 1766492011894-57
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: sku
+            constraintName: FK_SKU_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+  - changeSet:
+      id: 1766492011894-58
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -717,7 +1440,7 @@ databaseChangeLog:
             indexName: idx_vra_rule_id
             tableName: validation_rules_assignment
   - changeSet:
-      id: 1766408502759-30
+      id: 1766492011894-59
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -728,7 +1451,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766408502759-31
+      id: 1766492011894-60
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -739,7 +1462,51 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766408502759-32
+      id: 1766492011894-61
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: redemption_id
+            baseTableName: voucher_transaction
+            constraintName: FK_VOUCHERTRANSACTION_ON_REDEMPTION
+            referencedColumnNames: id
+            referencedTableName: redemption
+  - changeSet:
+      id: 1766492011894-62
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: rollback_id
+            baseTableName: voucher_transaction
+            constraintName: FK_VOUCHERTRANSACTION_ON_ROLLBACK
+            referencedColumnNames: id
+            referencedTableName: redemption_rollback
+  - changeSet:
+      id: 1766492011894-63
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: voucher_transaction
+            constraintName: FK_VOUCHERTRANSACTION_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+  - changeSet:
+      id: 1766492011894-64
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: voucher_id
+            baseTableName: voucher_transaction
+            constraintName: FK_VOUCHERTRANSACTION_ON_VOUCHER
+            referencedColumnNames: id
+            referencedTableName: voucher
+  - changeSet:
+      id: 1766492011894-65
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -750,7 +1517,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: campaign
   - changeSet:
-      id: 1766408502759-33
+      id: 1766492011894-66
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -761,7 +1528,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766408502759-34
+      id: 1766492011894-67
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -772,7 +1539,29 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766408502759-35
+      id: 1766492011894-68
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: publication_id
+            baseTableName: publication_vouchers
+            constraintName: fk_pubvou_on_publication
+            referencedColumnNames: id
+            referencedTableName: publication
+  - changeSet:
+      id: 1766492011894-69
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: voucher_id
+            baseTableName: publication_vouchers
+            constraintName: fk_pubvou_on_voucher
+            referencedColumnNames: id
+            referencedTableName: voucher
+  - changeSet:
+      id: 1766492011894-70
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -783,7 +1572,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: validation_rules_assignment
   - changeSet:
-      id: 1766408502759-36
+      id: 1766492011894-71
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -794,7 +1583,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: category
   - changeSet:
-      id: 1766408502759-37
+      id: 1766492011894-72
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:

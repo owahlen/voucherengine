@@ -3,44 +3,30 @@ package org.wahlen.voucherengine.service
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.Primary
 import org.springframework.transaction.annotation.Transactional
-import org.wahlen.voucherengine.api.dto.common.DiscountDto
-import org.wahlen.voucherengine.api.dto.common.DiscountType
-import org.wahlen.voucherengine.api.dto.common.RedemptionDto
-import org.wahlen.voucherengine.api.dto.common.ValidityHoursDailyDto
-import org.wahlen.voucherengine.api.dto.common.ValidityHoursDto
-import org.wahlen.voucherengine.api.dto.common.ValidityTimeframeDto
-import org.wahlen.voucherengine.api.dto.request.CustomerReferenceDto
-import org.wahlen.voucherengine.api.dto.request.RedeemableDto
-import org.wahlen.voucherengine.api.dto.request.RedemptionRequest
-import org.wahlen.voucherengine.api.dto.request.VoucherCreateRequest
-import org.wahlen.voucherengine.api.dto.request.VoucherValidationRequest
-import org.wahlen.voucherengine.api.dto.request.ValidationRuleAssignmentRequest
-import org.wahlen.voucherengine.api.dto.request.ValidationRuleCreateRequest
-import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.api.dto.common.*
+import org.wahlen.voucherengine.api.dto.request.*
+import org.wahlen.voucherengine.config.IntegrationTest
 import org.wahlen.voucherengine.persistence.model.product.Product
 import org.wahlen.voucherengine.persistence.model.product.Sku
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.CategoryRepository
 import org.wahlen.voucherengine.persistence.repository.ProductRepository
 import org.wahlen.voucherengine.persistence.repository.SkuRepository
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
-import org.springframework.boot.test.context.TestConfiguration
-import org.springframework.context.annotation.Import
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Primary
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-@SpringBootTest
-@ActiveProfiles("test")
+@IntegrationTest
 @Import(VoucherServiceTest.ClockTestConfig::class)
 @Transactional
 class VoucherServiceTest @Autowired constructor(

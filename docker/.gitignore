@@ -1,0 +1,11 @@
+# OpenTofu/Terraform state files
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# LocalStack data
+localstack_data/
+
+# Docker volumes are managed by docker-compose
+# No need to ignore them as they're not in the repo

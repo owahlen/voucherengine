@@ -3,10 +3,9 @@ package org.wahlen.voucherengine.api.controller
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -14,13 +13,13 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.tenantJwt
+import org.wahlen.voucherengine.config.SqsIntegrationTest
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import java.util.UUID
 
-@SpringBootTest
+@SqsIntegrationTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
 @Transactional
 class VoucherImportExportTest @Autowired constructor(
     private val mockMvc: MockMvc,
@@ -64,25 +63,11 @@ class VoucherImportExportTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(importBody)
-        ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.success_count").value(2))
-            .andExpect(jsonPath("$.failure_count").value(0))
+        ).andExpect(status().isAccepted)
+            .andExpect(jsonPath("$.async_action_id").exists())
+            .andExpect(jsonPath("$.status").value("ACCEPTED"))
 
-        // Verify vouchers were created
-        mockMvc.perform(
-            get("/v1/vouchers/$code1")
-                .header("tenant", tenantName)
-                .with(tenantJwt(tenantName))
-        ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.code").value(code1))
-            .andExpect(jsonPath("$.metadata.source").value("import"))
-
-        mockMvc.perform(
-            get("/v1/vouchers/$code2")
-                .header("tenant", tenantName)
-                .with(tenantJwt(tenantName))
-        ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.type").value("GIFT_VOUCHER"))
+        // TODO: Verify vouchers created via /async-actions/{id} once async job processing is implemented
     }
 
     @Test
@@ -111,9 +96,11 @@ class VoucherImportExportTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(importBody)
-        ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.success_count").value(1))
-            .andExpect(jsonPath("$.failure_count").value(1))
+        ).andExpect(status().isAccepted)
+            .andExpect(jsonPath("$.async_action_id").exists())
+            .andExpect(jsonPath("$.status").value("ACCEPTED"))
+
+        // TODO: Verify failure count via /async-actions/{id} once async job processing is implemented
     }
 
     @Test

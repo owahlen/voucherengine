@@ -3,19 +3,17 @@ package org.wahlen.voucherengine.service
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleAssignmentRequest
 import org.wahlen.voucherengine.api.dto.request.ValidationRuleCreateRequest
+import org.wahlen.voucherengine.config.IntegrationTest
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.ValidationRuleRepository
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-@SpringBootTest
-@ActiveProfiles("test")
+@IntegrationTest
 @Transactional
 class ValidationRuleServiceTest @Autowired constructor(
     private val validationRuleService: ValidationRuleService,

@@ -1,4 +1,4 @@
-package org.wahlen.voucherengine.service.dto
+package org.wahlen.voucherengine.api.dto.response
 
 import java.util.UUID
 

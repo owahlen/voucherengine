@@ -3,7 +3,7 @@ package org.wahlen.voucherengine.api.controller
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
+import org.wahlen.voucherengine.config.IntegrationTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
@@ -18,9 +18,9 @@ import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import java.util.UUID
 
-@SpringBootTest
+@IntegrationTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
+
 @Transactional
 class VoucherRedemptionListTest @Autowired constructor(
     private val mockMvc: MockMvc,

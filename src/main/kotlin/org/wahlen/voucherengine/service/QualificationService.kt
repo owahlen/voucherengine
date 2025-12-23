@@ -17,6 +17,8 @@ import org.wahlen.voucherengine.api.dto.response.QualificationGiftResult
 import org.wahlen.voucherengine.api.dto.response.QualificationLoyaltyCardResult
 import org.wahlen.voucherengine.api.dto.response.ValidationRuleAssignmentResponse
 import org.wahlen.voucherengine.api.dto.response.ValidationRulesAssignmentsListResponse
+import org.wahlen.voucherengine.api.dto.response.ValidationResponse
+import org.wahlen.voucherengine.api.dto.response.ValidationOrderSummary
 import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 import org.wahlen.voucherengine.persistence.model.voucher.VoucherType
 import org.wahlen.voucherengine.persistence.repository.VoucherRepository
@@ -91,7 +93,7 @@ class QualificationService(
 
     private fun toRedeemable(
         voucher: Voucher,
-        validation: org.wahlen.voucherengine.service.dto.ValidationResponse,
+        validation: ValidationResponse,
         expand: List<String>?,
         tenantName: String,
         request: QualificationRequest
@@ -264,7 +266,7 @@ class QualificationService(
 
     private data class QualificationCandidate(
         val voucher: Voucher,
-        val validation: org.wahlen.voucherengine.service.dto.ValidationResponse,
+        val validation: ValidationResponse,
         val discountAmount: Long
     )
 }

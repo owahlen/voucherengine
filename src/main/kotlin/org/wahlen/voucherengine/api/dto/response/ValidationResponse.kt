@@ -1,7 +1,6 @@
-package org.wahlen.voucherengine.service.dto
+package org.wahlen.voucherengine.api.dto.response
 
 import org.wahlen.voucherengine.api.dto.common.DiscountDto
-import org.wahlen.voucherengine.api.dto.response.VoucherResponse
 
 data class ValidationResponse(
     val valid: Boolean,

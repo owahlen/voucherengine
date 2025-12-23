@@ -3,10 +3,9 @@ package org.wahlen.voucherengine.persistence
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.repository.findByIdOrNull
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.config.IntegrationTest
 import org.wahlen.voucherengine.persistence.model.validation.ValidationRule
 import org.wahlen.voucherengine.persistence.model.validation.ValidationRuleContextType
 import org.wahlen.voucherengine.persistence.model.validation.ValidationRuleType
@@ -17,8 +16,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-@SpringBootTest
-@ActiveProfiles("test")
+@IntegrationTest
 @Transactional
 class ValidationRuleRepositoryTest @Autowired constructor(
     private val validationRuleRepository: ValidationRuleRepository,

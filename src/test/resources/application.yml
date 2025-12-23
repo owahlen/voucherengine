@@ -1,7 +1,9 @@
 logging:
   level:
+    liquibase: WARN
     org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean: WARN
     com.zaxxer.hikari: WARN
+    org.elasticmq: WARN
 spring:
   datasource:
     url: jdbc:h2:mem:voucherengine;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
@@ -24,3 +26,24 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: http://localhost:9999/realms/test/protocol/openid-connect/certs
+  # AWS configuration for ElasticMQ (in-memory SQS for testing)
+  cloud:
+    aws:
+      region:
+        static: eu-central-1
+      credentials:
+        access-key: x
+        secret-key: x
+      sqs:
+        enabled: true
+        endpoint: http://localhost:9324
+        listener:
+          auto-startup: true  # Enable SQS listeners for async tests
+          max-concurrent-messages: 1  # Keep tests simpler with single consumer
+          max-messages-per-poll: 1
+
+aws:
+  sqs:
+    queues:
+      async-jobs: async-jobs
+

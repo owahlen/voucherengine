@@ -7,8 +7,8 @@ import java.time.Clock
 import java.time.ZoneId
 
 @Configuration
-class TimeConfig {
+class ClockConfig {
     @Bean
-    fun systemClock(@Value("\${voucherengine.time.zone:UTC}") zoneId: String): Clock =
+    fun systemCock(@Value("\${voucherengine.time.zone:UTC}") zoneId: String): Clock =
         Clock.system(ZoneId.of(zoneId))
 }

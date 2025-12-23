@@ -1,13 +1,9 @@
 package org.wahlen.voucherengine.api.controller
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
@@ -17,20 +13,14 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.tenantJwt
+import org.wahlen.voucherengine.config.IntegrationTest
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
-import org.wahlen.voucherengine.persistence.repository.CampaignRepository
-import org.wahlen.voucherengine.persistence.repository.CustomerRepository
-import org.wahlen.voucherengine.persistence.repository.PublicationRepository
-import org.wahlen.voucherengine.persistence.repository.RedemptionRepository
-import org.wahlen.voucherengine.persistence.repository.TenantRepository
-import org.wahlen.voucherengine.persistence.repository.ValidationRulesAssignmentRepository
-import org.wahlen.voucherengine.persistence.repository.VoucherRepository
+import org.wahlen.voucherengine.persistence.repository.*
 import tools.jackson.databind.ObjectMapper
-import java.util.UUID
+import java.util.*
 
-@SpringBootTest
+@IntegrationTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
 @Transactional
 class CascadeDeleteIntegrationTest @Autowired constructor(
     private val mockMvc: MockMvc,

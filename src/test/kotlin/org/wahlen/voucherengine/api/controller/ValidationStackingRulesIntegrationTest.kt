@@ -3,10 +3,9 @@ package org.wahlen.voucherengine.api.controller
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
+import org.wahlen.voucherengine.config.IntegrationTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -18,7 +17,7 @@ import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import tools.jackson.databind.ObjectMapper
 import java.util.UUID
 
-@SpringBootTest(
+@IntegrationTest(
     properties = [
         "voucherengine.stacking-rules.redeemables-application-mode=PARTIAL",
         "voucherengine.stacking-rules.redeemables-sorting-rule=CATEGORY_HIERARCHY",
@@ -27,7 +26,7 @@ import java.util.UUID
     ]
 )
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
+
 @Transactional
 class ValidationStackingRulesIntegrationTest @Autowired constructor(
     private val mockMvc: MockMvc,

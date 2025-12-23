@@ -17,12 +17,17 @@ import org.wahlen.voucherengine.api.dto.response.VoucherAssetsDto
 import org.wahlen.voucherengine.api.dto.response.AssetDto
 import org.wahlen.voucherengine.api.dto.response.ValidationsValidateResponse
 import org.wahlen.voucherengine.api.dto.response.RedemptionsRedeemResponse
+import org.wahlen.voucherengine.api.dto.response.AsyncActionResponse
+import org.wahlen.voucherengine.api.dto.response.AsyncJobStatusResponse
 import org.wahlen.voucherengine.service.VoucherService
-import org.wahlen.voucherengine.service.dto.ValidationResponse
+import org.wahlen.voucherengine.api.dto.response.ValidationResponse
 import org.wahlen.voucherengine.service.ValidationStackService
 import org.wahlen.voucherengine.service.RedemptionStackService
 import org.wahlen.voucherengine.service.QrCodeService
 import org.wahlen.voucherengine.service.BarcodeService
+import org.wahlen.voucherengine.service.AsyncJobPublisher
+import org.wahlen.voucherengine.persistence.repository.AsyncJobRepository
+import java.util.UUID
 
 @RestController
 @RequestMapping("/v1")
@@ -39,7 +44,9 @@ class VoucherController(
     private val barcodeService: BarcodeService,
     private val validationStackService: ValidationStackService,
     private val redemptionStackService: RedemptionStackService,
-    private val sessionLockRepository: org.wahlen.voucherengine.persistence.repository.SessionLockRepository
+    private val sessionLockRepository: org.wahlen.voucherengine.persistence.repository.SessionLockRepository,
+    private val asyncJobPublisher: AsyncJobPublisher,
+    private val asyncJobRepository: AsyncJobRepository
 ) {
 
     @Operation(
@@ -341,48 +348,66 @@ class VoucherController(
         summary = "Update vouchers in bulk",
         operationId = "updateVouchersInBulk",
         responses = [
-            ApiResponse(responseCode = "200", description = "Bulk update completed")
+            ApiResponse(responseCode = "202", description = "Job accepted for processing")
         ]
     )
     @PostMapping("/vouchers/bulk/async")
     fun updateVouchersInBulk(
         @RequestHeader("tenant") tenant: String,
         @Valid @RequestBody updates: List<org.wahlen.voucherengine.api.dto.request.VoucherBulkUpdateRequest>
-    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.BulkOperationResponse> {
-        val result = voucherService.bulkUpdateVoucherMetadata(tenant, updates)
-        return ResponseEntity.ok(result)
+    ): ResponseEntity<AsyncActionResponse> {
+        val jobId = asyncJobPublisher.publishBulkUpdate(tenant, updates)
+        
+        return ResponseEntity.accepted().body(
+            AsyncActionResponse(
+                async_action_id = jobId.toString(),
+                status = "ACCEPTED"
+            )
+        )
     }
 
     @Operation(
         summary = "Update voucher metadata asynchronously",
         operationId = "updateVoucherMetadataAsync",
         responses = [
-            ApiResponse(responseCode = "200", description = "Metadata update completed")
+            ApiResponse(responseCode = "202", description = "Job accepted for processing")
         ]
     )
     @PostMapping("/vouchers/metadata/async")
     fun updateVoucherMetadataAsync(
         @RequestHeader("tenant") tenant: String,
         @Valid @RequestBody request: org.wahlen.voucherengine.api.dto.request.VoucherMetadataUpdateRequest
-    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.BulkOperationResponse> {
-        val result = voucherService.updateMetadataAsync(tenant, request)
-        return ResponseEntity.ok(result)
+    ): ResponseEntity<AsyncActionResponse> {
+        val jobId = asyncJobPublisher.publishMetadataUpdate(tenant, request)
+        
+        return ResponseEntity.accepted().body(
+            AsyncActionResponse(
+                async_action_id = jobId.toString(),
+                status = "ACCEPTED"
+            )
+        )
     }
 
     @Operation(
         summary = "Import vouchers",
         operationId = "importVouchers",
         responses = [
-            ApiResponse(responseCode = "200", description = "Import completed")
+            ApiResponse(responseCode = "202", description = "Import job accepted")
         ]
     )
     @PostMapping("/vouchers/import")
     fun importVouchers(
         @RequestHeader("tenant") tenant: String,
         @Valid @RequestBody request: org.wahlen.voucherengine.api.dto.request.VoucherImportRequest
-    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.BulkOperationResponse> {
-        val result = voucherService.importVouchers(tenant, request)
-        return ResponseEntity.ok(result)
+    ): ResponseEntity<AsyncActionResponse> {
+        val jobId = asyncJobPublisher.publishVoucherImport(tenant, request)
+        
+        return ResponseEntity.accepted().body(
+            AsyncActionResponse(
+                async_action_id = jobId.toString(),
+                status = "ACCEPTED"
+            )
+        )
     }
 
     @Operation(
@@ -433,5 +458,37 @@ class VoucherController(
         val voucher = voucherService.getByCode(tenant, code) ?: return ResponseEntity.notFound().build()
         sessionLockRepository.deleteByTenantNameAndSessionKey(tenant, sessionKey)
         return ResponseEntity.noContent().build()
+    }
+
+    @Operation(
+        summary = "Get async job status",
+        operationId = "getAsyncJobStatus",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Job status retrieved"),
+            ApiResponse(responseCode = "404", description = "Job not found")
+        ]
+    )
+    @GetMapping("/async-actions/{id}")
+    fun getAsyncJobStatus(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID
+    ): ResponseEntity<AsyncJobStatusResponse> {
+        val job = asyncJobRepository.findByIdAndTenant_Name(id, tenant)
+            ?: return ResponseEntity.notFound().build()
+        
+        return ResponseEntity.ok(
+            AsyncJobStatusResponse(
+                id = job.id!!,
+                type = job.type.name,
+                status = job.status.name,
+                progress = job.progress,
+                total = job.total,
+                result = job.result,
+                error_message = job.errorMessage,
+                created_at = job.createdAt,
+                started_at = job.startedAt,
+                completed_at = job.completedAt
+            )
+        )
     }
 }

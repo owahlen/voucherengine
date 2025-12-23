@@ -1,0 +1,40 @@
+# Example production configuration for AWS
+# Copy to application-prod.yml and customize
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:rds-endpoint}:5432/voucherengine
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
+  # AWS Configuration - Production
+  cloud:
+    aws:
+      region:
+        static: ${AWS_DEFAULT_REGION:eu-central-1}
+      credentials:
+        instance-profile: true  # Use IAM role instead of access keys
+      # NO endpoint override - uses real AWS SQS/SNS
+      sqs:
+        listener:
+          auto-startup: true
+          max-concurrent-messages: 10
+          max-messages-per-poll: 10
+
+# Queue names - same as local, but on real AWS
+aws:
+  sqs:
+    queues:
+      async-jobs: voucher-async-jobs
+      async-jobs-dlq: voucher-async-jobs-dlq
+
+# Production logging
+logging:
+  level:
+    root: INFO
+    org.wahlen.voucherengine: INFO
+    io.awspring.cloud.sqs: WARN

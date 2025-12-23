@@ -32,11 +32,24 @@ dependencies {
 	implementation("com.google.zxing:core:3.5.3")
 	implementation("com.google.zxing:javase:3.5.3")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
+	implementation("io.awspring.cloud:spring-cloud-aws-starter-sqs:4.0.0-M1")
+
 	runtimeOnly("org.postgresql:postgresql")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.boot:spring-boot-webmvc-test")
 	testImplementation("org.springframework.security:spring-security-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+
+	// Testcontainers for LocalStack testing
+	testImplementation("org.testcontainers:localstack:1.21.4")
+	testImplementation("org.testcontainers:junit-jupiter:1.21.4")
+	testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
+	
+	// ElasticMQ for in-memory SQS testing (like H2 for database)
+	testImplementation("org.elasticmq:elasticmq-rest-sqs_2.13:1.6.15") {
+		exclude(group = "ch.qos.logback", module = "logback-classic")
+	}
+
 	testRuntimeOnly("com.h2database:h2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

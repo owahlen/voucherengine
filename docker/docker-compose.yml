@@ -1,5 +1,50 @@
 services:
 
+  localstack_init:
+    image: ghcr.io/opentofu/opentofu
+    depends_on:
+      localstack:
+        condition: service_healthy
+    networks:
+      - voucherengine
+    working_dir: /workspace
+    environment:
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+      AWS_DEFAULT_REGION: "eu-central-1"
+      AWS_ENDPOINT_URL: "http://localstack:4566"
+    volumes:
+      - ./tofu-localstack:/workspace-ro:ro
+      - tofu_localstack_workspace:/workspace
+      - tofu_localstack_state:/workspace/state
+    entrypoint: ["/bin/sh", "-lc"]
+    command: |
+      'set -e
+      cp -a /workspace-ro/. /workspace/
+      cd /workspace
+      tofu init -no-color
+      tofu apply -auto-approve -no-color -state=/workspace/state/terraform.tfstate'
+    restart: "no"
+
+  localstack:
+    image: localstack/localstack
+    networks:
+      - voucherengine
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs,sns
+      DEBUG: 1
+      PERSISTENCE: 1
+      DATA_DIR: /var/lib/localstack/data
+    volumes:
+      - localstack_data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sqs list-queues || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
   keycloak_init:
     image: ghcr.io/opentofu/opentofu
     depends_on:
@@ -15,9 +60,9 @@ services:
       KEYCLOAK_USER: "admin"
       KEYCLOAK_PASSWORD: "password"
     volumes:
-      - ./tofu:/workspace-ro:ro
-      - tofu_workspace:/workspace
-      - tofu_state:/workspace/state
+      - ./tofu-keycloak:/workspace-ro:ro
+      - tofu_keycloak_workspace:/workspace
+      - tofu_keycloak_state:/workspace/state
     entrypoint: ["/bin/sh", "-lc"]
     command: |
       'set -e
@@ -85,5 +130,8 @@ networks:
     name: "voucherengine"
 
 volumes:
-  tofu_workspace:
-  tofu_state:
+  tofu_keycloak_workspace:
+  tofu_keycloak_state:
+  tofu_localstack_workspace:
+  tofu_localstack_state:
+  localstack_data:

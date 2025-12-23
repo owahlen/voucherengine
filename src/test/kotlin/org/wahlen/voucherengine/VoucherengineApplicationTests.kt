@@ -1,9 +1,9 @@
 package org.wahlen.voucherengine
 
 import org.junit.jupiter.api.Test
-import org.springframework.boot.test.context.SpringBootTest
+import org.wahlen.voucherengine.config.IntegrationTest
 
-@SpringBootTest
+@IntegrationTest
 class VoucherengineApplicationTests {
 
 	@Test
