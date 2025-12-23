@@ -17,7 +17,6 @@ import java.time.LocalDate
  * Voucherengine API Docs: Customers.
  */
 @Entity
-@Table
 class Customer(
 
     /**

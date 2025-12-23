@@ -1,0 +1,114 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0009-voucher-transactions
+      author: voucherengine
+      changes:
+        - createTable:
+            tableName: voucher_transaction
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: tenant_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: voucher_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: campaign_id
+                  type: uuid
+              - column:
+                  name: source_id
+                  type: varchar(255)
+              - column:
+                  name: type
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source
+                  type: varchar(255)
+              - column:
+                  name: reason
+                  type: text
+              - column:
+                  name: amount
+                  type: bigint
+              - column:
+                  name: balance_after
+                  type: bigint
+              - column:
+                  name: redemption_id
+                  type: uuid
+              - column:
+                  name: rollback_id
+                  type: uuid
+              - column:
+                  name: related_transaction_id
+                  type: uuid
+              - column:
+                  name: details
+                  type: jsonb
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValue: 0
+
+        - addForeignKeyConstraint:
+            baseTableName: voucher_transaction
+            baseColumnNames: tenant_id
+            constraintName: fk_voucher_transaction_tenant
+            referencedTableName: tenant
+            referencedColumnNames: id
+
+        - addForeignKeyConstraint:
+            baseTableName: voucher_transaction
+            baseColumnNames: voucher_id
+            constraintName: fk_voucher_transaction_voucher
+            referencedTableName: voucher
+            referencedColumnNames: id
+
+        - addForeignKeyConstraint:
+            baseTableName: voucher_transaction
+            baseColumnNames: redemption_id
+            constraintName: fk_voucher_transaction_redemption
+            referencedTableName: redemption
+            referencedColumnNames: id
+
+        - addForeignKeyConstraint:
+            baseTableName: voucher_transaction
+            baseColumnNames: rollback_id
+            constraintName: fk_voucher_transaction_rollback
+            referencedTableName: redemption_rollback
+            referencedColumnNames: id
+
+        - createIndex:
+            tableName: voucher_transaction
+            indexName: idx_voucher_transaction_voucher
+            columns:
+              - column:
+                  name: voucher_id
+              - column:
+                  name: tenant_id
+
+        - createIndex:
+            tableName: voucher_transaction
+            indexName: idx_voucher_transaction_created_at
+            columns:
+              - column:
+                  name: created_at
+                  descending: true

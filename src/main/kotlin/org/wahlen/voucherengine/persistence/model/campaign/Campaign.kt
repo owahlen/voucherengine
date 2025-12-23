@@ -15,7 +15,6 @@ import org.wahlen.voucherengine.persistence.model.voucher.Voucher
  * Validation rules and voucher lifecycle constraints typically flow from the campaign to its vouchers.
  */
 @Entity
-@Table
 class Campaign(
 
     /** Campaign name. */

@@ -38,7 +38,8 @@ class VoucherController(
     private val qrCodeService: QrCodeService,
     private val barcodeService: BarcodeService,
     private val validationStackService: ValidationStackService,
-    private val redemptionStackService: RedemptionStackService
+    private val redemptionStackService: RedemptionStackService,
+    private val sessionLockRepository: org.wahlen.voucherengine.persistence.repository.SessionLockRepository
 ) {
 
     @Operation(
@@ -262,5 +263,175 @@ class VoucherController(
         val voucher = voucherService.getByCode(tenant, code) ?: return ResponseEntity.notFound().build()
         val png = barcodeService.generateCode128Png(voucher.code ?: code)
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png)
+    }
+
+    @Operation(
+        summary = "Adjust voucher balance (gift or loyalty cards)",
+        operationId = "adjustVoucherBalance",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Balance updated"),
+            ApiResponse(responseCode = "400", description = "Invalid request or insufficient balance"),
+            ApiResponse(responseCode = "404", description = "Voucher not found")
+        ]
+    )
+    @PostMapping("/vouchers/{code}/balance")
+    fun adjustVoucherBalance(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String,
+        @Valid @RequestBody body: VoucherBalanceUpdateRequest
+    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.VoucherBalanceUpdateResponse> {
+        val result = voucherService.adjustVoucherBalance(tenant, code, body)
+            ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(result)
+    }
+
+    @Operation(
+        summary = "List voucher transactions",
+        operationId = "listVoucherTransactions",
+        responses = [
+            ApiResponse(responseCode = "200", description = "List of transactions"),
+            ApiResponse(responseCode = "404", description = "Voucher not found")
+        ]
+    )
+    @GetMapping("/vouchers/{code}/transactions")
+    fun listVoucherTransactions(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String,
+        @Parameter(description = "Max number of items per page", example = "10")
+        @RequestParam(required = false, defaultValue = "10") limit: Int,
+        @Parameter(description = "1-based page index", example = "1")
+        @RequestParam(required = false, defaultValue = "1") page: Int
+    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.VoucherTransactionsListResponse> {
+        val cappedLimit = limit.coerceIn(1, 100)
+        val pageable = org.springframework.data.domain.PageRequest.of(
+            (page - 1).coerceAtLeast(0),
+            cappedLimit,
+            org.springframework.data.domain.Sort.by("createdAt").descending()
+        )
+        val transactions = voucherService.listVoucherTransactions(tenant, code, pageable)
+            ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(
+            org.wahlen.voucherengine.api.dto.response.VoucherTransactionsListResponse(
+                data = transactions.content.map { voucherService.toTransactionResponse(it) },
+                has_more = transactions.hasNext(),
+                total = transactions.totalElements.toInt()
+            )
+        )
+    }
+
+    @Operation(
+        summary = "Get voucher's redemptions",
+        operationId = "getVoucherRedemptions",
+        responses = [
+            ApiResponse(responseCode = "200", description = "List of redemptions for this voucher"),
+            ApiResponse(responseCode = "404", description = "Voucher not found")
+        ]
+    )
+    @GetMapping("/vouchers/{code}/redemption")
+    fun getVoucherRedemptions(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String
+    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.VoucherRedemptionsResponse> {
+        val response = voucherService.listVoucherRedemptions(tenant, code)
+            ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(response)
+    }
+
+    @Operation(
+        summary = "Update vouchers in bulk",
+        operationId = "updateVouchersInBulk",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Bulk update completed")
+        ]
+    )
+    @PostMapping("/vouchers/bulk/async")
+    fun updateVouchersInBulk(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody updates: List<org.wahlen.voucherengine.api.dto.request.VoucherBulkUpdateRequest>
+    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.BulkOperationResponse> {
+        val result = voucherService.bulkUpdateVoucherMetadata(tenant, updates)
+        return ResponseEntity.ok(result)
+    }
+
+    @Operation(
+        summary = "Update voucher metadata asynchronously",
+        operationId = "updateVoucherMetadataAsync",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Metadata update completed")
+        ]
+    )
+    @PostMapping("/vouchers/metadata/async")
+    fun updateVoucherMetadataAsync(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody request: org.wahlen.voucherengine.api.dto.request.VoucherMetadataUpdateRequest
+    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.BulkOperationResponse> {
+        val result = voucherService.updateMetadataAsync(tenant, request)
+        return ResponseEntity.ok(result)
+    }
+
+    @Operation(
+        summary = "Import vouchers",
+        operationId = "importVouchers",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Import completed")
+        ]
+    )
+    @PostMapping("/vouchers/import")
+    fun importVouchers(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody request: org.wahlen.voucherengine.api.dto.request.VoucherImportRequest
+    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.BulkOperationResponse> {
+        val result = voucherService.importVouchers(tenant, request)
+        return ResponseEntity.ok(result)
+    }
+
+    @Operation(
+        summary = "Import vouchers from CSV",
+        operationId = "importVouchersCSV",
+        responses = [
+            ApiResponse(responseCode = "501", description = "Not implemented - use JSON import")
+        ]
+    )
+    @PostMapping("/vouchers/importCSV")
+    fun importVouchersCSV(
+        @RequestHeader("tenant") tenant: String
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "CSV import not implemented. Use /vouchers/import with JSON format."))
+    }
+
+    @Operation(
+        summary = "Export voucher transactions",
+        operationId = "exportVoucherTransactions",
+        responses = [
+            ApiResponse(responseCode = "501", description = "Not implemented - use GET /vouchers/{code}/transactions")
+        ]
+    )
+    @PostMapping("/vouchers/{code}/transactions/export")
+    fun exportVoucherTransactions(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "Transaction export not implemented. Use GET /vouchers/{code}/transactions with pagination."))
+    }
+
+    @Operation(
+        summary = "Release validation session lock",
+        operationId = "releaseValidationSession",
+        responses = [
+            ApiResponse(responseCode = "204", description = "Session released"),
+            ApiResponse(responseCode = "404", description = "Voucher or session not found")
+        ]
+    )
+    @DeleteMapping("/vouchers/{code}/sessions/{sessionKey}")
+    fun releaseValidationSession(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String,
+        @PathVariable sessionKey: String
+    ): ResponseEntity<Void> {
+        val voucher = voucherService.getByCode(tenant, code) ?: return ResponseEntity.notFound().build()
+        sessionLockRepository.deleteByTenantNameAndSessionKey(tenant, sessionKey)
+        return ResponseEntity.noContent().build()
     }
 }

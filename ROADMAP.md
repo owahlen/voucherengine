@@ -61,9 +61,21 @@ These endpoints support **support teams, fraud ops, and debugging**.
 **Examples**
 - Enable / disable voucher
 - Update voucher metadata
+- **Adjust balance (gift/loyalty cards)** ✅
+- **List transactions** ✅
+- **Release session locks** ✅
+- **List voucher redemptions** ✅
+- **Bulk metadata updates** ✅
+- **Import vouchers** ✅
 
 **Value**
 - Kill switch for leaked or abused codes
+- Balance management for gift cards and loyalty programs
+- Transaction audit trail for financial reconciliation
+- Session cleanup for expired validations
+- Voucher-specific redemption history
+- Batch operations for efficiency
+- Data migration support
 - Essential for day‑to‑day operations
 
 ---

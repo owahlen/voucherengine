@@ -11,7 +11,6 @@ import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import java.time.Instant
 
 @Entity
-@Table
 class SessionLock(
     @Column(name = "session_key", nullable = false)
     var sessionKey: String,

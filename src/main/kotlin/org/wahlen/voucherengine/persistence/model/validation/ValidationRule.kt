@@ -16,7 +16,6 @@ import org.wahlen.voucherengine.persistence.model.tenant.Tenant
  * Voucherengine API Docs: Validation Rules.
  */
 @Entity
-@Table
 class ValidationRule(
     @Column
     var name: String? = null,

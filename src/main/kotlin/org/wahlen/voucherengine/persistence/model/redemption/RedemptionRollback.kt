@@ -18,7 +18,6 @@ import java.util.UUID
  * Voucherengine API Docs: Redemptions.
  */
 @Entity
-@Table
 class RedemptionRollback(
     @Column
     var date: Instant? = null,
@@ -40,15 +39,9 @@ class RedemptionRollback(
     @Column(columnDefinition = "TEXT")
     var reason: String? = null,
 
-    @Column(name = "redemption_id", insertable = false, updatable = false)
-    var redemptionId: UUID? = null,
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "redemption_id")
     var redemption: Redemption? = null,
-
-    @Column(name = "customer_id", insertable = false, updatable = false)
-    var customerId: UUID? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")

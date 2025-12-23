@@ -53,6 +53,7 @@ class VoucherService(
     private val productRepository: org.wahlen.voucherengine.persistence.repository.ProductRepository,
     private val skuRepository: org.wahlen.voucherengine.persistence.repository.SkuRepository,
     private val tenantService: TenantService,
+    private val voucherTransactionRepository: org.wahlen.voucherengine.persistence.repository.VoucherTransactionRepository,
     private val clock: Clock,
 ) {
 
@@ -621,10 +622,8 @@ class VoucherService(
             amount = request.amount,
             result = RedemptionResult.SUCCESS,
             reason = request.reason,
-            redemptionId = redemption.id,
             redemption = redemption,
-            customer = redemption.customer,
-            customerId = redemption.customer?.id
+            customer = redemption.customer
         )
         rollback.tenant = tenant
         return redemptionRollbackRepository.save(rollback)
@@ -677,5 +676,259 @@ class VoucherService(
             if (cycleRemainder >= duration) return false
         }
         return true
+    }
+
+    @Transactional
+    fun adjustVoucherBalance(
+        tenantName: String,
+        code: String,
+        request: VoucherBalanceUpdateRequest
+    ): org.wahlen.voucherengine.api.dto.response.VoucherBalanceUpdateResponse? {
+        val tenant = tenantService.requireTenant(tenantName)
+        val voucher = getByCode(tenantName, code) ?: return null
+        val amount = request.amount ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "amount is required")
+
+        when (voucher.type) {
+            VoucherType.GIFT_VOUCHER -> {
+                val gift = voucher.giftJson ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Voucher has no gift configuration")
+                val currentBalance = gift.balance ?: gift.amount ?: 0L
+                val newBalance = currentBalance + amount
+                if (newBalance < 0) {
+                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient balance")
+                }
+                gift.balance = newBalance
+                voucher.giftJson = gift
+                voucherRepository.save(voucher)
+
+                val transaction = org.wahlen.voucherengine.persistence.model.voucher.VoucherTransaction(
+                    sourceId = request.source_id,
+                    voucher = voucher,
+                    campaignId = voucher.campaign?.id,
+                    type = if (amount > 0) org.wahlen.voucherengine.persistence.model.voucher.VoucherTransactionType.CREDITS_ADDITION
+                    else org.wahlen.voucherengine.persistence.model.voucher.VoucherTransactionType.CREDITS_REMOVAL,
+                    source = "API",
+                    reason = request.reason,
+                    amount = amount,
+                    balanceAfter = newBalance
+                )
+                transaction.tenant = tenant
+                voucherTransactionRepository.save(transaction)
+
+                return org.wahlen.voucherengine.api.dto.response.VoucherBalanceUpdateResponse(
+                    amount = amount,
+                    total = newBalance,
+                    balance = newBalance,
+                    type = "gift_voucher",
+                    related_object = org.wahlen.voucherengine.api.dto.response.RelatedObjectDto(
+                        type = "voucher",
+                        id = voucher.id
+                    )
+                )
+            }
+            VoucherType.LOYALTY_CARD -> {
+                val loyalty = voucher.loyaltyCardJson ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Voucher has no loyalty card configuration")
+                val currentBalance = loyalty.balance ?: loyalty.points ?: 0L
+                val newBalance = currentBalance + amount
+                if (newBalance < 0) {
+                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient balance")
+                }
+                loyalty.balance = newBalance
+                voucher.loyaltyCardJson = loyalty
+                voucherRepository.save(voucher)
+
+                val transaction = org.wahlen.voucherengine.persistence.model.voucher.VoucherTransaction(
+                    sourceId = request.source_id,
+                    voucher = voucher,
+                    campaignId = voucher.campaign?.id,
+                    type = if (amount > 0) org.wahlen.voucherengine.persistence.model.voucher.VoucherTransactionType.POINTS_ADDITION
+                    else org.wahlen.voucherengine.persistence.model.voucher.VoucherTransactionType.POINTS_REMOVAL,
+                    source = "API",
+                    reason = request.reason,
+                    amount = amount,
+                    balanceAfter = newBalance
+                )
+                transaction.tenant = tenant
+                voucherTransactionRepository.save(transaction)
+
+                return org.wahlen.voucherengine.api.dto.response.VoucherBalanceUpdateResponse(
+                    amount = amount,
+                    total = newBalance,
+                    balance = newBalance,
+                    type = "loyalty_card",
+                    related_object = org.wahlen.voucherengine.api.dto.response.RelatedObjectDto(
+                        type = "voucher",
+                        id = voucher.id
+                    )
+                )
+            }
+            else -> throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Balance adjustments only supported for gift vouchers and loyalty cards")
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun listVoucherTransactions(
+        tenantName: String,
+        code: String,
+        pageable: Pageable
+    ): Page<org.wahlen.voucherengine.persistence.model.voucher.VoucherTransaction>? {
+        val voucher = getByCode(tenantName, code) ?: return null
+        return voucherTransactionRepository.findAllByVoucher_IdAndTenant_Name(voucher.id!!, tenantName, pageable)
+    }
+
+    @Transactional(readOnly = true)
+    fun listVoucherRedemptions(
+        tenantName: String,
+        code: String
+    ): org.wahlen.voucherengine.api.dto.response.VoucherRedemptionsResponse? {
+        val voucher = getByCode(tenantName, code) ?: return null
+        val redemptions = redemptionRepository.findAllByTenantNameAndVoucherId(tenantName, voucher.id!!)
+        
+        val redemptionEntries = redemptions.map { redemption ->
+            org.wahlen.voucherengine.api.dto.response.RedemptionEntryResponse(
+                id = redemption.id,
+                date = redemption.createdAt,
+                customer_id = redemption.customer?.id,
+                tracking_id = redemption.trackingId,
+                metadata = redemption.metadata,
+                result = redemption.result?.name,
+                status = redemption.status?.name,
+                amount = redemption.amount,
+                voucher = org.wahlen.voucherengine.api.dto.response.VoucherReferenceDto(
+                    id = voucher.id,
+                    code = voucher.code,
+                    campaign_id = voucher.campaign?.id
+                )
+            )
+        }
+
+        return org.wahlen.voucherengine.api.dto.response.VoucherRedemptionsResponse(
+            quantity = voucher.redemptionJson?.quantity,
+            redeemed_quantity = redemptions.size,
+            url = "/v1/vouchers/$code/redemption",
+            total = redemptions.size,
+            redemption_entries = redemptionEntries
+        )
+    }
+
+    @Transactional
+    fun bulkUpdateVoucherMetadata(
+        tenantName: String,
+        updates: List<org.wahlen.voucherengine.api.dto.request.VoucherBulkUpdateRequest>
+    ): org.wahlen.voucherengine.api.dto.response.BulkOperationResponse {
+        var successCount = 0
+        val failedCodes = mutableListOf<String>()
+
+        updates.forEach { update ->
+            val voucher = getByCode(tenantName, update.code)
+            if (voucher != null) {
+                voucher.metadata = update.metadata
+                voucherRepository.save(voucher)
+                successCount++
+            } else {
+                failedCodes.add(update.code)
+            }
+        }
+
+        return org.wahlen.voucherengine.api.dto.response.BulkOperationResponse(
+            success_count = successCount,
+            failure_count = failedCodes.size,
+            failed_codes = failedCodes
+        )
+    }
+
+    @Transactional
+    fun updateMetadataAsync(
+        tenantName: String,
+        request: org.wahlen.voucherengine.api.dto.request.VoucherMetadataUpdateRequest
+    ): org.wahlen.voucherengine.api.dto.response.BulkOperationResponse {
+        var successCount = 0
+        val failedCodes = mutableListOf<String>()
+
+        request.codes.forEach { code ->
+            val voucher = getByCode(tenantName, code)
+            if (voucher != null) {
+                val currentMetadata = voucher.metadata?.toMutableMap() ?: mutableMapOf()
+                currentMetadata.putAll(request.metadata)
+                voucher.metadata = currentMetadata
+                voucherRepository.save(voucher)
+                successCount++
+            } else {
+                failedCodes.add(code)
+            }
+        }
+
+        return org.wahlen.voucherengine.api.dto.response.BulkOperationResponse(
+            success_count = successCount,
+            failure_count = failedCodes.size,
+            failed_codes = failedCodes
+        )
+    }
+
+    @Transactional
+    fun importVouchers(
+        tenantName: String,
+        request: org.wahlen.voucherengine.api.dto.request.VoucherImportRequest
+    ): org.wahlen.voucherengine.api.dto.response.BulkOperationResponse {
+        var successCount = 0
+        val failedCodes = mutableListOf<String>()
+
+        request.vouchers.forEach { voucherRequest ->
+            try {
+                createVoucher(tenantName, voucherRequest)
+                successCount++
+            } catch (e: Exception) {
+                failedCodes.add(voucherRequest.code ?: "unknown")
+            }
+        }
+
+        return org.wahlen.voucherengine.api.dto.response.BulkOperationResponse(
+            success_count = successCount,
+            failure_count = failedCodes.size,
+            failed_codes = failedCodes
+        )
+    }
+
+    fun toTransactionResponse(tx: org.wahlen.voucherengine.persistence.model.voucher.VoucherTransaction): org.wahlen.voucherengine.api.dto.response.VoucherTransactionResponse {
+        val voucher = tx.voucher
+        val balanceType = when (voucher?.type) {
+            VoucherType.GIFT_VOUCHER -> "gift_voucher"
+            VoucherType.LOYALTY_CARD -> "loyalty_card"
+            else -> null
+        }
+
+        val details = org.wahlen.voucherengine.api.dto.response.VoucherTransactionDetailsDto(
+            balance = if (tx.balanceAfter != null && balanceType != null) {
+                org.wahlen.voucherengine.api.dto.response.VoucherBalanceDto(
+                    type = balanceType,
+                    total = tx.balanceAfter,
+                    balance = tx.balanceAfter
+                )
+            } else null,
+            order = tx.redemption?.order?.let {
+                org.wahlen.voucherengine.api.dto.response.OrderReferenceDto(
+                    id = it.id,
+                    source_id = it.sourceId
+                )
+            },
+            redemption = tx.redemption?.id?.let {
+                org.wahlen.voucherengine.api.dto.response.RedemptionReferenceDto(id = it)
+            },
+            rollback = tx.rollback?.id?.let {
+                org.wahlen.voucherengine.api.dto.response.RollbackReferenceDto(id = it)
+            }
+        )
+
+        return org.wahlen.voucherengine.api.dto.response.VoucherTransactionResponse(
+            id = tx.id,
+            source_id = tx.sourceId,
+            voucher_id = tx.voucher?.id,
+            campaign_id = tx.campaignId,
+            type = tx.type?.name,
+            source = tx.source,
+            reason = tx.reason,
+            amount = tx.amount,
+            created_at = tx.createdAt,
+            details = details
+        )
     }
 }

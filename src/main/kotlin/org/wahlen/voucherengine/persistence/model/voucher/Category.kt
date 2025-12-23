@@ -19,7 +19,6 @@ import org.wahlen.voucherengine.persistence.model.tenant.Tenant
  * Voucherengine API Docs: Categories.
  */
 @Entity
-@Table
 class Category(
 
 

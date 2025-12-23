@@ -69,7 +69,7 @@ class RedemptionStackService(
         RedemptionItemResponse(
             id = redemption.id,
             date = redemption.createdAt,
-            customer_id = redemption.customerId,
+            customer_id = redemption.customer?.id,
             tracking_id = redemption.trackingId,
             metadata = redemption.metadata,
             amount = redemption.amount,

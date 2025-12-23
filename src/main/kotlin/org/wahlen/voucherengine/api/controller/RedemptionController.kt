@@ -125,7 +125,7 @@ class RedemptionController(
         return ResponseEntity.status(HttpStatus.CREATED).body(
             RedemptionRollbackResponse(
                 id = rollback.id,
-                redemption_id = rollback.redemptionId,
+                redemption_id = rollback.redemption?.id,
                 reason = rollback.reason,
                 amount = rollback.amount,
                 created_at = rollback.date

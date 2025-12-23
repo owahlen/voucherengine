@@ -19,7 +19,6 @@ import java.util.UUID
  * Voucherengine API Docs: Redemptions.
  */
 @Entity
-@Table
 class Redemption(
     /**
      * Hashed customer source ID.
@@ -63,15 +62,9 @@ class Redemption(
     @Column(columnDefinition = "TEXT")
     var reason: String? = null,
 
-    @Column(name = "voucher_id", insertable = false, updatable = false)
-    var voucherId: UUID? = null,
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "voucher_id")
     var voucher: Voucher? = null,
-
-    @Column(name = "customer_id", insertable = false, updatable = false)
-    var customerId: UUID? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")

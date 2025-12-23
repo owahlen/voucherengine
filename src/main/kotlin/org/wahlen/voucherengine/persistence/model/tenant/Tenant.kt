@@ -9,7 +9,6 @@ import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
  * Represents a tenant owning data in the system.
  */
 @Entity
-@Table
 class Tenant(
     @Column(nullable = false, unique = true)
     var name: String? = null

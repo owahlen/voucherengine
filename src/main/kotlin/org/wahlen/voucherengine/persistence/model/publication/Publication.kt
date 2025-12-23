@@ -19,7 +19,6 @@ import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 
 @Entity
-@Table
 class Publication(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "voucher_id")
