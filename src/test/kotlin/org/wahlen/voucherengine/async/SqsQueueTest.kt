@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.wahlen.voucherengine.config.SqsIntegrationTest
-import org.wahlen.voucherengine.service.AsyncJobListener
+import org.wahlen.voucherengine.service.async.AsyncJobListener
 import software.amazon.awssdk.services.sqs.SqsAsyncClient
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue

@@ -7,6 +7,7 @@ Purpose: keep agents aligned on a narrow Voucherify-inspired core (issue, valida
 - JSON: Jackson 3 (`tools.jackson.*`) only. `ToolsJacksonJsonFormatMapper` is wired via `application.yml` to keep JSONB columns working—avoid any `com.fasterxml.*` imports.
 - Data: PostgreSQL in dev (`docker/docker-compose.yml`), H2 in tests; Liquibase migrations live under `src/main/resources/db/changelog/migrations` and are referenced from `db.changelog-master.yaml`.
 - Domain: vouchers (discount/gift/loyalty + assets/metadata/redemption counters), customers, validation rules + assignments, campaigns, redemptions/rollbacks, categories.
+- Async Jobs: SQS-based async operations via LocalStack. Job records (`AsyncJob` entity under `persistence/model/async`) track status/progress in DB for client polling via `/v1/async-actions/{id}`. Commands (under `service/async/command`) are serialized to SQS using Jackson polymorphic serialization with `jobType` discriminator. Each command implements `execute(ApplicationContext)` and delegates to `VoucherAsyncService`.
 - References: Voucherify OpenAPI `docs/voucherify.json` plus the two flow guides `docs/PER-CUSTOMER-VOUCHER.md` (per-customer issuance) and `docs/MULTI-USE-VOUCHER.md` (multi-use with quantity/per-customer limits).
 
 ## Working rules for agents

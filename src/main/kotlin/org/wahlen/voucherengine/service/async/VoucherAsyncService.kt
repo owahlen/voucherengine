@@ -1,30 +1,25 @@
-package org.wahlen.voucherengine.service
+package org.wahlen.voucherengine.service.async
 
 import tools.jackson.databind.ObjectMapper
-import io.awspring.cloud.sqs.annotation.SqsListener
 import org.slf4j.LoggerFactory
-import org.springframework.messaging.handler.annotation.Header
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.VoucherCreateRequest
-import org.wahlen.voucherengine.api.dto.sqs.BulkUpdateMessage
-import org.wahlen.voucherengine.api.dto.sqs.MetadataUpdateMessage
-import org.wahlen.voucherengine.api.dto.sqs.VoucherImportMessage
+import org.wahlen.voucherengine.service.async.command.BulkUpdateCommand
+import org.wahlen.voucherengine.service.async.command.MetadataUpdateCommand
+import org.wahlen.voucherengine.service.async.command.VoucherImportCommand
 import org.wahlen.voucherengine.persistence.model.async.AsyncJobStatus
-import org.wahlen.voucherengine.persistence.model.async.AsyncJobType
 import org.wahlen.voucherengine.persistence.repository.AsyncJobRepository
+import org.wahlen.voucherengine.service.VoucherService
 import java.time.Clock
 import java.time.Instant
 
 /**
- * Service for listening to and processing async jobs from SQS
- * 
- * Uses a single listener method that dispatches to specific handlers based on jobType header.
- * This avoids issues with multiple listeners on the same queue.
+ * Service for processing async voucher operations
  */
 @Service
-class AsyncJobListener(
+class VoucherAsyncService(
     private val asyncJobRepository: AsyncJobRepository,
     private val voucherService: VoucherService,
     private val objectMapper: ObjectMapper,
@@ -32,47 +27,14 @@ class AsyncJobListener(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @SqsListener("\${aws.sqs.queues.async-jobs}")
-    fun handleAsyncJob(
-        message: String,
-        @Header("jobType", required = false) jobType: String?
-    ) {
-        try {
-            logger.info("Received SQS message with jobType: $jobType")
-            
-            when (jobType) {
-                AsyncJobType.BULK_VOUCHER_UPDATE.name -> {
-                    val bulkMessage = objectMapper.readValue(message, BulkUpdateMessage::class.java)
-                    handleBulkUpdate(bulkMessage)
-                }
-                AsyncJobType.VOUCHER_METADATA_UPDATE.name -> {
-                    val metadataMessage = objectMapper.readValue(message, MetadataUpdateMessage::class.java)
-                    handleMetadataUpdate(metadataMessage)
-                }
-                AsyncJobType.VOUCHER_IMPORT.name -> {
-                    val importMessage = objectMapper.readValue(message, VoucherImportMessage::class.java)
-                    handleVoucherImport(importMessage)
-                }
-                else -> {
-                    logger.error("Unknown job type: $jobType, message: $message")
-                    throw IllegalArgumentException("Unknown job type: $jobType")
-                }
-            }
-        } catch (e: Exception) {
-            logger.error("Failed to process SQS message with jobType: $jobType", e)
-            // Re-throw to trigger SQS retry/DLQ
-            throw e
-        }
-    }
-
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    fun handleBulkUpdate(message: BulkUpdateMessage) {
-        val job = asyncJobRepository.findById(message.jobId).orElseThrow {
-            IllegalArgumentException("Job not found: ${message.jobId}")
+    fun handleBulkUpdate(command: BulkUpdateCommand) {
+        val job = asyncJobRepository.findById(command.jobId).orElseThrow {
+            IllegalArgumentException("Job not found: ${command.jobId}")
         }
 
         try {
-            logger.info("Processing BULK_VOUCHER_UPDATE job ${job.id} for tenant ${message.tenantName}")
+            logger.info("Processing BULK_VOUCHER_UPDATE job ${job.id} for tenant ${command.tenantName}")
 
             job.status = AsyncJobStatus.IN_PROGRESS
             job.startedAt = Instant.now(clock)
@@ -81,9 +43,9 @@ class AsyncJobListener(
             var successCount = 0
             val failedCodes = mutableListOf<String>()
 
-            message.updates.forEachIndexed { index, update ->
+            command.updates.forEachIndexed { index, update ->
                 try {
-                    val voucher = voucherService.getByCode(message.tenantName, update.code)
+                    val voucher = voucherService.getByCode(command.tenantName, update.code)
                     if (voucher != null) {
                         voucher.metadata = update.metadata
                         voucherService.save(voucher)
@@ -104,7 +66,7 @@ class AsyncJobListener(
             }
 
             job.status = AsyncJobStatus.COMPLETED
-            job.progress = message.updates.size
+            job.progress = command.updates.size
             job.result = mapOf(
                 "success_count" to successCount,
                 "failure_count" to failedCodes.size,
@@ -129,13 +91,13 @@ class AsyncJobListener(
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    fun handleMetadataUpdate(message: MetadataUpdateMessage) {
-        val job = asyncJobRepository.findById(message.jobId).orElseThrow {
-            IllegalArgumentException("Job not found: ${message.jobId}")
+    fun handleMetadataUpdate(command: MetadataUpdateCommand) {
+        val job = asyncJobRepository.findById(command.jobId).orElseThrow {
+            IllegalArgumentException("Job not found: ${command.jobId}")
         }
 
         try {
-            logger.info("Processing VOUCHER_METADATA_UPDATE job ${job.id} for tenant ${message.tenantName}")
+            logger.info("Processing VOUCHER_METADATA_UPDATE job ${job.id} for tenant ${command.tenantName}")
 
             job.status = AsyncJobStatus.IN_PROGRESS
             job.startedAt = Instant.now(clock)
@@ -144,13 +106,13 @@ class AsyncJobListener(
             var successCount = 0
             val failedCodes = mutableListOf<String>()
 
-            message.codes.forEachIndexed { index, code ->
+            command.codes.forEachIndexed { index, code ->
                 try {
-                    val voucher = voucherService.getByCode(message.tenantName, code)
+                    val voucher = voucherService.getByCode(command.tenantName, code)
                     if (voucher != null) {
                         // Merge metadata
                         val currentMetadata = voucher.metadata?.toMutableMap() ?: mutableMapOf()
-                        currentMetadata.putAll(message.metadata)
+                        currentMetadata.putAll(command.metadata)
                         voucher.metadata = currentMetadata
                         voucherService.save(voucher)
                         successCount++
@@ -169,7 +131,7 @@ class AsyncJobListener(
             }
 
             job.status = AsyncJobStatus.COMPLETED
-            job.progress = message.codes.size
+            job.progress = command.codes.size
             job.result = mapOf(
                 "success_count" to successCount,
                 "failure_count" to failedCodes.size,
@@ -193,13 +155,13 @@ class AsyncJobListener(
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    fun handleVoucherImport(message: VoucherImportMessage) {
-        val job = asyncJobRepository.findById(message.jobId).orElseThrow {
-            IllegalArgumentException("Job not found: ${message.jobId}")
+    fun handleVoucherImport(command: VoucherImportCommand) {
+        val job = asyncJobRepository.findById(command.jobId).orElseThrow {
+            IllegalArgumentException("Job not found: ${command.jobId}")
         }
 
         try {
-            logger.info("Processing VOUCHER_IMPORT job ${job.id} for tenant ${message.tenantName}")
+            logger.info("Processing VOUCHER_IMPORT job ${job.id} for tenant ${command.tenantName}")
 
             job.status = AsyncJobStatus.IN_PROGRESS
             job.startedAt = Instant.now(clock)
@@ -207,7 +169,7 @@ class AsyncJobListener(
 
             // Deserialize vouchers from JSON
             val vouchers: List<VoucherCreateRequest> = objectMapper.readValue(
-                message.vouchers,
+                command.vouchers,
                 objectMapper.typeFactory.constructCollectionType(List::class.java, VoucherCreateRequest::class.java)
             )
 
@@ -216,7 +178,7 @@ class AsyncJobListener(
 
             vouchers.forEachIndexed { index, voucherRequest ->
                 try {
-                    voucherService.createVoucher(message.tenantName, voucherRequest)
+                    voucherService.createVoucher(command.tenantName, voucherRequest)
                     successCount++
                 } catch (e: Exception) {
                     logger.error("Failed to import voucher ${voucherRequest.code}", e)

@@ -1,4 +1,4 @@
-package org.wahlen.voucherengine.service
+package org.wahlen.voucherengine.service.async
 
 import tools.jackson.databind.ObjectMapper
 import io.awspring.cloud.sqs.operations.SqsTemplate
@@ -9,18 +9,19 @@ import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.VoucherBulkUpdateRequest
 import org.wahlen.voucherengine.api.dto.request.VoucherImportRequest
 import org.wahlen.voucherengine.api.dto.request.VoucherMetadataUpdateRequest
-import org.wahlen.voucherengine.api.dto.sqs.BulkUpdateMessage
-import org.wahlen.voucherengine.api.dto.sqs.MetadataUpdateMessage
-import org.wahlen.voucherengine.api.dto.sqs.VoucherImportMessage
-import org.wahlen.voucherengine.api.dto.sqs.VoucherUpdateItem
+import org.wahlen.voucherengine.service.async.command.BulkUpdateCommand
+import org.wahlen.voucherengine.service.async.command.MetadataUpdateCommand
+import org.wahlen.voucherengine.service.async.command.VoucherImportCommand
+import org.wahlen.voucherengine.service.async.command.VoucherUpdateItem
 import org.wahlen.voucherengine.persistence.model.async.AsyncJob
 import org.wahlen.voucherengine.persistence.model.async.AsyncJobStatus
 import org.wahlen.voucherengine.persistence.model.async.AsyncJobType
 import org.wahlen.voucherengine.persistence.repository.AsyncJobRepository
+import org.wahlen.voucherengine.service.TenantService
 import java.util.UUID
 
 /**
- * Service for publishing async jobs to SQS queue
+ * Service for publishing async job commands to SQS queue
  */
 @Service
 class AsyncJobPublisher(
@@ -52,17 +53,17 @@ class AsyncJobPublisher(
         val savedJob = asyncJobRepository.save(job)
 
         // Send to SQS
-        val message = BulkUpdateMessage(
+        val command = BulkUpdateCommand(
             jobId = savedJob.id!!,
             tenantName = tenantName,
             updates = updates.map { VoucherUpdateItem(it.code, it.metadata) }
         )
 
-        val messageJson = objectMapper.writeValueAsString(message)
+        val commandJson = objectMapper.writeValueAsString(command)
 
         sqsTemplate.send { to ->
             to.queue(queueName)
-            to.payload(messageJson)
+            to.payload(commandJson)
             to.header("jobId", savedJob.id.toString())
             to.header("jobType", AsyncJobType.BULK_VOUCHER_UPDATE.name)
             to.header("contentType", "application/json")
@@ -91,18 +92,18 @@ class AsyncJobPublisher(
         job.tenant = tenant
         val savedJob = asyncJobRepository.save(job)
 
-        val message = MetadataUpdateMessage(
+        val command = MetadataUpdateCommand(
             jobId = savedJob.id!!,
             tenantName = tenantName,
             codes = request.codes,
             metadata = request.metadata
         )
 
-        val messageJson = objectMapper.writeValueAsString(message)
+        val commandJson = objectMapper.writeValueAsString(command)
 
         sqsTemplate.send { to ->
             to.queue(queueName)
-            to.payload(messageJson)
+            to.payload(commandJson)
             to.header("jobId", savedJob.id.toString())
             to.header("jobType", AsyncJobType.VOUCHER_METADATA_UPDATE.name)
             to.header("contentType", "application/json")
@@ -133,17 +134,17 @@ class AsyncJobPublisher(
         // Serialize vouchers to JSON
         val vouchersJson = objectMapper.writeValueAsString(request.vouchers)
 
-        val message = VoucherImportMessage(
+        val command = VoucherImportCommand(
             jobId = savedJob.id!!,
             tenantName = tenantName,
             vouchers = vouchersJson
         )
 
-        val messageJson = objectMapper.writeValueAsString(message)
+        val commandJson = objectMapper.writeValueAsString(command)
 
         sqsTemplate.send { to ->
             to.queue(queueName)
-            to.payload(messageJson)
+            to.payload(commandJson)
             to.header("jobId", savedJob.id.toString())
             to.header("jobType", AsyncJobType.VOUCHER_IMPORT.name)
             to.header("contentType", "application/json")

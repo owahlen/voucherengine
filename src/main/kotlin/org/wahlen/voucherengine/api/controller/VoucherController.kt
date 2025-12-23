@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.*
 import org.wahlen.voucherengine.api.dto.request.*
 import org.wahlen.voucherengine.api.dto.response.VoucherResponse
 import org.wahlen.voucherengine.api.dto.response.VouchersListResponse
-import org.wahlen.voucherengine.api.dto.response.VoucherAssetsDto
-import org.wahlen.voucherengine.api.dto.response.AssetDto
 import org.wahlen.voucherengine.api.dto.response.ValidationsValidateResponse
 import org.wahlen.voucherengine.api.dto.response.RedemptionsRedeemResponse
 import org.wahlen.voucherengine.api.dto.response.AsyncActionResponse
@@ -25,7 +23,7 @@ import org.wahlen.voucherengine.service.ValidationStackService
 import org.wahlen.voucherengine.service.RedemptionStackService
 import org.wahlen.voucherengine.service.QrCodeService
 import org.wahlen.voucherengine.service.BarcodeService
-import org.wahlen.voucherengine.service.AsyncJobPublisher
+import org.wahlen.voucherengine.service.async.AsyncJobPublisher
 import org.wahlen.voucherengine.persistence.repository.AsyncJobRepository
 import java.util.UUID
 

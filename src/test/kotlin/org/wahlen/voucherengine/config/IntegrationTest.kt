@@ -6,8 +6,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.annotation.AliasFor
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
-import org.wahlen.voucherengine.service.AsyncJobListener
-import org.wahlen.voucherengine.service.AsyncJobPublisher
+import org.wahlen.voucherengine.service.async.AsyncJobListener
+import org.wahlen.voucherengine.service.async.AsyncJobPublisher
 
 /**
  * Meta-annotation for integration tests.
