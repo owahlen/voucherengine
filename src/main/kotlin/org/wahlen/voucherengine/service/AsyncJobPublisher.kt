@@ -66,7 +66,6 @@ class AsyncJobPublisher(
             to.header("jobId", savedJob.id.toString())
             to.header("jobType", AsyncJobType.BULK_VOUCHER_UPDATE.name)
             to.header("contentType", "application/json")
-            to.header("JavaType", BulkUpdateMessage::class.java.name)
         }
 
         logger.info("Published BULK_VOUCHER_UPDATE job ${savedJob.id} for tenant $tenantName")
@@ -107,7 +106,6 @@ class AsyncJobPublisher(
             to.header("jobId", savedJob.id.toString())
             to.header("jobType", AsyncJobType.VOUCHER_METADATA_UPDATE.name)
             to.header("contentType", "application/json")
-            to.header("JavaType", MetadataUpdateMessage::class.java.name)
         }
 
         logger.info("Published VOUCHER_METADATA_UPDATE job ${savedJob.id} for tenant $tenantName")
@@ -149,7 +147,6 @@ class AsyncJobPublisher(
             to.header("jobId", savedJob.id.toString())
             to.header("jobType", AsyncJobType.VOUCHER_IMPORT.name)
             to.header("contentType", "application/json")
-            to.header("JavaType", VoucherImportMessage::class.java.name)
         }
 
         logger.info("Published VOUCHER_IMPORT job ${savedJob.id} for tenant $tenantName")

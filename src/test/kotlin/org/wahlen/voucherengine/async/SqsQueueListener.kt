@@ -13,7 +13,7 @@ class SqsQueueListener {
 
     @SqsListener("async-jobs")
     fun handleMessage(
-        @org.springframework.messaging.handler.annotation.Payload rawMessage: String,
+        rawMessage: String,
         @Header("SenderId") senderId: String
     ) {
         receivedMessages.add(ReceivedMessage(rawMessage, senderId))

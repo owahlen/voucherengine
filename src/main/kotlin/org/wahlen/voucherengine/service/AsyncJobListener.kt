@@ -34,7 +34,7 @@ class AsyncJobListener(
 
     @SqsListener("\${aws.sqs.queues.async-jobs}")
     fun handleAsyncJob(
-        @org.springframework.messaging.handler.annotation.Payload rawMessage: String,
+        message: String,
         @Header("jobType", required = false) jobType: String?
     ) {
         try {
@@ -42,19 +42,19 @@ class AsyncJobListener(
             
             when (jobType) {
                 AsyncJobType.BULK_VOUCHER_UPDATE.name -> {
-                    val bulkMessage = objectMapper.readValue(rawMessage, BulkUpdateMessage::class.java)
+                    val bulkMessage = objectMapper.readValue(message, BulkUpdateMessage::class.java)
                     handleBulkUpdate(bulkMessage)
                 }
                 AsyncJobType.VOUCHER_METADATA_UPDATE.name -> {
-                    val metadataMessage = objectMapper.readValue(rawMessage, MetadataUpdateMessage::class.java)
+                    val metadataMessage = objectMapper.readValue(message, MetadataUpdateMessage::class.java)
                     handleMetadataUpdate(metadataMessage)
                 }
                 AsyncJobType.VOUCHER_IMPORT.name -> {
-                    val importMessage = objectMapper.readValue(rawMessage, VoucherImportMessage::class.java)
+                    val importMessage = objectMapper.readValue(message, VoucherImportMessage::class.java)
                     handleVoucherImport(importMessage)
                 }
                 else -> {
-                    logger.error("Unknown job type: $jobType, message: $rawMessage")
+                    logger.error("Unknown job type: $jobType, message: $message")
                     throw IllegalArgumentException("Unknown job type: $jobType")
                 }
             }

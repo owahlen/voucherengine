@@ -10,7 +10,7 @@ import software.amazon.awssdk.services.sqs.SqsAsyncClient
  * Test configuration for ElasticMQ (in-memory SQS)
  * ElasticMQ runs on port 9324, configured in application.yml
  *
- * Note: Message conversion is handled by SqsMessageConverterConfig in the main source code.
+ * Note: Message conversion is handled manually in AsyncJobListener.
  */
 @TestConfiguration
 @EnableConfigurationProperties(SqsQueueProperties::class)
