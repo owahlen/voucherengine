@@ -191,6 +191,23 @@ class ProductController(
     }
 
     @Operation(
+        summary = "Delete SKU for product",
+        operationId = "deleteSkuForProduct",
+        responses = [
+            ApiResponse(responseCode = "204", description = "Deleted"),
+            ApiResponse(responseCode = "404", description = "Not found")
+        ]
+    )
+    @DeleteMapping("/products/{productId}/skus/{skuId}")
+    fun deleteSkuForProduct(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable productId: String,
+        @PathVariable skuId: String
+    ): ResponseEntity<Void> {
+        return if (skuService.delete(tenant, skuId)) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
+    }
+
+    @Operation(
         summary = "Get SKU",
         operationId = "getSku",
         responses = [
@@ -208,18 +225,66 @@ class ProductController(
     }
 
     @Operation(
-        summary = "Delete SKU",
-        operationId = "deleteSku",
+        summary = "Import SKUs from CSV",
+        operationId = "importSkusCSV",
         responses = [
-            ApiResponse(responseCode = "204", description = "Deleted"),
-            ApiResponse(responseCode = "404", description = "Not found")
+            ApiResponse(responseCode = "501", description = "Not implemented - SKU CSV import not yet supported")
         ]
     )
-    @DeleteMapping("/skus/{skuId}")
-    fun deleteSku(
+    @PostMapping("/skus/importCSV", consumes = ["text/csv"])
+    fun importSkusCSV(
         @RequestHeader("tenant") tenant: String,
-        @PathVariable skuId: String
-    ): ResponseEntity<Void> {
-        return if (skuService.delete(tenant, skuId)) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
+        @RequestBody csvContent: String
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "SKU CSV import not yet implemented"))
+    }
+
+    @Operation(
+        summary = "Import products from CSV",
+        operationId = "importProductsCSV",
+        responses = [
+            ApiResponse(responseCode = "501", description = "Not implemented - product CSV import not yet supported")
+        ]
+    )
+    @PostMapping("/products/importCSV", consumes = ["text/csv"])
+    fun importProductsCSV(
+        @RequestHeader("tenant") tenant: String,
+        @RequestBody csvContent: String
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "Product CSV import not yet implemented"))
+    }
+
+    @Operation(
+        summary = "Update products in bulk asynchronously",
+        operationId = "updateProductsBulkAsync",
+        responses = [
+            ApiResponse(responseCode = "501", description = "Not implemented - product bulk update not yet supported")
+        ]
+    )
+    @PostMapping("/products/bulk/async")
+    fun updateProductsBulkAsync(
+        @RequestHeader("tenant") tenant: String,
+        @RequestBody body: Map<String, Any>
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "Product bulk update not yet implemented"))
+    }
+
+    @Operation(
+        summary = "Update products metadata in bulk asynchronously",
+        operationId = "updateProductsMetadataAsync",
+        responses = [
+            ApiResponse(responseCode = "501", description = "Not implemented - product metadata bulk update not yet supported")
+        ]
+    )
+    @PostMapping("/products/metadata/async")
+    fun updateProductsMetadataAsync(
+        @RequestHeader("tenant") tenant: String,
+        @RequestBody body: Map<String, Any>
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "Product metadata bulk update not yet implemented"))
     }
 }

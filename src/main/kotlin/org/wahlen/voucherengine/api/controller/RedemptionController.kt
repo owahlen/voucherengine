@@ -132,4 +132,31 @@ class RedemptionController(
             )
         )
     }
+
+    @Operation(
+        summary = "Create rollback for redemption",
+        operationId = "createRollbackForRedemption",
+        description = "Alternative endpoint to create a rollback - same as /redemptions/{parentRedemptionId}/rollback",
+        responses = [
+            ApiResponse(responseCode = "201", description = "Rollback created"),
+            ApiResponse(responseCode = "404", description = "Redemption not found")
+        ]
+    )
+    @PostMapping("/redemptions/{parentRedemptionId}/rollbacks")
+    fun createRollbackForRedemption(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable parentRedemptionId: UUID,
+        @Valid @RequestBody body: RollbackRequest
+    ): ResponseEntity<RedemptionRollbackResponse> {
+        val rollback = voucherService.rollbackRedemption(tenant, parentRedemptionId, body) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            RedemptionRollbackResponse(
+                id = rollback.id,
+                redemption_id = rollback.redemption?.id,
+                reason = rollback.reason,
+                amount = rollback.amount,
+                created_at = rollback.date
+            )
+        )
+    }
 }

@@ -134,4 +134,36 @@ class OrderController(
         val deleted = orderService.delete(tenant, orderId)
         return if (deleted) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
     }
+
+    @Operation(
+        summary = "Export orders",
+        operationId = "exportOrders",
+        responses = [
+            ApiResponse(responseCode = "501", description = "Not implemented - order export not yet supported")
+        ]
+    )
+    @PostMapping("/orders/export")
+    fun exportOrders(
+        @RequestHeader("tenant") tenant: String,
+        @RequestBody body: Map<String, Any>
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "Order export not yet implemented"))
+    }
+
+    @Operation(
+        summary = "Import orders",
+        operationId = "importOrders",
+        responses = [
+            ApiResponse(responseCode = "501", description = "Not implemented - order import not yet supported")
+        ]
+    )
+    @PostMapping("/orders/import")
+    fun importOrders(
+        @RequestHeader("tenant") tenant: String,
+        @RequestBody body: Map<String, Any>
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "Order import not yet implemented"))
+    }
 }

@@ -487,6 +487,49 @@ class VoucherController(
     }
 
     @Operation(
+        summary = "List async jobs",
+        operationId = "listAsyncJobs",
+        responses = [
+            ApiResponse(responseCode = "200", description = "List of async jobs")
+        ]
+    )
+    @GetMapping("/async-actions")
+    fun listAsyncJobs(
+        @RequestHeader("tenant") tenant: String,
+        @Parameter(description = "Max number of items per page", example = "10")
+        @RequestParam(required = false, defaultValue = "10") limit: Int,
+        @Parameter(description = "1-based page index", example = "1")
+        @RequestParam(required = false, defaultValue = "1") page: Int
+    ): ResponseEntity<Map<String, Any>> {
+        val cappedLimit = limit.coerceIn(1, 100)
+        val pageable = org.springframework.data.domain.PageRequest.of(
+            (page - 1).coerceAtLeast(0),
+            cappedLimit,
+            org.springframework.data.domain.Sort.by("createdAt").descending()
+        )
+        val jobs = asyncJobRepository.findAllByTenant_Name(tenant, pageable)
+        
+        return ResponseEntity.ok(
+            mapOf(
+                "async_actions" to jobs.content.map { job ->
+                    mapOf(
+                        "id" to job.id,
+                        "type" to job.type.name,
+                        "status" to job.status.name,
+                        "progress" to job.progress,
+                        "total" to job.total,
+                        "created_at" to job.createdAt,
+                        "started_at" to job.startedAt,
+                        "completed_at" to job.completedAt
+                    )
+                },
+                "total" to jobs.totalElements.toInt(),
+                "has_more" to jobs.hasNext()
+            )
+        )
+    }
+
+    @Operation(
         summary = "Get async job status",
         operationId = "getAsyncJobStatus",
         responses = [

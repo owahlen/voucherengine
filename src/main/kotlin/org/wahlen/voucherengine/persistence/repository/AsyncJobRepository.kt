@@ -1,5 +1,7 @@
 package org.wahlen.voucherengine.persistence.repository
 
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.wahlen.voucherengine.persistence.model.async.AsyncJob
 import org.wahlen.voucherengine.persistence.model.async.AsyncJobStatus
@@ -11,4 +13,5 @@ interface AsyncJobRepository : JpaRepository<AsyncJob, UUID> {
         tenantName: String,
         status: AsyncJobStatus
     ): List<AsyncJob>
+    fun findAllByTenant_Name(tenantName: String, pageable: Pageable): Page<AsyncJob>
 }
