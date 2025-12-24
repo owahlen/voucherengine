@@ -104,13 +104,22 @@ class VoucherImportExportTest @Autowired constructor(
     }
 
     @Test
-    fun `CSV import returns not implemented`() {
+    fun `CSV import returns accepts job`() {
+        val csvContent = """
+            code,type,discount_type,discount_value,active
+            CSV-TEST1,DISCOUNT_VOUCHER,AMOUNT,1000,true
+            CSV-TEST2,DISCOUNT_VOUCHER,PERCENT,10,true
+        """.trimIndent()
+
         mockMvc.perform(
             post("/v1/vouchers/importCSV")
                 .header("tenant", tenantName)
+                .contentType("text/csv")
+                .content(csvContent)
                 .with(tenantJwt(tenantName))
-        ).andExpect(status().isNotImplemented)
-            .andExpect(jsonPath("$.message").exists())
+        ).andExpect(status().isAccepted)
+            .andExpect(jsonPath("$.async_action_id").exists())
+            .andExpect(jsonPath("$.status").value("ACCEPTED"))
     }
 
     @Test

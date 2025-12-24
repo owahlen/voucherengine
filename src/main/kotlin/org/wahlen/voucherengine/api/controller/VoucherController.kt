@@ -23,7 +23,7 @@ import org.wahlen.voucherengine.service.ValidationStackService
 import org.wahlen.voucherengine.service.RedemptionStackService
 import org.wahlen.voucherengine.service.QrCodeService
 import org.wahlen.voucherengine.service.BarcodeService
-import org.wahlen.voucherengine.service.async.AsyncJobPublisher
+import org.wahlen.voucherengine.service.async.VoucherJobService
 import org.wahlen.voucherengine.persistence.repository.AsyncJobRepository
 import java.util.UUID
 
@@ -43,7 +43,7 @@ class VoucherController(
     private val validationStackService: ValidationStackService,
     private val redemptionStackService: RedemptionStackService,
     private val sessionLockRepository: org.wahlen.voucherengine.persistence.repository.SessionLockRepository,
-    private val asyncJobPublisher: AsyncJobPublisher,
+    private val voucherJobService: VoucherJobService,
     private val asyncJobRepository: AsyncJobRepository
 ) {
 
@@ -354,7 +354,7 @@ class VoucherController(
         @RequestHeader("tenant") tenant: String,
         @Valid @RequestBody updates: List<org.wahlen.voucherengine.api.dto.request.VoucherBulkUpdateRequest>
     ): ResponseEntity<AsyncActionResponse> {
-        val jobId = asyncJobPublisher.publishBulkUpdate(tenant, updates)
+        val jobId = voucherJobService.publishBulkUpdate(tenant, updates)
         
         return ResponseEntity.accepted().body(
             AsyncActionResponse(
@@ -376,7 +376,7 @@ class VoucherController(
         @RequestHeader("tenant") tenant: String,
         @Valid @RequestBody request: org.wahlen.voucherengine.api.dto.request.VoucherMetadataUpdateRequest
     ): ResponseEntity<AsyncActionResponse> {
-        val jobId = asyncJobPublisher.publishMetadataUpdate(tenant, request)
+        val jobId = voucherJobService.publishMetadataUpdate(tenant, request)
         
         return ResponseEntity.accepted().body(
             AsyncActionResponse(
@@ -398,7 +398,7 @@ class VoucherController(
         @RequestHeader("tenant") tenant: String,
         @Valid @RequestBody request: org.wahlen.voucherengine.api.dto.request.VoucherImportRequest
     ): ResponseEntity<AsyncActionResponse> {
-        val jobId = asyncJobPublisher.publishVoucherImport(tenant, request)
+        val jobId = voucherJobService.publishVoucherImport(tenant, request)
         
         return ResponseEntity.accepted().body(
             AsyncActionResponse(
@@ -412,15 +412,25 @@ class VoucherController(
         summary = "Import vouchers from CSV",
         operationId = "importVouchersCSV",
         responses = [
-            ApiResponse(responseCode = "501", description = "Not implemented - use JSON import")
+            ApiResponse(responseCode = "202", description = "Import job accepted"),
+            ApiResponse(responseCode = "400", description = "Invalid CSV format")
         ]
     )
-    @PostMapping("/vouchers/importCSV")
+    @PostMapping("/vouchers/importCSV", consumes = ["text/csv"])
     fun importVouchersCSV(
-        @RequestHeader("tenant") tenant: String
-    ): ResponseEntity<Map<String, String>> {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-            .body(mapOf("message" to "CSV import not implemented. Use /vouchers/import with JSON format."))
+        @RequestHeader("tenant") tenant: String,
+        @RequestBody csvContent: String
+    ): ResponseEntity<AsyncActionResponse> {
+        val vouchers = org.wahlen.voucherengine.util.CsvVoucherParser.parseCsv(csvContent)
+        val request = org.wahlen.voucherengine.api.dto.request.VoucherImportRequest(vouchers = vouchers)
+        val jobId = voucherJobService.publishVoucherImport(tenant, request)
+        
+        return ResponseEntity.accepted().body(
+            AsyncActionResponse(
+                async_action_id = jobId.toString(),
+                status = "ACCEPTED"
+            )
+        )
     }
 
     @Operation(

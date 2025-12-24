@@ -17,6 +17,7 @@ import org.wahlen.voucherengine.api.dto.response.VoucherResponse
 import org.wahlen.voucherengine.persistence.model.campaign.Campaign
 import org.wahlen.voucherengine.service.CampaignService
 import org.wahlen.voucherengine.service.VoucherService
+import org.wahlen.voucherengine.service.async.VoucherJobService
 import java.util.UUID
 
 @RestController
@@ -30,7 +31,8 @@ import java.util.UUID
 )
 class CampaignController(
     private val campaignService: CampaignService,
-    private val voucherService: VoucherService
+    private val voucherService: VoucherService,
+    private val voucherJobService: VoucherJobService
 ) {
 
     @Operation(
@@ -144,11 +146,54 @@ class CampaignController(
     fun createVoucherInCampaign(
         @RequestHeader("tenant") tenant: String,
         @PathVariable id: UUID,
+        @Valid @RequestBody body: VoucherCreateRequest,
+        @Parameter(description = "Number of vouchers to create for bulk generation")
+        @RequestParam(required = false) vouchers_count: Int?
+    ): ResponseEntity<out Any> {
+        val campaign = campaignService.get(tenant, id) ?: return ResponseEntity.notFound().build()
+        
+        // If vouchers_count > 1, start async bulk generation
+        if (vouchers_count != null && vouchers_count > 1) {
+            val jobId = voucherJobService.publishCampaignVoucherGeneration(
+                tenant,
+                campaign.id!!,
+                body,
+                vouchers_count
+            )
+            
+            return ResponseEntity.accepted().body(
+                org.wahlen.voucherengine.api.dto.response.AsyncActionResponse(
+                    async_action_id = jobId.toString(),
+                    status = "ACCEPTED"
+                )
+            )
+        }
+        
+        val voucher = voucherService.createVoucher(tenant, body.copy(campaign_id = campaign.id))
+        return ResponseEntity.status(HttpStatus.CREATED).body(voucherService.toVoucherResponse(voucher))
+    }
+
+    @Operation(
+        summary = "Add voucher with specific code to campaign",
+        operationId = "addVoucherWithCodeToCampaign",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Voucher created with specified code"),
+            ApiResponse(responseCode = "404", description = "Campaign not found"),
+            ApiResponse(responseCode = "400", description = "Validation error or code already exists")
+        ]
+    )
+    @PostMapping("/campaigns/{id}/vouchers/{code}")
+    fun addVoucherWithCodeToCampaign(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID,
+        @PathVariable code: String,
         @Valid @RequestBody body: VoucherCreateRequest
     ): ResponseEntity<VoucherResponse> {
         val campaign = campaignService.get(tenant, id) ?: return ResponseEntity.notFound().build()
-        val voucher = voucherService.createVoucher(tenant, body.copy(campaign_id = campaign.id))
-        return ResponseEntity.status(HttpStatus.CREATED).body(voucherService.toVoucherResponse(voucher))
+        
+        // Force the code and campaign from path parameters
+        val voucher = voucherService.createVoucher(tenant, body.copy(code = code, campaign_id = campaign.id))
+        return ResponseEntity.ok(voucherService.toVoucherResponse(voucher))
     }
 
     @Operation(
@@ -167,6 +212,66 @@ class CampaignController(
         val campaign = campaignService.get(tenant, id) ?: return ResponseEntity.notFound().build()
         val vouchers = voucherService.listVouchersByCampaign(tenant, campaign.id!!)
         return ResponseEntity.ok(vouchers.map { voucherService.toVoucherResponse(it) })
+    }
+
+    @Operation(
+        summary = "Import vouchers to campaign",
+        operationId = "importVouchersToCampaign",
+        responses = [
+            ApiResponse(responseCode = "202", description = "Import job accepted"),
+            ApiResponse(responseCode = "404", description = "Campaign not found")
+        ]
+    )
+    @PostMapping("/campaigns/{id}/import")
+    fun importVouchersToCampaign(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID,
+        @Valid @RequestBody request: org.wahlen.voucherengine.api.dto.request.VoucherImportRequest
+    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.AsyncActionResponse> {
+        val campaign = campaignService.get(tenant, id) ?: return ResponseEntity.notFound().build()
+        
+        // Add campaign_id to all vouchers in the import
+        val vouchersWithCampaign = request.vouchers.map { it.copy(campaign_id = campaign.id) }
+        val modifiedRequest = request.copy(vouchers = vouchersWithCampaign)
+        
+        val jobId = voucherJobService.publishVoucherImport(tenant, modifiedRequest)
+        
+        return ResponseEntity.accepted().body(
+            org.wahlen.voucherengine.api.dto.response.AsyncActionResponse(
+                async_action_id = jobId.toString(),
+                status = "ACCEPTED"
+            )
+        )
+    }
+
+    @Operation(
+        summary = "Import vouchers to campaign from CSV",
+        operationId = "importVouchersToCampaignCSV",
+        responses = [
+            ApiResponse(responseCode = "202", description = "Import job accepted"),
+            ApiResponse(responseCode = "404", description = "Campaign not found"),
+            ApiResponse(responseCode = "400", description = "Invalid CSV format")
+        ]
+    )
+    @PostMapping("/campaigns/{id}/importCSV", consumes = ["text/csv"])
+    fun importVouchersToCampaignCSV(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID,
+        @RequestBody csvContent: String
+    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.AsyncActionResponse> {
+        val campaign = campaignService.get(tenant, id) ?: return ResponseEntity.notFound().build()
+        
+        val vouchers = org.wahlen.voucherengine.util.CsvVoucherParser.parseCsv(csvContent)
+        val vouchersWithCampaign = vouchers.map { it.copy(campaign_id = campaign.id) }
+        val request = org.wahlen.voucherengine.api.dto.request.VoucherImportRequest(vouchers = vouchersWithCampaign)
+        val jobId = voucherJobService.publishVoucherImport(tenant, request)
+        
+        return ResponseEntity.accepted().body(
+            org.wahlen.voucherengine.api.dto.response.AsyncActionResponse(
+                async_action_id = jobId.toString(),
+                status = "ACCEPTED"
+            )
+        )
     }
 
     private fun toResponse(campaign: Campaign) = CampaignResponse(

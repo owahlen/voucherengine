@@ -1,0 +1,89 @@
+### Test New Campaign-Voucher Endpoints
+
+import ../common/authenticate.http
+
+@tenant = acme
+
+### Authentication
+run #authenticate_tenant
+
+### 1. Create a campaign first
+# @name create_campaign
+POST {{voucherengine_base_url}}/v1/campaigns
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{
+  "name": "Test Campaign for Vouchers",
+  "type": "DISCOUNT",
+  "mode": "STANDALONE",
+  "active": true
+}
+
+< {%
+    request.variables.set("campaign_id", response.body.id);
+%}
+
+### 2. Add voucher with specific code to campaign
+# @name add_voucher_with_code
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaign_id}}/vouchers/SPECIFIC-CODE-123
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{
+  "type": "DISCOUNT_VOUCHER",
+  "discount": {
+    "type": "AMOUNT",
+    "amount_off": 1000
+  },
+  "active": true
+}
+
+### 3. Import vouchers to campaign
+# @name import_to_campaign
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaign_id}}/import
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+Content-Type: application/json
+
+{
+  "vouchers": [
+    {
+      "code": "CAMP-IMPORT-1",
+      "type": "DISCOUNT_VOUCHER",
+      "discount": {
+        "type": "PERCENT",
+        "percent_off": 10
+      }
+    },
+    {
+      "code": "CAMP-IMPORT-2",
+      "type": "DISCOUNT_VOUCHER",
+      "discount": {
+        "type": "PERCENT",
+        "percent_off": 15
+      }
+    }
+  ]
+}
+
+< {%
+    request.variables.set("async_job_id", response.body.async_action_id);
+%}
+
+### 4. Check import job status
+GET {{voucherengine_base_url}}/v1/async-actions/{{async_job_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+
+### 5. List all vouchers in campaign
+GET {{voucherengine_base_url}}/v1/campaigns/{{campaign_id}}/vouchers
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+
+### 6. Try CSV import (should return 501 Not Implemented)
+POST {{voucherengine_base_url}}/v1/campaigns/{{campaign_id}}/importCSV
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
