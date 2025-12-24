@@ -55,6 +55,7 @@ class VoucherService(
     private val tenantService: TenantService,
     private val voucherTransactionRepository: org.wahlen.voucherengine.persistence.repository.VoucherTransactionRepository,
     private val clock: Clock,
+    private val customerEventService: CustomerEventService
 ) {
 
     @Transactional
@@ -258,6 +259,23 @@ class VoucherService(
             VoucherValidationRequest(customer = customerRef, order = order, metadata = metadata)
         )
         if (!validation.valid) {
+            // Log failed redemption
+            customerRef?.let { ref ->
+                customerService.ensureCustomer(tenantName, ref)?.let { customer ->
+                    customerEventService.logEvent(
+                        tenantName = tenantName,
+                        customer = customer,
+                        eventType = org.wahlen.voucherengine.persistence.model.event.CustomerEventType.REDEMPTION_FAILED,
+                        category = org.wahlen.voucherengine.persistence.model.event.EventCategory.ACTION,
+                        campaign = voucher.campaign,
+                        data = mapOf(
+                            "voucher_code" to voucher.code,
+                            "failure_code" to (validation.error?.code ?: "unknown"),
+                            "failure_message" to (validation.error?.message ?: "Validation failed")
+                        )
+                    )
+                }
+            }
             return RedeemSingleResult(error = validation.error ?: ErrorResponse("invalid_request", "Validation failed."))
         }
 
@@ -283,6 +301,24 @@ class VoucherService(
             voucher.redemptionJson = redemptionJson.copy(redeemed_quantity = current + 1)
             voucherRepository.save(voucher)
         }
+        
+        // Log successful redemption
+        customer?.let {
+            customerEventService.logEvent(
+                tenantName = tenantName,
+                customer = it,
+                eventType = org.wahlen.voucherengine.persistence.model.event.CustomerEventType.REDEMPTION_SUCCEEDED,
+                category = org.wahlen.voucherengine.persistence.model.event.EventCategory.ACTION,
+                campaign = voucher.campaign,
+                data = mapOf(
+                    "voucher_code" to voucher.code,
+                    "redemption_id" to saved.id,
+                    "amount" to order?.amount,
+                    "tracking_id" to trackingId
+                )
+            )
+        }
+        
         return RedeemSingleResult(redemption = saved)
     }
 

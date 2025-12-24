@@ -1,0 +1,109 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20241224-create-customer-event
+      author: system
+      changes:
+        - createTable:
+            tableName: customer_event
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: event_type
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: customer_id
+                  type: varchar(36)
+              - column:
+                  name: campaign_id
+                  type: varchar(36)
+              - column:
+                  name: category
+                  type: varchar(20)
+              - column:
+                  name: data
+                  type: jsonb
+              - column:
+                  name: group_id
+                  type: varchar(50)
+              - column:
+                  name: event_source
+                  type: varchar(50)
+              - column:
+                  name: tenant_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  
+        - createIndex:
+            tableName: customer_event
+            indexName: idx_customer_event_customer_tenant_created
+            columns:
+              - column:
+                  name: customer_id
+              - column:
+                  name: tenant_id
+              - column:
+                  name: created_at
+                  
+        - createIndex:
+            tableName: customer_event
+            indexName: idx_customer_event_customer_tenant_type
+            columns:
+              - column:
+                  name: customer_id
+              - column:
+                  name: tenant_id
+              - column:
+                  name: event_type
+              - column:
+                  name: created_at
+                  
+        - createIndex:
+            tableName: customer_event
+            indexName: idx_customer_event_customer_tenant_campaign
+            columns:
+              - column:
+                  name: customer_id
+              - column:
+                  name: tenant_id
+              - column:
+                  name: campaign_id
+              - column:
+                  name: created_at
+                  
+        - createIndex:
+            tableName: customer_event
+            indexName: idx_customer_event_group
+            columns:
+              - column:
+                  name: group_id
+                  
+        - createIndex:
+            tableName: customer_event
+            indexName: idx_customer_event_tenant_created
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: created_at
+
+        
+        - addForeignKeyConstraint:
+            baseTableName: customer_event
+            baseColumnNames: tenant_id
+            referencedTableName: tenant
+            referencedColumnNames: id
+            constraintName: fk_customer_event_tenant

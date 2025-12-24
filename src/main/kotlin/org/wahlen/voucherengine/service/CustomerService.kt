@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.CustomerCreateRequest
 import org.wahlen.voucherengine.api.dto.request.CustomerReferenceDto
 import org.wahlen.voucherengine.persistence.model.customer.Customer
+import org.wahlen.voucherengine.persistence.model.event.CustomerEventType
+import org.wahlen.voucherengine.persistence.model.event.EventCategory
 import org.wahlen.voucherengine.persistence.repository.CustomerRepository
 import org.wahlen.voucherengine.persistence.repository.PublicationRepository
 import org.wahlen.voucherengine.persistence.repository.VoucherRepository
@@ -17,18 +19,37 @@ class CustomerService(
     private val customerRepository: CustomerRepository,
     private val publicationRepository: PublicationRepository,
     private val voucherRepository: VoucherRepository,
-    private val tenantService: TenantService
+    private val tenantService: TenantService,
+    private val customerEventService: CustomerEventService
 ) {
     @Transactional
     fun upsert(tenantName: String, request: CustomerCreateRequest): Customer {
         val tenant = tenantService.requireTenant(tenantName)
         val existing = request.source_id?.let { customerRepository.findBySourceIdAndTenantName(it, tenantName) }
         val customer = existing ?: Customer(sourceId = request.source_id, tenant = tenant)
+        val isNew = customer.id == null
+        
         customer.email = request.email ?: customer.email
         customer.name = request.name ?: customer.name
         customer.phone = request.phone ?: customer.phone
         customer.metadata = request.metadata ?: customer.metadata
-        return customerRepository.save(customer)
+        
+        val saved = customerRepository.save(customer)
+        
+        // Log event
+        customerEventService.logEvent(
+            tenantName = tenantName,
+            customer = saved,
+            eventType = if (isNew) CustomerEventType.CUSTOMER_CREATED else CustomerEventType.CUSTOMER_UPDATED,
+            category = EventCategory.EFFECT,
+            data = mapOf(
+                "source_id" to saved.sourceId,
+                "email" to saved.email,
+                "name" to saved.name
+            )
+        )
+        
+        return saved
     }
 
     @Transactional(readOnly = true)
@@ -59,6 +80,19 @@ class CustomerService(
                 voucherRepository.saveAll(vouchers)
             }
         }
+        
+        // Log deletion event before actual delete
+        customerEventService.logEvent(
+            tenantName = tenantName,
+            customer = existing,
+            eventType = CustomerEventType.CUSTOMER_DELETED,
+            category = EventCategory.EFFECT,
+            data = mapOf(
+                "source_id" to existing.sourceId,
+                "email" to existing.email
+            )
+        )
+        
         customerRepository.delete(existing)
     }
 

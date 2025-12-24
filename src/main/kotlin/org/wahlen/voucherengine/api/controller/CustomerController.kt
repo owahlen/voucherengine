@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import jakarta.validation.Valid
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
@@ -19,8 +21,14 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.CustomerCreateRequest
+import org.wahlen.voucherengine.api.dto.response.CustomerActivityDto
+import org.wahlen.voucherengine.api.dto.response.CustomerActivityResponse
 import org.wahlen.voucherengine.api.dto.response.CustomersListResponse
+import org.wahlen.voucherengine.persistence.model.event.EventCategory
+import org.wahlen.voucherengine.service.CustomerEventService
 import org.wahlen.voucherengine.service.CustomerService
+import java.time.Instant
+import java.util.UUID
 
 @RestController
 @RequestMapping("/v1")
@@ -32,7 +40,8 @@ import org.wahlen.voucherengine.service.CustomerService
     ]
 )
 class CustomerController(
-    private val customerService: CustomerService
+    private val customerService: CustomerService,
+    private val customerEventService: CustomerEventService
 ) {
 
     @Operation(
@@ -203,6 +212,7 @@ class CustomerController(
     @Operation(
         summary = "Get customer activity",
         operationId = "getCustomerActivity",
+        description = "Retrieves activity details of a customer including redemptions, validations, publications, and other events",
         responses = [
             ApiResponse(responseCode = "200", description = "Customer activity retrieved"),
             ApiResponse(responseCode = "404", description = "Customer not found")
@@ -215,16 +225,59 @@ class CustomerController(
         @Parameter(description = "Max number of items per page", example = "10")
         @RequestParam(required = false, defaultValue = "10") limit: Int,
         @Parameter(description = "1-based page index", example = "1")
-        @RequestParam(required = false, defaultValue = "1") page: Int
-    ): ResponseEntity<Map<String, Any>> {
-        val customer = customerService.getByIdOrSource(tenant, id) ?: return ResponseEntity.notFound().build()
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @Parameter(description = "Filter by event type (e.g., customer.redemption.succeeded)")
+        @RequestParam(required = false) type: String?,
+        @Parameter(description = "Filter by campaign ID")
+        @RequestParam(required = false) campaign_id: UUID?,
+        @Parameter(description = "Filter by category: ACTION or EFFECT")
+        @RequestParam(required = false) category: String?,
+        @Parameter(description = "Start date filter (ISO 8601)")
+        @RequestParam(required = false) start_date: String?,
+        @Parameter(description = "End date filter (ISO 8601)")
+        @RequestParam(required = false) end_date: String?
+    ): ResponseEntity<CustomerActivityResponse> {
+        val customer = customerService.getByIdOrSource(tenant, id) 
+            ?: return ResponseEntity.notFound().build()
+        
+        val cappedLimit = limit.coerceIn(1, 100)
+        val pageable = PageRequest.of(
+            (page - 1).coerceAtLeast(0),
+            cappedLimit,
+            Sort.by("createdAt").descending()
+        )
+        
+        val eventTypes = type?.let { listOf(it) }
+        val eventCategory = category?.let { EventCategory.valueOf(it) }
+        val startInstant = start_date?.let { Instant.parse(it) }
+        val endInstant = end_date?.let { Instant.parse(it) }
+        
+        val events = customerEventService.listCustomerActivity(
+            tenantName = tenant,
+            customerId = customer.id!!,
+            eventTypes = eventTypes,
+            campaignId = campaign_id,
+            category = eventCategory,
+            startDate = startInstant,
+            endDate = endInstant,
+            pageable = pageable
+        )
+        
         return ResponseEntity.ok(
-            mapOf(
-                "object" to "list",
-                "data_ref" to "data",
-                "data" to emptyList<Any>(),
-                "has_more" to false,
-                "total" to 0
+            CustomerActivityResponse(
+                `object` = "list",
+                data_ref = "data",
+                data = events.content.map { event ->
+                    CustomerActivityDto(
+                        id = event.id.toString(),
+                        type = event.eventType,
+                        data = event.data,
+                        created_at = event.createdAt,
+                        group_id = event.groupId
+                    )
+                },
+                has_more = events.hasNext(),
+                more_starting_after = events.content.lastOrNull()?.id?.toString()
             )
         )
     }
