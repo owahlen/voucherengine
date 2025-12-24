@@ -56,9 +56,9 @@ class ExportService(
             channel = "API",
             resultUrl = null,
             resultToken = token,
-            parameters = request.parameters?.let { toParametersMap(it) }
+            parameters = request.parameters?.let { toParametersMap(it) },
+            tenant = tenant
         )
-        export.tenant = tenant
         val saved = exportRepository.save(export)
         saved.resultUrl = buildResultUrl(saved.id, token, null)
         return toResponse(exportRepository.save(saved))

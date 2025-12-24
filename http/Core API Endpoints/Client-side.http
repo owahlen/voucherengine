@@ -124,7 +124,7 @@ Content-Type: application/json
                 }
             }
         }
-    };
+    }
     request.variables.set("payload", JSON.stringify(body));
 %}
 POST {{voucherengine_base_url}}/v1/qualifications
@@ -229,7 +229,7 @@ Content-Type: application/json
                 "redeemable"
             ]
         }
-    };
+    }
     request.variables.set("payload", JSON.stringify(body));
 %}
 POST {{voucherengine_base_url}}/v1/validations
@@ -334,7 +334,7 @@ Content-Type: application/json
                 "redeemable"
             ]
         }
-    };
+    }
     request.variables.set("payload", JSON.stringify(body));
 %}
 POST {{voucherengine_base_url}}/v1/redemptions

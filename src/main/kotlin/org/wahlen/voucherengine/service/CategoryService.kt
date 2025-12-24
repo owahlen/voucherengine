@@ -16,8 +16,7 @@ class CategoryService(
     @Transactional
     fun create(tenantName: String, request: CategoryCreateRequest): Category {
         val tenant = tenantService.requireTenant(tenantName)
-        val category = Category(name = request.name)
-        category.tenant = tenant
+        val category = Category(name = requireNotNull(request.name), tenant = tenant)
         return categoryRepository.save(category)
     }
 
@@ -30,7 +29,7 @@ class CategoryService(
     @Transactional
     fun update(tenantName: String, id: UUID, request: CategoryCreateRequest): Category? {
         val existing = categoryRepository.findByIdAndTenantName(id, tenantName) ?: return null
-        existing.name = request.name
+        existing.name = requireNotNull(request.name)
         return categoryRepository.save(existing)
     }
 

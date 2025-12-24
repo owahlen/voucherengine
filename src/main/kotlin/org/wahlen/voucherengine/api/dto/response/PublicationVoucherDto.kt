@@ -41,7 +41,7 @@ data class PublicationVoucherDto(
     @field:Schema(description = "Metadata")
     val metadata: Map<String, Any?>? = null,
     @field:Schema(description = "Assets")
-    val assets: org.wahlen.voucherengine.api.dto.response.VoucherAssetsDto? = null,
+    val assets: VoucherAssetsDto? = null,
     @field:Schema(description = "Whether this voucher is a referral code")
     val is_referral_code: Boolean? = null
 )

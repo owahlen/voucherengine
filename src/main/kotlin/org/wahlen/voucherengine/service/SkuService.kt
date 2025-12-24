@@ -30,7 +30,9 @@ class SkuService(
         sku.attributes = request.attributes ?: sku.attributes
         sku.metadata = request.metadata ?: sku.metadata
         sku.imageUrl = request.image_url ?: sku.imageUrl
-        sku.tenant = tenant
+        if (sku.tenant == null) {
+            sku.tenant = tenant
+        }
         return toResponse(skuRepository.save(sku))
     }
 

@@ -56,7 +56,7 @@ class GlobalExceptionHandler(
         ex: ResponseStatusException,
         request: HttpServletRequest
     ): ResponseEntity<ErrorDto> {
-        val status = org.springframework.http.HttpStatus.resolve(ex.statusCode.value())
+        val status = HttpStatus.resolve(ex.statusCode.value())
             ?: HttpStatus.INTERNAL_SERVER_ERROR
         val body = errorDtoFactory.build(status, ex.reason ?: status.reasonPhrase, null, request)
         return ResponseEntity.status(status).body(body)

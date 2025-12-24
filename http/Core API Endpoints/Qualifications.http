@@ -96,7 +96,7 @@ run #authenticate_tenant
                 }
             }
         }
-    };
+    }
     request.variables.set("payload", JSON.stringify(body));
 %}
 POST {{voucherengine_base_url}}/v1/qualifications
@@ -208,7 +208,7 @@ Content-Type: application/json
             "starting_after": null, // Cursor used for paging.
             "sorting_rule": "DEFAULT"
         }
-    };
+    }
     request.variables.set("payload", JSON.stringify(body));
 %}
 POST {{voucherengine_base_url}}/v1/qualifications

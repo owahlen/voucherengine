@@ -30,9 +30,9 @@ class ValidationRuleService(
             rules = rulesPayload,
             bundleRules = request.bundle_rules,
             applicableTo = request.applicable_to,
-            error = request.error
+            error = request.error,
+            tenant = tenant
         )
-        rule.tenant = tenant
         return toResponse(validationRuleRepository.save(rule))
     }
 
@@ -42,9 +42,9 @@ class ValidationRuleService(
         val assignment = ValidationRulesAssignment(
             ruleId = ruleId,
             relatedObjectId = request.id,
-            relatedObjectType = request.`object`
+            relatedObjectType = request.`object`,
+            tenant = tenant
         )
-        assignment.tenant = tenant
         return toAssignmentResponse(validationRulesAssignmentRepository.save(assignment))
     }
 

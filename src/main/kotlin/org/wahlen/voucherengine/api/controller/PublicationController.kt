@@ -151,7 +151,7 @@ class PublicationController(
         @RequestHeader("tenant") tenant: String,
         @RequestParam(name = "page", required = false, defaultValue = "1") page: Int,
         @RequestParam(name = "limit", required = false, defaultValue = "10") limit: Int,
-        @org.springframework.web.bind.annotation.PathVariable code: String
+        @PathVariable code: String
     ): ResponseEntity<PublicationsListResponse> {
         if (page > 1000) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "page_over_limit")

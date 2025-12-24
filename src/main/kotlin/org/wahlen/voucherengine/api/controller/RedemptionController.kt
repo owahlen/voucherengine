@@ -53,7 +53,7 @@ class RedemptionController(
     ): ResponseEntity<RedemptionsListResponse> {
         if (page > 99) {
             throw org.springframework.web.server.ResponseStatusException(
-                org.springframework.http.HttpStatus.BAD_REQUEST,
+                HttpStatus.BAD_REQUEST,
                 "page_over_limit"
             )
         }

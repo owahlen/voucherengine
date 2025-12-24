@@ -25,7 +25,9 @@ class OrderService(
         val tenant = tenantService.requireTenant(tenantName)
         val entity = (request.source_id?.let { orderRepository.findBySourceIdAndTenantName(it, tenantName) }) ?: Order()
         applyRequest(tenantName, entity, request)
-        entity.tenant = tenant
+        if (entity.tenant == null) {
+            entity.tenant = tenant
+        }
         return toResponse(orderRepository.save(entity))
     }
 
@@ -118,9 +120,9 @@ class OrderService(
                     productSnapshot = enrichedProductSnapshot,
                     skuSnapshot = skuSnapshot,
                     metadata = item.metadata,
-                    order = entity
+                    order = entity,
+                    tenant = tenant
                 )
-                orderItem.tenant = tenant
                 entity.items.add(orderItem)
             }
         }
@@ -198,7 +200,7 @@ class OrderService(
             )
         }
         if (productIdOrSource.isNullOrBlank()) return null
-        val uuid = runCatching { java.util.UUID.fromString(productIdOrSource) }.getOrNull()
+        val uuid = runCatching { UUID.fromString(productIdOrSource) }.getOrNull()
         val product = if (uuid != null) {
             productRepository.findByIdAndTenantName(uuid, tenantName)
         } else {
@@ -239,7 +241,7 @@ class OrderService(
     }
 
     private fun findSkuEntity(tenantName: String, idOrSource: String): org.wahlen.voucherengine.persistence.model.product.Sku? {
-        val uuid = runCatching { java.util.UUID.fromString(idOrSource) }.getOrNull()
+        val uuid = runCatching { UUID.fromString(idOrSource) }.getOrNull()
         return if (uuid != null) {
             skuRepository.findByIdAndTenantName(uuid, tenantName)
         } else {

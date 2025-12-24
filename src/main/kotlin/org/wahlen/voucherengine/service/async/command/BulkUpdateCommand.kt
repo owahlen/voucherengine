@@ -24,10 +24,9 @@ data class BulkUpdateCommand(
             total = updates.size,
             parameters = mapOf(
                 "update_count" to updates.size
-            )
-        ).apply {
-            this.tenant = tenant
-        }
+            ),
+            tenant = tenant
+        )
     }
     
     override fun execute(context: ApplicationContext) {

@@ -25,10 +25,9 @@ data class CampaignVoucherGenerationCommand(
             parameters = mapOf(
                 "campaignId" to campaignId.toString(),
                 "count" to count
-            )
-        ).apply {
-            this.tenant = tenant
-        }
+            ),
+            tenant = tenant
+        )
     }
     
     override fun execute(context: ApplicationContext) {

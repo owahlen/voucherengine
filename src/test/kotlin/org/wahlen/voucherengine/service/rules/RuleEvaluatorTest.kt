@@ -6,21 +6,26 @@ import org.wahlen.voucherengine.api.dto.request.OrderRequest
 import org.wahlen.voucherengine.api.dto.request.VoucherValidationRequest
 import org.wahlen.voucherengine.persistence.model.campaign.Campaign
 import org.wahlen.voucherengine.persistence.model.customer.Customer
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class RuleEvaluatorTest {
 
+    private val testTenant = Tenant(name = "test-tenant")
+
     private val customer = Customer(
         sourceId = "cust_1",
         email = "alice@example.com",
-        metadata = mapOf("tier" to "gold")
+        metadata = mapOf("tier" to "gold"),
+        tenant = testTenant
     )
 
     private val campaign = Campaign(
         name = "Winter",
-        metadata = mapOf("region" to "EU")
+        metadata = mapOf("region" to "EU"),
+        tenant = testTenant
     )
 
     private val voucher = Voucher(
@@ -180,7 +185,8 @@ class RuleEvaluatorTest {
         val enrichedCustomer = Customer(
             sourceId = customer.sourceId,
             email = customer.email,
-            metadata = mapOf("marketing_opt_in" to true)
+            metadata = mapOf("marketing_opt_in" to true),
+            tenant = testTenant
         )
 
         val enrichedCtx = RuleEvaluator.Context(

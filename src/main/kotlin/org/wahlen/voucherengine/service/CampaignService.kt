@@ -35,9 +35,9 @@ class CampaignService(
             startDate = request.start_date,
             expirationDate = request.expiration_date,
             metadata = request.metadata,
-            active = request.active ?: true
+            active = request.active ?: true,
+            tenant = tenant
         )
-        campaign.tenant = tenant
         return campaignRepository.save(campaign)
     }
 

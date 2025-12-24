@@ -104,7 +104,7 @@ run #authenticate_tenant
                 "redeemable"
             ]
         }
-    };
+    }
     request.variables.set("payload", JSON.stringify(body));
 %}
 POST {{voucherengine_base_url}}/v1/redemptions

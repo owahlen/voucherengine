@@ -25,10 +25,9 @@ data class MetadataUpdateCommand(
             total = codes.size,
             parameters = mapOf(
                 "codes_count" to codes.size
-            )
-        ).apply {
-            this.tenant = tenant
-        }
+            ),
+            tenant = tenant
+        )
     }
     
     override fun execute(context: ApplicationContext) {

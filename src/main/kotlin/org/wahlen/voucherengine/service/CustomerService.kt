@@ -23,12 +23,11 @@ class CustomerService(
     fun upsert(tenantName: String, request: CustomerCreateRequest): Customer {
         val tenant = tenantService.requireTenant(tenantName)
         val existing = request.source_id?.let { customerRepository.findBySourceIdAndTenantName(it, tenantName) }
-        val customer = existing ?: Customer(sourceId = request.source_id)
+        val customer = existing ?: Customer(sourceId = request.source_id, tenant = tenant)
         customer.email = request.email ?: customer.email
         customer.name = request.name ?: customer.name
         customer.phone = request.phone ?: customer.phone
         customer.metadata = request.metadata ?: customer.metadata
-        customer.tenant = tenant
         return customerRepository.save(customer)
     }
 
@@ -73,16 +72,15 @@ class CustomerService(
             if (ref.email != null) existing.email = ref.email
             if (ref.name != null) existing.name = ref.name
             if (ref.phone != null) existing.phone = ref.phone
-            existing.tenant = tenant
             return customerRepository.save(existing)
         }
         val customer = Customer(
             sourceId = ref.source_id,
             email = ref.email,
             name = ref.name,
-            phone = ref.phone
+            phone = ref.phone,
+            tenant = tenant
         )
-        customer.tenant = tenant
         return customerRepository.save(customer)
     }
 }

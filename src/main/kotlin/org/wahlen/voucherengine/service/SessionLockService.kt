@@ -37,8 +37,9 @@ class SessionLockService(
                 sessionKey = key,
                 redeemableId = redeemableId,
                 redeemableObject = redeemableObject,
-                expiresAt = expiresAt
-            ).also { it.tenant = tenant }
+                expiresAt = expiresAt,
+                tenant = tenant
+            )
         }
         if (locks.isNotEmpty()) {
             sessionLockRepository.saveAll(locks)

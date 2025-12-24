@@ -25,10 +25,9 @@ data class VoucherImportCommand(
             total = voucherCount,
             parameters = mapOf(
                 "voucher_count" to voucherCount
-            )
-        ).apply {
-            this.tenant = tenant
-        }
+            ),
+            tenant = tenant
+        )
     }
     
     override fun execute(context: ApplicationContext) {

@@ -34,8 +34,7 @@ class ProductCollectionService(
     @Transactional
     fun create(tenantName: String, request: ProductCollectionCreateRequest): ProductCollectionResponse {
         val tenant = tenantService.requireTenant(tenantName)
-        val collection = ProductCollection()
-        collection.tenant = tenant
+        val collection = ProductCollection(tenant = tenant)
         applyRequest(collection, request)
         return toResponse(productCollectionRepository.save(collection))
     }
@@ -124,9 +123,9 @@ class ProductCollectionService(
             itemId = request.id,
             productId = request.product_id,
             objectType = objectType,
-            collection = collection
+            collection = collection,
+            tenant = collection.tenant
         )
-        item.tenant = collection.tenant
         return item
     }
 

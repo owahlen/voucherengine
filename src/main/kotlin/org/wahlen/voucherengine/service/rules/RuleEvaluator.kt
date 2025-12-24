@@ -228,8 +228,7 @@ object RuleEvaluator {
             if (index >= tokens.size) {
                 false
             } else {
-                val token = tokens[index++]
-                when (token) {
+                when (val token = tokens[index++]) {
                     "(" -> {
                         val inner = parseExpression()
                         if (index < tokens.size && tokens[index] == ")") index++

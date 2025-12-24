@@ -24,13 +24,12 @@ class ProductService(
     fun create(tenantName: String, request: ProductCreateRequest): ProductResponse {
         val tenant = tenantService.requireTenant(tenantName)
         val existing = request.source_id?.let { productRepository.findBySourceIdAndTenantName(it, tenantName) }
-        val product = existing ?: Product(sourceId = request.source_id)
+        val product = existing ?: Product(sourceId = request.source_id, tenant = tenant)
         product.name = request.name ?: product.name
         product.price = request.price ?: product.price
         product.attributes = request.attributes ?: product.attributes
         product.metadata = request.metadata ?: product.metadata
         product.imageUrl = request.image_url ?: product.imageUrl
-        product.tenant = tenant
         return toResponse(productRepository.save(product), tenantName, includeSkus = true)
     }
 

@@ -105,9 +105,9 @@ class PublicationService(
             result = PublicationResult.SUCCESS,
             sourceId = request.source_id,
             channel = request.channel ?: "API",
-            metadata = request.metadata
+            metadata = request.metadata,
+            tenant = tenant
         )
-        publication.tenant = tenant
         return toResponse(publicationRepository.save(publication))
     }
 
@@ -137,9 +137,9 @@ class PublicationService(
                     result = PublicationResult.SUCCESS,
                     sourceId = request.source_id,
                     channel = request.channel ?: "API",
-                    metadata = request.metadata
+                    metadata = request.metadata,
+                    tenant = tenant
                 )
-                publication.tenant = tenant
                 return toResponse(publicationRepository.save(publication))
             }
         }
@@ -170,12 +170,12 @@ class PublicationService(
             result = PublicationResult.SUCCESS,
             sourceId = request.source_id,
             channel = request.channel ?: "API",
-            metadata = request.metadata
+            metadata = request.metadata,
+            tenant = tenant
         )
         if (count > 1) {
             publication.vouchers.addAll(vouchers)
         }
-        publication.tenant = tenant
         return toResponse(publicationRepository.save(publication))
     }
 
@@ -195,9 +195,9 @@ class PublicationService(
             failureMessage = message,
             sourceId = request.source_id,
             channel = request.channel ?: "API",
-            metadata = request.metadata
+            metadata = request.metadata,
+            tenant = tenant
         )
-        publication.tenant = tenant
         return toResponse(publicationRepository.save(publication))
     }
 

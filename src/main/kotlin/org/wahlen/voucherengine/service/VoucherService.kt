@@ -75,9 +75,9 @@ class VoucherService(
             additionalInfo = request.additional_info,
             campaign = campaign,
             startDate = request.start_date,
-            expirationDate = request.expiration_date
+            expirationDate = request.expiration_date,
+            tenant = tenant
         )
-        voucher.tenant = tenant
         voucher.validityTimeframe = request.validity_timeframe
         voucher.validityDayOfWeek = request.validity_day_of_week
         voucher.validityHours = request.validity_hours
@@ -272,9 +272,9 @@ class VoucherService(
             customer = customer,
             amount = order?.amount,
             result = RedemptionResult.SUCCESS,
-            status = RedemptionStatus.SUCCEEDED
+            status = RedemptionStatus.SUCCEEDED,
+            tenant = tenant
         )
-        redemption.tenant = tenant
         val saved = redemptionRepository.save(redemption)
 
         val redemptionJson = voucher.redemptionJson
@@ -399,7 +399,7 @@ class VoucherService(
         if (categoryIds == null) return
         val categories = categoryRepository.findAllByIdInAndTenantName(categoryIds, tenantName)
         if (categories.size != categoryIds.size) {
-            throw org.springframework.web.server.ResponseStatusException(
+            throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 "One or more categories not found"
             )
@@ -548,7 +548,7 @@ class VoucherService(
         return null
     }
 
-    private fun ensureOrderItemsExist(tenantName: String, order: org.wahlen.voucherengine.api.dto.request.OrderRequest?): ValidationResponse? {
+    private fun ensureOrderItemsExist(tenantName: String, order: OrderRequest?): ValidationResponse? {
         val items = order?.items ?: return null
         items.forEach { item ->
             val productId = item.product_id?.trim()
@@ -570,7 +570,7 @@ class VoucherService(
     }
 
     private fun findProductByIdOrSource(tenantName: String, idOrSource: String): org.wahlen.voucherengine.persistence.model.product.Product? {
-        val uuid = runCatching { java.util.UUID.fromString(idOrSource) }.getOrNull()
+        val uuid = runCatching { UUID.fromString(idOrSource) }.getOrNull()
         if (uuid != null) {
             val byId = productRepository.findByIdAndTenantName(uuid, tenantName)
             if (byId != null) return byId
@@ -579,7 +579,7 @@ class VoucherService(
     }
 
     private fun findSkuByIdOrSource(tenantName: String, idOrSource: String): org.wahlen.voucherengine.persistence.model.product.Sku? {
-        val uuid = runCatching { java.util.UUID.fromString(idOrSource) }.getOrNull()
+        val uuid = runCatching { UUID.fromString(idOrSource) }.getOrNull()
         if (uuid != null) {
             val byId = skuRepository.findByIdAndTenantName(uuid, tenantName)
             if (byId != null) return byId
@@ -616,7 +616,7 @@ class VoucherService(
     fun rollbackRedemption(
         tenantName: String,
         redemptionId: UUID,
-        request: org.wahlen.voucherengine.api.dto.request.RollbackRequest
+        request: RollbackRequest
     ): org.wahlen.voucherengine.persistence.model.redemption.RedemptionRollback? {
         val tenant = tenantService.requireTenant(tenantName)
         val redemption = redemptionRepository.findByIdAndTenantName(redemptionId, tenantName) ?: return null
@@ -628,9 +628,9 @@ class VoucherService(
             result = RedemptionResult.SUCCESS,
             reason = request.reason,
             redemption = redemption,
-            customer = redemption.customer
+            customer = redemption.customer,
+            tenant = tenant
         )
-        rollback.tenant = tenant
         return redemptionRollbackRepository.save(rollback)
     }
 
@@ -714,9 +714,9 @@ class VoucherService(
                     source = "API",
                     reason = request.reason,
                     amount = amount,
-                    balanceAfter = newBalance
+                    balanceAfter = newBalance,
+                    tenant = tenant
                 )
-                transaction.tenant = tenant
                 voucherTransactionRepository.save(transaction)
 
                 return org.wahlen.voucherengine.api.dto.response.VoucherBalanceUpdateResponse(
@@ -750,9 +750,9 @@ class VoucherService(
                     source = "API",
                     reason = request.reason,
                     amount = amount,
-                    balanceAfter = newBalance
+                    balanceAfter = newBalance,
+                    tenant = tenant
                 )
-                transaction.tenant = tenant
                 voucherTransactionRepository.save(transaction)
 
                 return org.wahlen.voucherengine.api.dto.response.VoucherBalanceUpdateResponse(
@@ -818,7 +818,7 @@ class VoucherService(
     @Transactional
     fun bulkUpdateVoucherMetadata(
         tenantName: String,
-        updates: List<org.wahlen.voucherengine.api.dto.request.VoucherBulkUpdateRequest>
+        updates: List<VoucherBulkUpdateRequest>
     ): org.wahlen.voucherengine.api.dto.response.BulkOperationResponse {
         var successCount = 0
         val failedCodes = mutableListOf<String>()
@@ -844,7 +844,7 @@ class VoucherService(
     @Transactional
     fun updateMetadataAsync(
         tenantName: String,
-        request: org.wahlen.voucherengine.api.dto.request.VoucherMetadataUpdateRequest
+        request: VoucherMetadataUpdateRequest
     ): org.wahlen.voucherengine.api.dto.response.BulkOperationResponse {
         var successCount = 0
         val failedCodes = mutableListOf<String>()
@@ -872,7 +872,7 @@ class VoucherService(
     @Transactional
     fun importVouchers(
         tenantName: String,
-        request: org.wahlen.voucherengine.api.dto.request.VoucherImportRequest
+        request: VoucherImportRequest
     ): org.wahlen.voucherengine.api.dto.response.BulkOperationResponse {
         var successCount = 0
         val failedCodes = mutableListOf<String>()

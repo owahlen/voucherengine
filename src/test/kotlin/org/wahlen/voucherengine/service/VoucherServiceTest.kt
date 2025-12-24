@@ -211,11 +211,11 @@ class VoucherServiceTest @Autowired constructor(
             voucher.code!!,
             VoucherValidationRequest(
                 customer = CustomerReferenceDto(source_id = "cust"),
-                order = org.wahlen.voucherengine.api.dto.request.OrderRequest(
+                order = OrderRequest(
                     id = "order-1",
                     amount = 500,
                     items = listOf(
-                        org.wahlen.voucherengine.api.dto.request.OrderItemDto(
+                        OrderItemDto(
                             sku_id = "SKU_A",
                             quantity = 1,
                             price = 500
@@ -231,11 +231,11 @@ class VoucherServiceTest @Autowired constructor(
             voucher.code!!,
             VoucherValidationRequest(
                 customer = CustomerReferenceDto(source_id = "cust"),
-                order = org.wahlen.voucherengine.api.dto.request.OrderRequest(
+                order = OrderRequest(
                     id = "order-2",
                     amount = 1500,
                     items = listOf(
-                        org.wahlen.voucherengine.api.dto.request.OrderItemDto(
+                        OrderItemDto(
                             sku_id = "SKU_A",
                             quantity = 1,
                             price = 1500
@@ -314,11 +314,11 @@ class VoucherServiceTest @Autowired constructor(
             tenantName,
             "UNIT-10",
             VoucherValidationRequest(
-                order = org.wahlen.voucherengine.api.dto.request.OrderRequest(
+                order = OrderRequest(
                     id = "order-1",
                     amount = 1000,
                     items = listOf(
-                        org.wahlen.voucherengine.api.dto.request.OrderItemDto(
+                        OrderItemDto(
                             sku_id = "sku-1",
                             quantity = 2,
                             price = 500

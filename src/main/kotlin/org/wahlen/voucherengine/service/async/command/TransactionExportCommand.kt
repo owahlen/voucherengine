@@ -23,10 +23,9 @@ data class TransactionExportCommand(
             total = 1,
             parameters = mapOf(
                 "voucher_code" to voucherCode
-            )
-        ).apply {
-            this.tenant = tenant
-        }
+            ),
+            tenant = tenant
+        )
     }
     
     override fun execute(context: ApplicationContext) {

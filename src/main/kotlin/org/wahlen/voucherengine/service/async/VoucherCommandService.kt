@@ -93,7 +93,7 @@ class VoucherCommandService(
     }
 
     @Transactional
-    open fun handleMetadataUpdate(command: MetadataUpdateCommand) {
+    fun handleMetadataUpdate(command: MetadataUpdateCommand) {
         val jobId = command.jobId ?: throw IllegalStateException("Command jobId must be set")
         val job = asyncJobRepository.findById(jobId).orElseThrow {
             IllegalArgumentException("Job not found: $jobId")
@@ -220,7 +220,7 @@ class VoucherCommandService(
     }
 
     @Transactional
-    open fun handleCampaignVoucherGeneration(command: org.wahlen.voucherengine.service.async.command.CampaignVoucherGenerationCommand) {
+    fun handleCampaignVoucherGeneration(command: org.wahlen.voucherengine.service.async.command.CampaignVoucherGenerationCommand) {
         val jobId = command.jobId ?: throw IllegalStateException("Command jobId must be set")
         val job = asyncJobRepository.findById(jobId).orElseThrow {
             IllegalArgumentException("Job not found: $jobId")

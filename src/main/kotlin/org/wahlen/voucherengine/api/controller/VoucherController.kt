@@ -352,7 +352,7 @@ class VoucherController(
     @PostMapping("/vouchers/bulk/async")
     fun updateVouchersInBulk(
         @RequestHeader("tenant") tenant: String,
-        @Valid @RequestBody updates: List<org.wahlen.voucherengine.api.dto.request.VoucherBulkUpdateRequest>
+        @Valid @RequestBody updates: List<VoucherBulkUpdateRequest>
     ): ResponseEntity<AsyncActionResponse> {
         val jobId = voucherJobService.publishBulkUpdate(tenant, updates)
         
@@ -374,7 +374,7 @@ class VoucherController(
     @PostMapping("/vouchers/metadata/async")
     fun updateVoucherMetadataAsync(
         @RequestHeader("tenant") tenant: String,
-        @Valid @RequestBody request: org.wahlen.voucherengine.api.dto.request.VoucherMetadataUpdateRequest
+        @Valid @RequestBody request: VoucherMetadataUpdateRequest
     ): ResponseEntity<AsyncActionResponse> {
         val jobId = voucherJobService.publishMetadataUpdate(tenant, request)
         
@@ -396,7 +396,7 @@ class VoucherController(
     @PostMapping("/vouchers/import")
     fun importVouchers(
         @RequestHeader("tenant") tenant: String,
-        @Valid @RequestBody request: org.wahlen.voucherengine.api.dto.request.VoucherImportRequest
+        @Valid @RequestBody request: VoucherImportRequest
     ): ResponseEntity<AsyncActionResponse> {
         val jobId = voucherJobService.publishVoucherImport(tenant, request)
         
@@ -422,7 +422,7 @@ class VoucherController(
         @RequestBody csvContent: String
     ): ResponseEntity<AsyncActionResponse> {
         val vouchers = org.wahlen.voucherengine.util.CsvVoucherParser.parseCsv(csvContent)
-        val request = org.wahlen.voucherengine.api.dto.request.VoucherImportRequest(vouchers = vouchers)
+        val request = VoucherImportRequest(vouchers = vouchers)
         val jobId = voucherJobService.publishVoucherImport(tenant, request)
         
         return ResponseEntity.accepted().body(
@@ -463,7 +463,7 @@ class VoucherController(
         @PathVariable code: String,
         @PathVariable sessionKey: String
     ): ResponseEntity<Void> {
-        val voucher = voucherService.getByCode(tenant, code) ?: return ResponseEntity.notFound().build()
+        voucherService.getByCode(tenant, code) ?: return ResponseEntity.notFound().build()
         sessionLockRepository.deleteByTenantNameAndSessionKey(tenant, sessionKey)
         return ResponseEntity.noContent().build()
     }

@@ -63,7 +63,7 @@ Content-Type: application/json
 < {%
     const body = {
         "points": {{number of points}} // Add or subtract pending points with a given ID. A negative value subtracts the points.
-    };
+    }
     request.variables.set("payload", JSON.stringify(body));
 %}
 POST {{voucherengine_base_url}}/v1/loyalties/members/{{memberId}}/pending-points/{{pendingPointsId}}/balance

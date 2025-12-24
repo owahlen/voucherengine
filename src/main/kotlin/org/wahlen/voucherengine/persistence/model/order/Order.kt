@@ -33,7 +33,7 @@ class Order(
     var status: String? = null,
 
     /**
-     * Final order amount in smallest currency unit (e.g., cents).
+     * Final order amount in the smallest currency unit (e.g., cents).
      */
     @Column
     var amount: Long? = null,
