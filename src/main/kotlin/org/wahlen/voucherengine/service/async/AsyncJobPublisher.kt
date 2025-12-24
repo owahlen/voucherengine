@@ -64,8 +64,6 @@ class AsyncJobPublisher(
         sqsTemplate.send { to ->
             to.queue(queueName)
             to.payload(commandJson)
-            to.header("jobId", savedJob.id.toString())
-            to.header("jobType", AsyncJobType.BULK_VOUCHER_UPDATE.name)
             to.header("contentType", "application/json")
         }
 
@@ -104,8 +102,6 @@ class AsyncJobPublisher(
         sqsTemplate.send { to ->
             to.queue(queueName)
             to.payload(commandJson)
-            to.header("jobId", savedJob.id.toString())
-            to.header("jobType", AsyncJobType.VOUCHER_METADATA_UPDATE.name)
             to.header("contentType", "application/json")
         }
 
@@ -145,8 +141,6 @@ class AsyncJobPublisher(
         sqsTemplate.send { to ->
             to.queue(queueName)
             to.payload(commandJson)
-            to.header("jobId", savedJob.id.toString())
-            to.header("jobType", AsyncJobType.VOUCHER_IMPORT.name)
             to.header("contentType", "application/json")
         }
 
