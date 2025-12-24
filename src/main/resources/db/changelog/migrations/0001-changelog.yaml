@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 1766574474701-1
+      id: 1766586672921-1
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -57,7 +57,7 @@ databaseChangeLog:
                   type: UUID
             tableName: async_job
   - changeSet:
-      id: 1766574474701-2
+      id: 1766586672921-2
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -112,7 +112,7 @@ databaseChangeLog:
                   type: UUID
             tableName: campaign
   - changeSet:
-      id: 1766574474701-3
+      id: 1766586672921-3
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -141,7 +141,7 @@ databaseChangeLog:
                   type: UUID
             tableName: category
   - changeSet:
-      id: 1766574474701-4
+      id: 1766586672921-4
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -206,7 +206,56 @@ databaseChangeLog:
                   type: TEXT
             tableName: customer
   - changeSet:
-      id: 1766574474701-5
+      id: 1766586672921-5
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_customer_event
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  constraints:
+                    nullable: false
+                  name: event_type
+                  type: VARCHAR(100)
+              - column:
+                  name: customer_id
+                  type: VARCHAR(36)
+              - column:
+                  name: campaign_id
+                  type: VARCHAR(36)
+              - column:
+                  name: category
+                  type: VARCHAR(20)
+              - column:
+                  name: data
+                  type: jsonb
+              - column:
+                  name: group_id
+                  type: VARCHAR(50)
+              - column:
+                  name: event_source
+                  type: VARCHAR(50)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: customer_event
+  - changeSet:
+      id: 1766586672921-6
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -257,7 +306,7 @@ databaseChangeLog:
                   type: UUID
             tableName: export
   - changeSet:
-      id: 1766574474701-6
+      id: 1766586672921-7
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -324,7 +373,7 @@ databaseChangeLog:
                   type: UUID
             tableName: order_item
   - changeSet:
-      id: 1766574474701-7
+      id: 1766586672921-8
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -371,7 +420,7 @@ databaseChangeLog:
                   type: UUID
             tableName: orders
   - changeSet:
-      id: 1766574474701-8
+      id: 1766586672921-9
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -415,7 +464,7 @@ databaseChangeLog:
                   type: UUID
             tableName: product
   - changeSet:
-      id: 1766574474701-9
+      id: 1766586672921-10
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -450,7 +499,7 @@ databaseChangeLog:
                   type: UUID
             tableName: product_collection
   - changeSet:
-      id: 1766574474701-10
+      id: 1766586672921-11
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -490,7 +539,7 @@ databaseChangeLog:
                   type: UUID
             tableName: product_collection_item
   - changeSet:
-      id: 1766574474701-11
+      id: 1766586672921-12
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -543,7 +592,7 @@ databaseChangeLog:
                   type: UUID
             tableName: publication
   - changeSet:
-      id: 1766574474701-12
+      id: 1766586672921-13
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -565,7 +614,7 @@ databaseChangeLog:
                   type: UUID
             tableName: publication_vouchers
   - changeSet:
-      id: 1766574474701-13
+      id: 1766586672921-14
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -621,7 +670,7 @@ databaseChangeLog:
                   type: UUID
             tableName: redemption
   - changeSet:
-      id: 1766574474701-14
+      id: 1766586672921-15
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -665,7 +714,62 @@ databaseChangeLog:
                   type: UUID
             tableName: redemption_rollback
   - changeSet:
-      id: 1766574474701-15
+      id: 1766586672921-16
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_segment
+                  name: id
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: DATETIME
+              - column:
+                  name: updated_at
+                  type: DATETIME
+              - column:
+                  constraints:
+                    nullable: false
+                  name: name
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: type
+                  type: VARCHAR(255)
+              - column:
+                  name: filter
+                  type: jsonb
+              - column:
+                  constraints:
+                    nullable: false
+                  name: tenant_id
+                  type: UUID
+            tableName: segment
+  - changeSet:
+      id: 1766586672921-17
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                  name: segment_id
+                  type: UUID
+              - column:
+                  name: customer_id
+                  type: UUID
+            tableName: segment_customer
+  - changeSet:
+      id: 1766586672921-18
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -709,7 +813,7 @@ databaseChangeLog:
                   type: UUID
             tableName: session_lock
   - changeSet:
-      id: 1766574474701-16
+      id: 1766586672921-19
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -761,7 +865,7 @@ databaseChangeLog:
                   type: UUID
             tableName: sku
   - changeSet:
-      id: 1766574474701-17
+      id: 1766586672921-20
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -787,7 +891,7 @@ databaseChangeLog:
                   type: VARCHAR(255)
             tableName: tenant
   - changeSet:
-      id: 1766574474701-18
+      id: 1766586672921-21
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -840,7 +944,7 @@ databaseChangeLog:
                   type: UUID
             tableName: validation_rule
   - changeSet:
-      id: 1766574474701-19
+      id: 1766586672921-22
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -878,7 +982,7 @@ databaseChangeLog:
                   type: UUID
             tableName: validation_rules_assignment
   - changeSet:
-      id: 1766574474701-20
+      id: 1766586672921-23
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -894,7 +998,7 @@ databaseChangeLog:
                   type: VARCHAR(255)
             tableName: validation_rules_assignment_omitted_rules
   - changeSet:
-      id: 1766574474701-21
+      id: 1766586672921-24
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -980,7 +1084,7 @@ databaseChangeLog:
                   type: TEXT
             tableName: voucher
   - changeSet:
-      id: 1766574474701-22
+      id: 1766586672921-25
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1002,7 +1106,7 @@ databaseChangeLog:
                   type: UUID
             tableName: voucher_categories
   - changeSet:
-      id: 1766574474701-23
+      id: 1766586672921-26
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1068,7 +1172,7 @@ databaseChangeLog:
                   type: UUID
             tableName: voucher_transaction
   - changeSet:
-      id: 1766574474701-24
+      id: 1766586672921-27
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1077,7 +1181,7 @@ databaseChangeLog:
             constraintName: uc_product_collection_tenant_name
             tableName: product_collection
   - changeSet:
-      id: 1766574474701-25
+      id: 1766586672921-28
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1086,7 +1190,7 @@ databaseChangeLog:
             constraintName: uc_product_tenant_source
             tableName: product
   - changeSet:
-      id: 1766574474701-26
+      id: 1766586672921-29
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1095,7 +1199,7 @@ databaseChangeLog:
             constraintName: uc_sku_tenant_source
             tableName: sku
   - changeSet:
-      id: 1766574474701-27
+      id: 1766586672921-30
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1104,7 +1208,7 @@ databaseChangeLog:
             constraintName: uc_tenant_name
             tableName: tenant
   - changeSet:
-      id: 1766574474701-28
+      id: 1766586672921-31
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1113,7 +1217,104 @@ databaseChangeLog:
             constraintName: uc_voucher_tenant_code
             tableName: voucher
   - changeSet:
-      id: 1766574474701-29
+      id: 1766586672921-32
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: customer_id
+              - column:
+                  name: tenant_id
+              - column:
+                  name: campaign_id
+              - column:
+                  name: created_at
+            indexName: idx_customer_event_customer_tenant_campaign
+            tableName: customer_event
+  - changeSet:
+      id: 1766586672921-33
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: customer_id
+              - column:
+                  name: tenant_id
+              - column:
+                  name: created_at
+            indexName: idx_customer_event_customer_tenant_created
+            tableName: customer_event
+  - changeSet:
+      id: 1766586672921-34
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: customer_id
+              - column:
+                  name: tenant_id
+              - column:
+                  name: event_type
+              - column:
+                  name: created_at
+            indexName: idx_customer_event_customer_tenant_type
+            tableName: customer_event
+  - changeSet:
+      id: 1766586672921-35
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: group_id
+            indexName: idx_customer_event_group
+            tableName: customer_event
+  - changeSet:
+      id: 1766586672921-36
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: created_at
+            indexName: idx_customer_event_tenant_created
+            tableName: customer_event
+  - changeSet:
+      id: 1766586672921-37
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: segment_id
+              - column:
+                  name: customer_id
+            indexName: idx_segment_customer_lookup
+            tableName: segment_customer
+  - changeSet:
+      id: 1766586672921-39
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: type
+            indexName: idx_segment_type
+            tableName: segment
+  - changeSet:
+      id: 1766586672921-40
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1126,7 +1327,7 @@ databaseChangeLog:
             indexName: idx_vra_related_object
             tableName: validation_rules_assignment
   - changeSet:
-      id: 1766574474701-31
+      id: 1766586672921-42
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1137,7 +1338,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-32
+      id: 1766586672921-43
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1148,7 +1349,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-33
+      id: 1766586672921-44
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1159,7 +1360,18 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-34
+      id: 1766586672921-45
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: customer_event
+            constraintName: FK_CUSTOMER_EVENT_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+  - changeSet:
+      id: 1766586672921-46
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1170,7 +1382,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-35
+      id: 1766586672921-47
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1181,7 +1393,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-36
+      id: 1766586672921-48
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1192,7 +1404,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766574474701-37
+      id: 1766586672921-49
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1203,7 +1415,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-38
+      id: 1766586672921-50
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1214,7 +1426,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: orders
   - changeSet:
-      id: 1766574474701-39
+      id: 1766586672921-51
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1225,7 +1437,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-40
+      id: 1766586672921-52
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1236,7 +1448,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: product_collection
   - changeSet:
-      id: 1766574474701-41
+      id: 1766586672921-53
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1247,7 +1459,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-42
+      id: 1766586672921-54
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1258,7 +1470,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-43
+      id: 1766586672921-55
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1269,7 +1481,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-44
+      id: 1766586672921-56
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1280,7 +1492,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: campaign
   - changeSet:
-      id: 1766574474701-45
+      id: 1766586672921-57
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1291,7 +1503,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766574474701-46
+      id: 1766586672921-58
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1302,7 +1514,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-47
+      id: 1766586672921-59
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1313,7 +1525,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: voucher
   - changeSet:
-      id: 1766574474701-48
+      id: 1766586672921-60
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1324,7 +1536,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766574474701-49
+      id: 1766586672921-61
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1335,7 +1547,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: redemption
   - changeSet:
-      id: 1766574474701-50
+      id: 1766586672921-62
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1346,7 +1558,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-51
+      id: 1766586672921-63
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1357,7 +1569,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766574474701-52
+      id: 1766586672921-64
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1368,7 +1580,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: orders
   - changeSet:
-      id: 1766574474701-53
+      id: 1766586672921-65
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1379,7 +1591,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-54
+      id: 1766586672921-66
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1390,7 +1602,24 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: voucher
   - changeSet:
-      id: 1766574474701-55
+      id: 1766586672921-67
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: tenant_id
+            baseTableName: segment
+            constraintName: FK_SEGMENT_ON_TENANT
+            referencedColumnNames: id
+            referencedTableName: tenant
+        - createIndex:
+            columns:
+              - column:
+                  name: tenant_id
+            indexName: idx_segment_tenant
+            tableName: segment
+  - changeSet:
+      id: 1766586672921-68
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1401,7 +1630,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-56
+      id: 1766586672921-69
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1412,7 +1641,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: product
   - changeSet:
-      id: 1766574474701-57
+      id: 1766586672921-70
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1423,7 +1652,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-58
+      id: 1766586672921-71
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1440,7 +1669,7 @@ databaseChangeLog:
             indexName: idx_vra_rule_id
             tableName: validation_rules_assignment
   - changeSet:
-      id: 1766574474701-59
+      id: 1766586672921-72
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1451,7 +1680,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-60
+      id: 1766586672921-73
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1462,7 +1691,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-61
+      id: 1766586672921-74
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1473,7 +1702,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: redemption
   - changeSet:
-      id: 1766574474701-62
+      id: 1766586672921-75
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1484,7 +1713,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: redemption_rollback
   - changeSet:
-      id: 1766574474701-63
+      id: 1766586672921-76
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1495,7 +1724,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-64
+      id: 1766586672921-77
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1506,7 +1735,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: voucher
   - changeSet:
-      id: 1766574474701-65
+      id: 1766586672921-78
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1517,7 +1746,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: campaign
   - changeSet:
-      id: 1766574474701-66
+      id: 1766586672921-79
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1528,7 +1757,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: customer
   - changeSet:
-      id: 1766574474701-67
+      id: 1766586672921-80
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1539,7 +1768,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: tenant
   - changeSet:
-      id: 1766574474701-68
+      id: 1766586672921-81
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1550,7 +1779,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: publication
   - changeSet:
-      id: 1766574474701-69
+      id: 1766586672921-82
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1561,7 +1790,18 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: voucher
   - changeSet:
-      id: 1766574474701-70
+      id: 1766586672921-83
+      author: owahlen
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: segment_id
+            baseTableName: segment_customer
+            constraintName: fk_segment_customer_on_segment
+            referencedColumnNames: id
+            referencedTableName: segment
+  - changeSet:
+      id: 1766586672921-84
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1572,7 +1812,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: validation_rules_assignment
   - changeSet:
-      id: 1766574474701-71
+      id: 1766586672921-85
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:
@@ -1583,7 +1823,7 @@ databaseChangeLog:
             referencedColumnNames: id
             referencedTableName: category
   - changeSet:
-      id: 1766574474701-72
+      id: 1766586672921-86
       author: owahlen
       objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
       changes:

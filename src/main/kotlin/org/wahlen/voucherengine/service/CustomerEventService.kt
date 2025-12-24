@@ -25,7 +25,8 @@ import java.util.UUID
  */
 @Service
 class CustomerEventService(
-    private val customerEventRepository: CustomerEventRepository
+    private val customerEventRepository: CustomerEventRepository,
+    private val tenantRepository: org.wahlen.voucherengine.persistence.repository.TenantRepository
 ) {
     
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -98,6 +99,79 @@ class CustomerEventService(
         } catch (e: Exception) {
             logger.error("Failed to log customer event: {} for customer {}", eventType, customer.id, e)
             // Don't rethrow - event logging should never break business logic
+        }
+    }
+    
+    /**
+     * Log customer.segment.entered event when a customer joins a segment.
+     */
+    @Transactional
+    fun logSegmentEntered(
+        tenantName: String,
+        customerId: UUID,
+        segmentId: UUID,
+        segmentName: String
+    ) {
+        try {
+            val tenant = tenantRepository.findByName(tenantName)
+                ?: throw IllegalArgumentException("Tenant not found: $tenantName")
+            
+            val event = CustomerEvent(
+                eventType = "customer.segment.entered",
+                customerId = customerId.toString(),
+                campaignId = null,
+                category = EventCategory.EFFECT,
+                data = mapOf(
+                    "segment" to mapOf(
+                        "id" to segmentId.toString(),
+                        "name" to segmentName
+                    )
+                ),
+                groupId = null,
+                eventSource = "API",
+                tenant = tenant
+            )
+            customerEventRepository.save(event)
+            customerEventRepository.flush()
+            logger.debug("Logged customer.segment.entered for customer: {}, segment: {}", customerId, segmentId)
+        } catch (e: Exception) {
+            logger.error("Failed to log customer.segment.entered event", e)
+        }
+    }
+    
+    /**
+     * Log customer.segment.left event when a customer leaves a segment.
+     */
+    @Transactional
+    fun logSegmentLeft(
+        tenantName: String,
+        customerId: UUID,
+        segmentId: UUID,
+        segmentName: String
+    ) {
+        try {
+            val tenant = tenantRepository.findByName(tenantName)
+                ?: throw IllegalArgumentException("Tenant not found: $tenantName")
+            
+            val event = CustomerEvent(
+                eventType = "customer.segment.left",
+                customerId = customerId.toString(),
+                campaignId = null,
+                category = EventCategory.EFFECT,
+                data = mapOf(
+                    "segment" to mapOf(
+                        "id" to segmentId.toString(),
+                        "name" to segmentName
+                    )
+                ),
+                groupId = null,
+                eventSource = "API",
+                tenant = tenant
+            )
+            customerEventRepository.save(event)
+            logger.debug("Logged customer.segment.left for customer: {}, segment: {}", customerId, segmentId)
+        } catch (e: Exception) {
+            logger.error("Failed to log customer.segment.left event", e)
         }
     }
     

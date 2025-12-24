@@ -27,6 +27,7 @@ import org.wahlen.voucherengine.api.dto.response.CustomersListResponse
 import org.wahlen.voucherengine.persistence.model.event.EventCategory
 import org.wahlen.voucherengine.service.CustomerEventService
 import org.wahlen.voucherengine.service.CustomerService
+import org.wahlen.voucherengine.service.SegmentService
 import java.time.Instant
 import java.util.UUID
 
@@ -41,7 +42,8 @@ import java.util.UUID
 )
 class CustomerController(
     private val customerService: CustomerService,
-    private val customerEventService: CustomerEventService
+    private val customerEventService: CustomerEventService,
+    private val segmentService: SegmentService
 ) {
 
     @Operation(
@@ -285,6 +287,7 @@ class CustomerController(
     @Operation(
         summary = "List customer's segments",
         operationId = "getCustomerSegments",
+        description = "Returns the list of segments to which the customer belongs",
         responses = [
             ApiResponse(responseCode = "200", description = "Customer segments retrieved"),
             ApiResponse(responseCode = "404", description = "Customer not found")
@@ -294,14 +297,14 @@ class CustomerController(
     fun getCustomerSegments(
         @RequestHeader("tenant") tenant: String,
         @PathVariable id: String
-    ): ResponseEntity<Map<String, Any>> {
-        val customer = customerService.getByIdOrSource(tenant, id) ?: return ResponseEntity.notFound().build()
+    ): ResponseEntity<org.wahlen.voucherengine.api.dto.response.CustomerSegmentsListResponse> {
+        val customer = customerService.getByIdOrSource(tenant, id)
+            ?: return ResponseEntity.notFound().build()
+        
+        val segments = segmentService.getCustomerSegments(tenant, customer.id!!)
         return ResponseEntity.ok(
-            mapOf(
-                "object" to "list",
-                "data_ref" to "segments",
-                "segments" to emptyList<Any>(),
-                "total" to 0
+            org.wahlen.voucherengine.api.dto.response.CustomerSegmentsListResponse(
+                data = segments
             )
         )
     }

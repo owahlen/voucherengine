@@ -77,6 +77,48 @@ class CustomerControllerIntegrationTest @Autowired constructor(
     }
 
     @Test
+    fun `get customer segments`() {
+        // First import required dependencies at top if not present
+        val createCustomerBody = """
+            { "source_id": "segment-customer", "email": "segment@example.com" }
+        """.trimIndent()
+        
+        mockMvc.perform(
+            post("/v1/customers")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createCustomerBody)
+        ).andExpect(status().isOk)
+
+        val createSegmentBody = """
+            {
+                "name": "Test Segment",
+                "type": "static",
+                "customers": ["segment-customer"]
+            }
+        """.trimIndent()
+        
+        mockMvc.perform(
+            post("/v1/segments")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createSegmentBody)
+        ).andExpect(status().isOk)
+
+        mockMvc.perform(
+            get("/v1/customers/segment-customer/segments")
+                .header("tenant", tenantName)
+                .with(tenantJwt(tenantName))
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.object").value("list"))
+            .andExpect(jsonPath("$.data_ref").value("segments"))
+            .andExpect(jsonPath("$.segments.length()").value(1))
+            .andExpect(jsonPath("$.segments[0].name").value("Test Segment"))
+    }
+
+    @Test
     fun `creates tenant on first use when header is in tenants claim`() {
         val lazyTenant = "lazy-tenant"
         tenantRepository.findByName(lazyTenant)?.let { tenantRepository.delete(it) }
