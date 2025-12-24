@@ -65,15 +65,29 @@ class Customer(
     @Column
     var address: AddressEmbeddable? = null,
 
+    /**
+     * A set of custom key/value pairs that you can attach to a customer.
+     * The metadata object stores all custom attributes assigned to the customer.
+     * It can be useful for storing additional information about the customer
+     * in a structured format such as customer segmentation or preferences.
+     */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     var metadata: Map<String, Any?>? = null,
 
-    ) : AuditablePersistable() {
+    /**
+     * The tenant this customer belongs to.
+     * Used for multi-tenancy isolation.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)
-    var tenant: Tenant? = null
+    var tenant: Tenant? = null,
 
+    /**
+     * Collection of vouchers held by this customer.
+     * These are vouchers where this customer is set as the holder.
+     */
     @OneToMany(mappedBy = "holder", fetch = FetchType.LAZY)
     var heldVouchers: MutableList<Voucher> = mutableListOf()
-}
+
+) : AuditablePersistable()

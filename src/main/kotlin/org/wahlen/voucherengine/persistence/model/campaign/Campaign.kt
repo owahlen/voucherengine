@@ -41,24 +41,28 @@ class Campaign(
     @Column(name = "code_pattern")
     var codePattern: String? = null,
 
+    /** Campaign start date (vouchers are valid from this date). */
     @Column(name = "start_date")
     var startDate: java.time.Instant? = null,
 
+    /** Campaign expiration date (vouchers expire after this date). */
     @Column(name = "expiration_date")
     var expirationDate: java.time.Instant? = null,
 
+    /** A set of custom key/value pairs attached to the campaign for additional data storage. */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     var metadata: Map<String, Any?>? = null,
 
+    /** Flag indicating whether the campaign is currently active. */
     @Column
     var active: Boolean? = true,
 
-) : AuditablePersistable() {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)
-    var tenant: Tenant? = null
+    var tenant: Tenant? = null,
 
     @OneToMany(mappedBy = "campaign", cascade = [CascadeType.ALL], orphanRemoval = false, fetch = FetchType.LAZY)
     var vouchers: MutableList<Voucher> = mutableListOf()
-}
+
+) : AuditablePersistable()

@@ -43,10 +43,9 @@ class VoucherRepositoryTest @Autowired constructor(
                 percent_off = 10
             ),
             metadata = mapOf("audience" to "vip"),
-        ).apply {
-            redemptionJson = RedemptionDto(quantity = 2, redeemed_quantity = 0)
-            tenant = this@VoucherRepositoryTest.tenant
-        }
+            redemptionJson = RedemptionDto(quantity = 2, redeemed_quantity = 0),
+            tenant = tenant
+        )
 
         val saved = voucherRepository.save(voucher)
         val fetched = voucherRepository.findByIdOrNull(saved.id!!)

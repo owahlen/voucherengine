@@ -19,35 +19,64 @@ import java.util.UUID
  */
 @Entity
 class RedemptionRollback(
+
+    /**
+     * Timestamp when the rollback was performed.
+     */
     @Column
     var date: Instant? = null,
 
+    /**
+     * Hashed tracking identifier for privacy.
+     */
     @Column
     var trackingId: String? = null,
 
+    /**
+     * The metadata object stores all custom attributes assigned to the rollback.
+     */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     var metadata: Map<String, Any?>? = null,
 
+    /**
+     * Amount restored (for gift/loyalty vouchers).
+     */
     @Column
     var amount: Long? = null,
 
+    /**
+     * Rollback result (SUCCESS or FAILURE).
+     */
     @Enumerated(EnumType.STRING)
     @Column
     var result: RedemptionResult? = null,
 
+    /**
+     * Reason for the rollback.
+     */
     @Column(columnDefinition = "TEXT")
     var reason: String? = null,
 
+    /**
+     * Original redemption being rolled back.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "redemption_id")
     var redemption: Redemption? = null,
 
+    /**
+     * Customer who triggered the rollback (may differ from original redeemer).
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
-    var customer: Customer? = null
-) : AbstractPersistable() {
+    var customer: Customer? = null,
+
+    /**
+     * Tenant that owns this rollback.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)
     var tenant: Tenant? = null
-}
+
+) : AbstractPersistable()

@@ -21,14 +21,23 @@ import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 @Entity
 class Category(
 
-
+    /**
+     * Category name.
+     */
     @Column
     var name: String? = null,
-) : AuditablePersistable() {
+
+    /**
+     * Tenant that owns this category.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)
-    var tenant: Tenant? = null
+    var tenant: Tenant? = null,
 
+    /**
+     * Vouchers tagged with this category.
+     */
     @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
     var vouchers: MutableSet<Voucher> = mutableSetOf()
-}
+
+) : AuditablePersistable()

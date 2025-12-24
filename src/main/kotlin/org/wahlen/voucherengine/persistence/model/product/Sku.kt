@@ -13,7 +13,12 @@ import org.wahlen.voucherengine.persistence.model.common.AuditablePersistable
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 
 /**
- * Represents a SKU (product variant) belonging to a product.
+ * Represents a SKU (stock-keeping unit or product variant).
+ *
+ * SKUs define specific variants of a product (e.g., size, color) with their own
+ * pricing, attributes, and metadata. Referenced by order items and validation rules.
+ *
+ * Voucherengine API Docs: Products → SKUs.
  */
 @Entity
 @Table(
@@ -23,34 +28,63 @@ import org.wahlen.voucherengine.persistence.model.tenant.Tenant
     ]
 )
 class Sku(
+
+    /**
+     * External source identifier for this SKU.
+     */
     @Column(name = "source_id")
     var sourceId: String? = null,
 
+    /**
+     * SKU code/identifier.
+     */
     @Column
     var sku: String? = null,
 
+    /**
+     * Price in smallest currency unit (e.g., cents).
+     */
     @Column
     var price: Long? = null,
 
+    /**
+     * Currency code (e.g., USD, EUR).
+     */
     @Column
     var currency: String? = null,
 
+    /**
+     * SKU attributes (e.g., size, color, material).
+     */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     var attributes: Map<String, Any?>? = null,
 
+    /**
+     * The metadata object stores all custom attributes assigned to the SKU.
+     */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     var metadata: Map<String, Any?>? = null,
 
+    /**
+     * SKU image URL.
+     */
     @Column(name = "image_url", columnDefinition = "TEXT")
     var imageUrl: String? = null,
 
+    /**
+     * Product this SKU belongs to.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
-    var product: Product? = null
-) : AuditablePersistable() {
+    var product: Product? = null,
+
+    /**
+     * Tenant that owns this SKU.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)
     var tenant: Tenant? = null
-}
+
+) : AuditablePersistable()

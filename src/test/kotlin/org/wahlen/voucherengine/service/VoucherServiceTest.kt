@@ -14,6 +14,7 @@ import org.wahlen.voucherengine.config.IntegrationTest
 import org.wahlen.voucherengine.persistence.model.product.Product
 import org.wahlen.voucherengine.persistence.model.product.Sku
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.persistence.model.voucher.Category
 import org.wahlen.voucherengine.persistence.repository.CategoryRepository
 import org.wahlen.voucherengine.persistence.repository.ProductRepository
 import org.wahlen.voucherengine.persistence.repository.SkuRepository
@@ -213,7 +214,13 @@ class VoucherServiceTest @Autowired constructor(
                 order = org.wahlen.voucherengine.api.dto.request.OrderRequest(
                     id = "order-1",
                     amount = 500,
-                    items = listOf(org.wahlen.voucherengine.api.dto.request.OrderItemDto(sku_id = "SKU_A", quantity = 1, price = 500))
+                    items = listOf(
+                        org.wahlen.voucherengine.api.dto.request.OrderItemDto(
+                            sku_id = "SKU_A",
+                            quantity = 1,
+                            price = 500
+                        )
+                    )
                 )
             )
         )
@@ -227,7 +234,13 @@ class VoucherServiceTest @Autowired constructor(
                 order = org.wahlen.voucherengine.api.dto.request.OrderRequest(
                     id = "order-2",
                     amount = 1500,
-                    items = listOf(org.wahlen.voucherengine.api.dto.request.OrderItemDto(sku_id = "SKU_A", quantity = 1, price = 1500))
+                    items = listOf(
+                        org.wahlen.voucherengine.api.dto.request.OrderItemDto(
+                            sku_id = "SKU_A",
+                            quantity = 1,
+                            price = 1500
+                        )
+                    )
                 )
             )
         )
@@ -238,7 +251,10 @@ class VoucherServiceTest @Autowired constructor(
     fun `category mismatch invalidates voucher`() {
         val tenant = tenantRepository.findByName(tenantName)!!
         val category = categoryRepository.save(
-            org.wahlen.voucherengine.persistence.model.voucher.Category(name = "electronics").apply { this.tenant = tenant }
+            Category(
+                name = "electronics",
+                tenant = tenant
+            )
         )
         voucherService.createVoucher(
             tenantName,
@@ -254,7 +270,10 @@ class VoucherServiceTest @Autowired constructor(
         val invalid = voucherService.validateVoucher(
             tenantName,
             "CAT-ONLY",
-            VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"), categories = listOf(UUID.randomUUID()))
+            VoucherValidationRequest(
+                customer = CustomerReferenceDto(source_id = "cust"),
+                categories = listOf(UUID.randomUUID())
+            )
         )
         assertFalse(invalid.valid)
         assertEquals("voucher_category_mismatch", invalid.error?.code)
@@ -270,7 +289,10 @@ class VoucherServiceTest @Autowired constructor(
         val valid = voucherService.validateVoucher(
             tenantName,
             "CAT-ONLY",
-            VoucherValidationRequest(customer = CustomerReferenceDto(source_id = "cust"), categories = listOf(category.id!!))
+            VoucherValidationRequest(
+                customer = CustomerReferenceDto(source_id = "cust"),
+                categories = listOf(category.id!!)
+            )
         )
         assertTrue(valid.valid)
     }
@@ -296,7 +318,11 @@ class VoucherServiceTest @Autowired constructor(
                     id = "order-1",
                     amount = 1000,
                     items = listOf(
-                        org.wahlen.voucherengine.api.dto.request.OrderItemDto(sku_id = "sku-1", quantity = 2, price = 500)
+                        org.wahlen.voucherengine.api.dto.request.OrderItemDto(
+                            sku_id = "sku-1",
+                            quantity = 2,
+                            price = 500
+                        )
                     )
                 )
             )
@@ -321,7 +347,11 @@ class VoucherServiceTest @Autowired constructor(
                 validity_day_of_week = listOf(1, 2, 3, 4, 5),
                 validity_hours = ValidityHoursDto(
                     daily = listOf(
-                        ValidityHoursDailyDto(start_time = "09:00", expiration_time = "12:00", days_of_week = listOf(1, 2, 3, 4, 5))
+                        ValidityHoursDailyDto(
+                            start_time = "09:00",
+                            expiration_time = "12:00",
+                            days_of_week = listOf(1, 2, 3, 4, 5)
+                        )
                     )
                 )
             )
@@ -396,6 +426,7 @@ class VoucherServiceTest @Autowired constructor(
             this.zoneValue = zone
             return this
         }
+
         override fun getZone(): java.time.ZoneId = zoneValue
         override fun instant(): Instant = instant
 
@@ -407,14 +438,21 @@ class VoucherServiceTest @Autowired constructor(
     private fun ensureSku(productSourceId: String, skuSourceId: String) {
         val tenant = tenantRepository.findByName(tenantName) ?: tenantRepository.save(Tenant(name = tenantName))
         val product = productRepository.findBySourceIdAndTenantName(productSourceId, tenantName)
-            ?: productRepository.save(Product(sourceId = productSourceId, name = "Test").apply { this.tenant = tenant })
+            ?: productRepository.save(
+                Product(
+                    sourceId = productSourceId,
+                    name = "Test",
+                    tenant = tenant
+                )
+            )
         if (skuRepository.findBySourceIdAndTenantName(skuSourceId, tenantName) == null) {
             skuRepository.save(
                 Sku(
                     sourceId = skuSourceId,
                     sku = skuSourceId,
-                    product = product
-                ).apply { this.tenant = tenant }
+                    product = product,
+                    tenant = tenant
+                )
             )
         }
     }

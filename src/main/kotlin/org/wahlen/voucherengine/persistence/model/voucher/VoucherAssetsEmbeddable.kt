@@ -13,15 +13,30 @@ import jakarta.persistence.Embeddable
  */
 @Embeddable
 class VoucherAssetsEmbeddable(
+
+    /**
+     * Unique identifier of the generated QR code image.
+     */
     @Column
     var qrId: String? = null,
 
+    /**
+     * URL to the QR code image for this voucher.
+     * Can be used for display in apps, emails, or printed materials.
+     */
     @Column(columnDefinition = "TEXT")
     var qrUrl: String? = null,
 
+    /**
+     * Unique identifier of the generated barcode image.
+     */
     @Column
     var barcodeId: String? = null,
 
+    /**
+     * URL to the barcode image for this voucher.
+     * Can be used for POS scanning or printed materials.
+     */
     @Column(columnDefinition = "TEXT")
     var barcodeUrl: String? = null
 )

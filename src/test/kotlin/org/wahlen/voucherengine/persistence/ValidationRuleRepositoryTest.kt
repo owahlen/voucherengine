@@ -42,8 +42,9 @@ class ValidationRuleRepositoryTest @Autowired constructor(
                     "per_incentive" to true
                 )
             ),
-            error = mapOf("code" to "limit_exceeded", "message" to "Only once per customer")
-        ).apply { this.tenant = tenant }
+            error = mapOf("code" to "limit_exceeded", "message" to "Only once per customer"),
+            tenant = tenant
+        )
 
         val saved = validationRuleRepository.save(validationRule)
         val fetched = validationRuleRepository.findByIdOrNull(saved.id!!)

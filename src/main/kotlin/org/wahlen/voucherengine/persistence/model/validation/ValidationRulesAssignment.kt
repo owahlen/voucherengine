@@ -22,22 +22,41 @@ import java.util.UUID
     ]
 )
 class ValidationRulesAssignment(
+
+    /**
+     * ID of the validation rule being assigned.
+     */
     @Column(name = "rule_id")
     var ruleId: UUID? = null,
 
+    /**
+     * Reference to the validation rule entity.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rule_id", insertable = false, updatable = false)
     var rule: ValidationRule? = null,
 
+    /**
+     * ID of the related object (voucher, campaign, promotion tier).
+     */
     @Column(name = "related_object_id")
     var relatedObjectId: String? = null,
 
+    /**
+     * Type of the related object (e.g., voucher, campaign).
+     */
     @Column(name = "related_object_type")
     var relatedObjectType: String? = null,
 
+    /**
+     * Validation status for this assignment.
+     */
     @Column(name = "validation_status")
     var validationStatus: String? = null,
 
+    /**
+     * Rules omitted from validation for this assignment.
+     */
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
         name = "validation_rules_assignment_omitted_rules",
@@ -46,8 +65,11 @@ class ValidationRulesAssignment(
     @Column(name = "omitted_rule")
     var omittedRules: MutableSet<String> = mutableSetOf(),
 
-) : AuditablePersistable() {
+    /**
+     * Tenant that owns this assignment.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)
     var tenant: Tenant? = null
-}
+
+) : AuditablePersistable()

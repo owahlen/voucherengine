@@ -11,10 +11,13 @@ import java.time.Instant
  */
 @MappedSuperclass
 abstract class AuditablePersistable : AbstractPersistable() {
+
+    /** Timestamp when the entity was created. Automatically set by Hibernate. */
     @CreationTimestamp
     @Column
     var createdAt: Instant? = null
 
+    /** Timestamp when the entity was last updated. Automatically set by Hibernate. */
     @UpdateTimestamp
     @Column
     var updatedAt: Instant? = null

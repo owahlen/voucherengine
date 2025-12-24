@@ -134,42 +134,44 @@ class Voucher(
     @JoinColumn(name = "holder_id")
     var holder: Customer? = null,
 
-) : AuditablePersistable() {
+    /** Tenant that owns this voucher. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)
-    var tenant: Tenant? = null
+    var tenant: Tenant? = null,
 
+    /** Categories assigned to this voucher for segmentation and filtering. */
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "voucher_categories",
         joinColumns = [JoinColumn(name = "voucher_id")],
         inverseJoinColumns = [JoinColumn(name = "category_id")]
     )
-    var categories: MutableSet<Category> = mutableSetOf()
+    var categories: MutableSet<Category> = mutableSetOf(),
 
+    /** List of redemptions associated with this voucher. */
     @OneToMany(mappedBy = "voucher", fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
-    var redemptions: MutableList<Redemption> = mutableListOf()
+    var redemptions: MutableList<Redemption> = mutableListOf(),
 
     /**
      * Redemption settings for the voucher (quantity and per-customer limits).
      */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
-    var redemptionJson: RedemptionDto? = null
+    var redemptionJson: RedemptionDto? = null,
 
     /**
      * Recurring validity timeframe (interval/duration).
      */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
-    var validityTimeframe: ValidityTimeframeDto? = null
+    var validityTimeframe: ValidityTimeframeDto? = null,
 
     /**
      * Days of week when voucher is valid (0=Sun..6=Sat).
      */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
-    var validityDayOfWeek: List<Int>? = null
+    var validityDayOfWeek: List<Int>? = null,
 
     /**
      * Daily hours when voucher is valid.
@@ -177,4 +179,5 @@ class Voucher(
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     var validityHours: ValidityHoursDto? = null
-}
+
+) : AuditablePersistable()

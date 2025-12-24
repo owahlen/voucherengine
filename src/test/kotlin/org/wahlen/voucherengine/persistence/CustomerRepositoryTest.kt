@@ -33,8 +33,9 @@ class CustomerRepositoryTest @Autowired constructor(
         val customer = Customer(
             sourceId = "customer-123",
             name = "Alice Example",
-            metadata = mapOf("tier" to "gold")
-        ).apply { this.tenant = tenant }
+            metadata = mapOf("tier" to "gold"),
+            tenant = tenant
+        )
 
         val saved = customerRepository.save(customer)
         val fetched = customerRepository.findByIdOrNull(saved.id!!)

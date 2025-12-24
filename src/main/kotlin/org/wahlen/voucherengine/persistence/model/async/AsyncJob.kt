@@ -69,9 +69,7 @@ class AsyncJob(
      * When the job completed (success or failure)
      */
     @Column
-    var completedAt: Instant? = null
-
-) : AuditablePersistable() {
+    var completedAt: Instant? = null,
 
     /**
      * Tenant that owns this job
@@ -79,4 +77,5 @@ class AsyncJob(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)
     var tenant: Tenant? = null
-}
+
+) : AuditablePersistable()

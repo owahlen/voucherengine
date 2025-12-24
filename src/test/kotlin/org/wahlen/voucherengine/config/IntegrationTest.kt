@@ -7,6 +7,7 @@ import org.springframework.core.annotation.AliasFor
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.wahlen.voucherengine.service.async.AsyncJobListener
+import org.wahlen.voucherengine.service.async.AsyncJobPublisher
 import org.wahlen.voucherengine.service.async.VoucherJobService
 
 /**
@@ -16,7 +17,7 @@ import org.wahlen.voucherengine.service.async.VoucherJobService
  * - @SpringBootTest: Loads the full Spring application context
  * - @ActiveProfiles("test"): Activates the "test" profile
  * - Disables SQS autoconfiguration for faster test startup
- * - Mocks VoucherJobService and AsyncJobListener (async functionality disabled)
+ * - Mocks AsyncJobPublisher, and AsyncJobListener (async functionality disabled)
  *
  * For tests that require real async/SQS functionality, use @SqsIntegrationTest instead.
  *
@@ -31,7 +32,7 @@ import org.wahlen.voucherengine.service.async.VoucherJobService
 @SpringBootTest
 @ImportAutoConfiguration(exclude = [SqsAutoConfiguration::class])
 @ActiveProfiles("test")
-@MockitoBean(types = [VoucherJobService::class])
+@MockitoBean(types = [AsyncJobPublisher::class])
 @MockitoBean(types = [AsyncJobListener::class])
 annotation class IntegrationTest(
     /**

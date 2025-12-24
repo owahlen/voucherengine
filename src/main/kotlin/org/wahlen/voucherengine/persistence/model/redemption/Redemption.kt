@@ -57,30 +57,49 @@ class Redemption(
     var status: RedemptionStatus? = null,
 
     /**
-     *
+     * Failure reason if the redemption was unsuccessful.
      */
     @Column(columnDefinition = "TEXT")
     var reason: String? = null,
 
+    /**
+     * The voucher being redeemed.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "voucher_id")
     var voucher: Voucher? = null,
 
+    /**
+     * The customer performing the redemption.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     var customer: Customer? = null,
 
+    /**
+     * Optional order context for this redemption.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     var order: Order? = null,
 
+    /**
+     * If this is a child redemption (for rollback tracking), references the parent redemption ID.
+     */
     @Column(name = "parent_redemption_id")
-    var parentRedemptionId: UUID? = null
-) : AuditablePersistable() {
+    var parentRedemptionId: UUID? = null,
+
+    /**
+     * Tenant that owns this redemption.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false)
-    var tenant: Tenant? = null
+    var tenant: Tenant? = null,
 
+    /**
+     * Rollback records for this redemption.
+     */
     @OneToMany(mappedBy = "redemption", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
     var rollbacks: MutableList<RedemptionRollback> = mutableListOf()
-}
+
+) : AuditablePersistable()

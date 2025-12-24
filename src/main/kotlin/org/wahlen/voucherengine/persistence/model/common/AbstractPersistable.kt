@@ -1,17 +1,17 @@
 package org.wahlen.voucherengine.persistence.model.common
 
-import jakarta.persistence.*
+import jakarta.persistence.Column
+import jakarta.persistence.Id
+import jakarta.persistence.MappedSuperclass
 import org.hibernate.annotations.UuidGenerator
-import org.springframework.data.domain.Persistable
 import org.springframework.data.util.ProxyUtils
 import java.util.*
 
 /**
  * Abstract base class for entities. Provides a consistent implementation of `equals`, `hashCode`, and `toString` methods.
- * Implements Persistable to allow manual ID assignment before persist.
  */
 @MappedSuperclass
-abstract class AbstractPersistable : Persistable<UUID> {
+abstract class AbstractPersistable {
 
     /**
      * Unique database identifier for the entity.
@@ -19,24 +19,7 @@ abstract class AbstractPersistable : Persistable<UUID> {
     @Id
     @UuidGenerator
     @Column(updatable = false, nullable = false, unique = true)
-    private var id: UUID? = null
-    
-    @Transient
-    private var isNewEntity: Boolean = true
-
-    override fun getId(): UUID? = id
-    
-    fun setId(id: UUID?) {
-        this.id = id
-    }
-    
-    override fun isNew(): Boolean = isNewEntity
-    
-    @PostPersist
-    @PostLoad
-    private fun markAsNotNew() {
-        isNewEntity = false
-    }
+    var id: UUID? = null
 
     /**
      * Returns a string representation of the entity.
