@@ -85,6 +85,24 @@ class VoucherController(
     }
 
     @Operation(
+        summary = "Create voucher with specific code",
+        operationId = "createVoucherWithCode",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Voucher created"),
+            ApiResponse(responseCode = "400", description = "Validation error or code already exists")
+        ]
+    )
+    @PostMapping("/vouchers/{code}")
+    fun createVoucherWithCode(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable code: String,
+        @Valid @RequestBody body: VoucherCreateRequest
+    ): ResponseEntity<VoucherResponse> {
+        val voucher = voucherService.createVoucher(tenant, body.copy(code = code))
+        return ResponseEntity.ok(voucherService.toVoucherResponse(voucher))
+    }
+
+    @Operation(
         summary = "Get voucher by code",
         operationId = "getVoucher",
         responses = [

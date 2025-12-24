@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.dto.request.CampaignCreateRequest
 import org.wahlen.voucherengine.persistence.model.campaign.Campaign
+import org.wahlen.voucherengine.persistence.model.redemption.RedemptionResult
 import org.wahlen.voucherengine.persistence.repository.CampaignRepository
 import org.wahlen.voucherengine.persistence.repository.PublicationRepository
 import org.wahlen.voucherengine.persistence.repository.RedemptionRepository
@@ -115,5 +116,39 @@ class CampaignService(
         }
         campaignRepository.delete(existing)
         return true
+    }
+
+    @Transactional
+    fun setActive(tenantName: String, id: UUID, active: Boolean): Campaign? {
+        val existing = campaignRepository.findByIdAndTenantName(id, tenantName) ?: return null
+        existing.active = active
+        return campaignRepository.save(existing)
+    }
+
+    @Transactional(readOnly = true)
+    fun getSummary(tenantName: String, id: UUID): Map<String, Any>? {
+        val campaign = campaignRepository.findByIdAndTenantName(id, tenantName) ?: return null
+        val vouchers = voucherRepository.findAllByCampaignIdAndTenantName(id, tenantName)
+        val voucherIds = vouchers.mapNotNull { it.id }
+        
+        val redemptions = if (voucherIds.isNotEmpty()) {
+            redemptionRepository.findAllByTenantNameAndVoucherIdIn(tenantName, voucherIds)
+        } else emptyList()
+        
+        val totalRedemptions = redemptions.size
+        val successfulRedemptions = redemptions.count { it.result == RedemptionResult.SUCCESS }
+        val failedRedemptions = totalRedemptions - successfulRedemptions
+        val rollbacks = redemptions.count { it.rollbacks.isNotEmpty() }
+        
+        return mapOf(
+            "object" to "campaign_summary",
+            "campaign" to campaign,
+            "redemptions" to totalRedemptions,
+            "redemptions_succeeded" to successfulRedemptions,
+            "redemptions_failed" to failedRedemptions,
+            "rollbacks" to rollbacks,
+            "vouchers_total_count" to vouchers.size,
+            "vouchers_active_count" to vouchers.count { it.active == true }
+        )
     }
 }

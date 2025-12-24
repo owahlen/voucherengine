@@ -8,4 +8,5 @@ import java.util.UUID
 
 interface VoucherTransactionRepository : JpaRepository<VoucherTransaction, UUID> {
     fun findAllByVoucher_IdAndTenant_Name(voucherId: UUID, tenantName: String, pageable: Pageable): Page<VoucherTransaction>
+    fun findAllByVoucher_IdInAndTenant_Name(voucherIds: List<UUID>, tenantName: String, pageable: Pageable): Page<VoucherTransaction>
 }

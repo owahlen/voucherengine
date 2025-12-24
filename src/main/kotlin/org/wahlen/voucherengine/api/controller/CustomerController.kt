@@ -133,4 +133,147 @@ class CustomerController(
         customerService.delete(tenant, existing.id?.toString() ?: existing.sourceId!!)
         return ResponseEntity.noContent().build()
     }
+
+    @Operation(
+        summary = "Permanently delete customer",
+        operationId = "deleteCustomerPermanently",
+        responses = [
+            ApiResponse(responseCode = "204", description = "Customer permanently deleted"),
+            ApiResponse(responseCode = "404", description = "Customer not found")
+        ]
+    )
+    @PostMapping("/customers/{id}/permanent-deletion")
+    fun deleteCustomerPermanently(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: String
+    ): ResponseEntity<Void> {
+        val existing = customerService.getByIdOrSource(tenant, id) ?: return ResponseEntity.notFound().build()
+        customerService.delete(tenant, existing.id?.toString() ?: existing.sourceId!!)
+        return ResponseEntity.noContent().build()
+    }
+
+    @Operation(
+        summary = "Import customers from CSV",
+        operationId = "importCustomersCSV",
+        responses = [
+            ApiResponse(responseCode = "501", description = "Not implemented")
+        ]
+    )
+    @PostMapping("/customers/importCSV", consumes = ["text/csv"])
+    fun importCustomersCSV(
+        @RequestHeader("tenant") tenant: String,
+        @RequestBody csvContent: String
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "Customer CSV import not yet implemented"))
+    }
+
+    @Operation(
+        summary = "Update customers in bulk asynchronously",
+        operationId = "updateCustomersBulkAsync",
+        responses = [
+            ApiResponse(responseCode = "501", description = "Not implemented")
+        ]
+    )
+    @PostMapping("/customers/bulk/async")
+    fun updateCustomersBulkAsync(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody updates: List<CustomerCreateRequest>
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "Customer bulk update not yet implemented"))
+    }
+
+    @Operation(
+        summary = "Update customers metadata in bulk asynchronously",
+        operationId = "updateCustomersMetadataAsync",
+        responses = [
+            ApiResponse(responseCode = "501", description = "Not implemented")
+        ]
+    )
+    @PostMapping("/customers/metadata/async")
+    fun updateCustomersMetadataAsync(
+        @RequestHeader("tenant") tenant: String,
+        @Valid @RequestBody request: Map<String, Any>
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "Customer metadata bulk update not yet implemented"))
+    }
+
+    @Operation(
+        summary = "Get customer activity",
+        operationId = "getCustomerActivity",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Customer activity retrieved"),
+            ApiResponse(responseCode = "404", description = "Customer not found")
+        ]
+    )
+    @GetMapping("/customers/{id}/activity")
+    fun getCustomerActivity(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: String,
+        @Parameter(description = "Max number of items per page", example = "10")
+        @RequestParam(required = false, defaultValue = "10") limit: Int,
+        @Parameter(description = "1-based page index", example = "1")
+        @RequestParam(required = false, defaultValue = "1") page: Int
+    ): ResponseEntity<Map<String, Any>> {
+        val customer = customerService.getByIdOrSource(tenant, id) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(
+            mapOf(
+                "object" to "list",
+                "data_ref" to "data",
+                "data" to emptyList<Any>(),
+                "has_more" to false,
+                "total" to 0
+            )
+        )
+    }
+
+    @Operation(
+        summary = "List customer's segments",
+        operationId = "getCustomerSegments",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Customer segments retrieved"),
+            ApiResponse(responseCode = "404", description = "Customer not found")
+        ]
+    )
+    @GetMapping("/customers/{id}/segments")
+    fun getCustomerSegments(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: String
+    ): ResponseEntity<Map<String, Any>> {
+        val customer = customerService.getByIdOrSource(tenant, id) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(
+            mapOf(
+                "object" to "list",
+                "data_ref" to "segments",
+                "segments" to emptyList<Any>(),
+                "total" to 0
+            )
+        )
+    }
+
+    @Operation(
+        summary = "List customer's redeemables",
+        operationId = "getCustomerRedeemables",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Customer redeemables retrieved"),
+            ApiResponse(responseCode = "404", description = "Customer not found")
+        ]
+    )
+    @GetMapping("/customers/{id}/redeemables")
+    fun getCustomerRedeemables(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: String
+    ): ResponseEntity<Map<String, Any>> {
+        val customer = customerService.getByIdOrSource(tenant, id) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(
+            mapOf(
+                "object" to "list",
+                "data_ref" to "redeemables",
+                "redeemables" to emptyList<Any>(),
+                "total" to 0
+            )
+        )
+    }
 }

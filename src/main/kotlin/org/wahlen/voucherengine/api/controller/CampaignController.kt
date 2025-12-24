@@ -274,6 +274,121 @@ class CampaignController(
         )
     }
 
+    @Operation(
+        summary = "Enable campaign",
+        operationId = "enableCampaign",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Campaign enabled"),
+            ApiResponse(responseCode = "404", description = "Campaign not found")
+        ]
+    )
+    @PostMapping("/campaigns/{id}/enable")
+    fun enableCampaign(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID
+    ): ResponseEntity<CampaignResponse> {
+        val updated = campaignService.setActive(tenant, id, true) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(toResponse(updated))
+    }
+
+    @Operation(
+        summary = "Disable campaign",
+        operationId = "disableCampaign",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Campaign disabled"),
+            ApiResponse(responseCode = "404", description = "Campaign not found")
+        ]
+    )
+    @PostMapping("/campaigns/{id}/disable")
+    fun disableCampaign(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID
+    ): ResponseEntity<CampaignResponse> {
+        val updated = campaignService.setActive(tenant, id, false) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(toResponse(updated))
+    }
+
+    @Operation(
+        summary = "Get campaign summary",
+        operationId = "getCampaignSummary",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Campaign summary retrieved"),
+            ApiResponse(responseCode = "404", description = "Campaign not found")
+        ]
+    )
+    @GetMapping("/campaigns/{id}/summary")
+    fun getCampaignSummary(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID
+    ): ResponseEntity<Map<String, Any>> {
+        val summary = campaignService.getSummary(tenant, id) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(summary)
+    }
+
+    @Operation(
+        summary = "List campaign transactions",
+        operationId = "listCampaignTransactions",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Campaign transactions retrieved"),
+            ApiResponse(responseCode = "404", description = "Campaign not found")
+        ]
+    )
+    @GetMapping("/campaigns/{id}/transactions")
+    fun listCampaignTransactions(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID,
+        @Parameter(description = "Max number of items per page", example = "10")
+        @RequestParam(required = false, defaultValue = "10") limit: Int,
+        @Parameter(description = "1-based page index", example = "1")
+        @RequestParam(required = false, defaultValue = "1") page: Int
+    ): ResponseEntity<Map<String, Any>> {
+        val campaign = campaignService.get(tenant, id) ?: return ResponseEntity.notFound().build()
+        
+        val cappedLimit = limit.coerceIn(1, 100)
+        val pageable = org.springframework.data.domain.PageRequest.of(
+            (page - 1).coerceAtLeast(0),
+            cappedLimit,
+            org.springframework.data.domain.Sort.by("createdAt").descending()
+        )
+        
+        val vouchers = voucherService.listVouchersByCampaign(tenant, campaign.id!!)
+        val voucherIds = vouchers.mapNotNull { it.id }
+        
+        val transactions = if (voucherIds.isNotEmpty()) {
+            voucherService.listCampaignTransactions(tenant, voucherIds, pageable)
+        } else {
+            org.springframework.data.domain.PageImpl(
+                emptyList<org.wahlen.voucherengine.persistence.model.voucher.VoucherTransaction>(),
+                pageable,
+                0
+            )
+        }
+        
+        return ResponseEntity.ok(
+            mapOf(
+                "data" to transactions.content.map { voucherService.toTransactionResponse(it) },
+                "has_more" to transactions.hasNext(),
+                "total" to transactions.totalElements.toInt()
+            )
+        )
+    }
+
+    @Operation(
+        summary = "Export campaign transactions",
+        operationId = "exportCampaignTransactions",
+        responses = [
+            ApiResponse(responseCode = "501", description = "Not implemented - use GET /campaigns/{id}/transactions")
+        ]
+    )
+    @PostMapping("/campaigns/{id}/transactions/export")
+    fun exportCampaignTransactions(
+        @RequestHeader("tenant") tenant: String,
+        @PathVariable id: UUID
+    ): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body(mapOf("message" to "Transaction export not implemented. Use GET /campaigns/{id}/transactions with pagination."))
+    }
+
     private fun toResponse(campaign: Campaign) = CampaignResponse(
         id = campaign.id,
         name = campaign.name,

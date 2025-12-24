@@ -781,6 +781,15 @@ class VoucherService(
     }
 
     @Transactional(readOnly = true)
+    fun listCampaignTransactions(
+        tenantName: String,
+        voucherIds: List<UUID>,
+        pageable: Pageable
+    ): Page<org.wahlen.voucherengine.persistence.model.voucher.VoucherTransaction> {
+        return voucherTransactionRepository.findAllByVoucher_IdInAndTenant_Name(voucherIds, tenantName, pageable)
+    }
+
+    @Transactional(readOnly = true)
     fun listVoucherRedemptions(
         tenantName: String,
         code: String
