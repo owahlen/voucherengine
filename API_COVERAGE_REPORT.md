@@ -150,8 +150,12 @@ These resources have complete endpoint coverage with proper SpringDoc documentat
 - ⚠️ `POST /v1/skus/importCSV` - SKU import stub (501)
 
 ### OrderController
-- ⚠️ `POST /v1/orders/export` - Export stub (501)
-- ⚠️ `POST /v1/orders/import` - Import stub (501)
+- ✅ `POST /v1/orders` - Create order → `OrderController.createOrder`
+- ✅ `GET /v1/orders` - List orders → `OrderController.listOrders`
+- ✅ `GET /v1/orders/{orderId}` - Get order → `OrderController.getOrder`
+- ✅ `PUT /v1/orders/{orderId}` - Update order → `OrderController.updateOrder`
+- ✅ `POST /v1/orders/export` - Export orders (async with field selection, metadata, sorting) → `OrderController.exportOrders`
+- ✅ `POST /v1/orders/import` - Import orders (async with 2000 limit, concurrency control) → `OrderController.importOrders`
 
 ### RedemptionController
 - ✅ `POST /v1/redemptions/{parentRedemptionId}/rollbacks` - Create rollback
@@ -159,6 +163,21 @@ These resources have complete endpoint coverage with proper SpringDoc documentat
 ---
 
 ## Service Layer Enhancements
+
+### OrderService & OrderExportService
+- ✅ `OrderImportService.processImport()` - Async order import with validation
+  - 2000 order limit per request (per spec)
+  - Concurrent import prevention per tenant (per spec)
+  - Customer upsert on import
+  - Progress tracking in AsyncJob
+- ✅ `OrderExportService.executeExport()` - Async order export
+  - Field selection via `parameters.fields` array
+  - Default fields: id, source_id, status (per spec)
+  - Metadata export support (metadata, metadata.X)
+  - Sort ordering via `parameters.order` ("-field" for DESC)
+  - CSV/JSON format support
+  - S3 upload with presigned URLs
+  - Filter support (status, created_at, updated_at)
 
 ### CampaignService
 - ✅ `setActive()` - Enable/disable campaigns
@@ -238,7 +257,7 @@ BUILD SUCCESSFUL in 1m 4s
 ### High Priority (Most Business Value)
 1. **Customer Activity Tracking** - Event logging infrastructure
 2. **Customer Segments** - Basic segmentation with rules
-3. **Order Import/Export** - Async batch operations
+3. ~~**Order Import/Export**~~ - ✅ **COMPLETED** (Async batch operations with full spec compliance)
 
 ### Medium Priority
 4. **Product/SKU Bulk Operations** - CSV import, async updates

@@ -8,7 +8,6 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
-import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -21,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController
 import org.wahlen.voucherengine.api.dto.request.OrderCreateRequest
 import org.wahlen.voucherengine.api.dto.response.OrdersListResponse
 import org.wahlen.voucherengine.api.dto.response.OrderResponse
+import org.wahlen.voucherengine.persistence.model.async.AsyncJobStatus
+import org.wahlen.voucherengine.persistence.repository.AsyncJobRepository
 import org.wahlen.voucherengine.service.OrderService
 import org.wahlen.voucherengine.service.TenantService
 import org.wahlen.voucherengine.service.async.AsyncJobPublisher
@@ -38,6 +39,7 @@ import org.wahlen.voucherengine.service.async.command.OrderImportCommand
 class OrderController(
     private val orderService: OrderService,
     private val asyncJobPublisher: AsyncJobPublisher,
+    private val asyncJobRepository: AsyncJobRepository,
     private val tenantService: TenantService
 ) {
 
@@ -176,10 +178,11 @@ class OrderController(
     @Operation(
         summary = "Import orders",
         operationId = "importOrders",
-        description = "Asynchronously import multiple orders. Request body should be an array of order objects. Returns async job ID for tracking.",
+        description = "Asynchronously import multiple orders. Request body should be an array of order objects. Returns async job ID for tracking. Limitations: Maximum 2000 orders per request. Only one import per tenant at a time (concurrent imports are queued).",
         responses = [
             ApiResponse(responseCode = "200", description = "Import job created"),
-            ApiResponse(responseCode = "400", description = "Invalid request body")
+            ApiResponse(responseCode = "400", description = "Invalid request body or exceeds limit"),
+            ApiResponse(responseCode = "409", description = "Import already in progress for this tenant")
         ]
     )
     @PostMapping("/orders/import")
@@ -187,12 +190,36 @@ class OrderController(
         @RequestHeader("tenant") tenantName: String,
         @RequestBody orders: List<Map<String, Any?>>
     ): ResponseEntity<Map<String, String>> {
+        // Validate order count limit
         if (orders.isEmpty()) {
             return ResponseEntity.badRequest().body(mapOf("error" to "Orders array cannot be empty"))
+        }
+        
+        if (orders.size > 2000) {
+            return ResponseEntity.badRequest().body(
+                mapOf("error" to "Maximum 2000 orders per import. Received: ${orders.size}")
+            )
         }
 
         val tenant = tenantService.getByName(tenantName) 
             ?: throw IllegalArgumentException("Tenant not found: $tenantName")
+
+        // Check for concurrent imports: only one import at a time per tenant
+        val runningImports = asyncJobRepository.findAllByTenant_NameAndStatusOrderByCreatedAtDesc(
+            tenantName,
+            AsyncJobStatus.IN_PROGRESS
+        ).filter { it.type == org.wahlen.voucherengine.persistence.model.async.AsyncJobType.ORDER_IMPORT }
+        
+        if (runningImports.isNotEmpty()) {
+            val existingJobId = runningImports.first().id
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                mapOf(
+                    "error" to "An order import is already in progress for this tenant",
+                    "existing_job_id" to existingJobId.toString(),
+                    "message" to "Please wait for the existing import to complete or schedule this import to run after completion"
+                )
+            )
+        }
 
         val command = OrderImportCommand(
             tenantName = tenantName,

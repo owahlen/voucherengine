@@ -16,14 +16,12 @@ locals {
   ##########################################
   # Queue configuration (centralized)
   ##########################################
-  # Keeping values in locals makes it easy to
-  # tune behavior without touching resources.
+  # Define only the main queues here.
+  # DLQs are automatically created with the
+  # pattern: {queue_name}-dlq
   ##########################################
   queues = {
-    async_jobs = {
-      # Logical queue name
-      name = "voucher-async-jobs"
-
+    voucherengine-async-jobs = {
       # How long a message is hidden after being
       # received by a consumer.
       # Should be >= max processing time.
@@ -43,13 +41,33 @@ locals {
       max_receive_count = 3
     }
   }
+
+  ##########################################
+  # DLQ configuration (shared settings)
+  ##########################################
+  # All DLQs share these settings.
+  # Individual overrides could be added later
+  # if needed.
+  ##########################################
+  dlq_config = {
+    # Keep failed messages long enough for
+    # inspection and manual replay.
+    message_retention_seconds = 1209600  # 14 days
+
+    # DLQs typically don't need long visibility
+    # since they're mainly for inspection.
+    visibility_timeout_seconds = 300  # 5 minutes
+
+    # Long polling for efficient consumption
+    receive_wait_time_seconds = 20
+  }
 }
 
 ############################################
-# Dead Letter Queue (DLQ)
+# Dead Letter Queues (DLQs)
 ############################################
-# Stores messages that failed processing
-# multiple times.
+# Automatically create a DLQ for each main
+# queue using the pattern: {queue_name}-dlq
 #
 # DLQs are critical for:
 # - Debugging broken messages
@@ -57,49 +75,58 @@ locals {
 # - Keeping the main queue healthy
 ############################################
 
-resource "aws_sqs_queue" "async_jobs_dlq" {
-  name = "voucher-async-jobs-dlq"
+resource "aws_sqs_queue" "dlqs" {
+  for_each = local.queues
 
-  # Keep failed messages long enough for
-  # inspection and manual replay.
-  message_retention_seconds = 1209600  # 14 days
+  name = "${each.key}-dlq"
+
+  visibility_timeout_seconds = local.dlq_config.visibility_timeout_seconds
+  message_retention_seconds  = local.dlq_config.message_retention_seconds
+  receive_wait_time_seconds  = local.dlq_config.receive_wait_time_seconds
 
   tags = {
     Environment = "local"
     Service     = "voucherengine"
     Type        = "dlq"
+    MainQueue   = each.key
   }
 }
 
 ############################################
-# Main asynchronous jobs queue
+# Main Queues
 ############################################
-# This is the queue your application workers
-# will consume from.
+# Creates all main queues with automatic
+# DLQ integration via redrive policy.
 #
-# Messages that fail repeatedly are automatically
-# moved to the DLQ via the redrive policy.
+# Each queue references its corresponding DLQ
+# created above.
 ############################################
 
-resource "aws_sqs_queue" "async_jobs" {
-  name = local.queues.async_jobs.name
+resource "aws_sqs_queue" "queues" {
+  for_each = local.queues
 
-  visibility_timeout_seconds = local.queues.async_jobs.visibility_timeout_seconds
-  message_retention_seconds  = local.queues.async_jobs.message_retention_seconds
-  receive_wait_time_seconds  = local.queues.async_jobs.receive_wait_time_seconds
+  name = each.key
+
+  visibility_timeout_seconds = each.value.visibility_timeout_seconds
+  message_retention_seconds  = each.value.message_retention_seconds
+  receive_wait_time_seconds  = each.value.receive_wait_time_seconds
 
   ##########################################
   # Redrive policy (DLQ integration)
   ##########################################
+  # Automatically connects to the DLQ created
+  # for this queue.
+  ##########################################
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.async_jobs_dlq.arn
-    maxReceiveCount     = local.queues.async_jobs.max_receive_count
+    deadLetterTargetArn = aws_sqs_queue.dlqs[each.key].arn
+    maxReceiveCount     = each.value.max_receive_count
   })
 
   tags = {
     Environment = "local"
     Service     = "voucherengine"
     Type        = "main"
+    DLQ         = "${each.key}-dlq"
   }
 }
 

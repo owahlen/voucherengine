@@ -1,6 +1,7 @@
 package org.wahlen.voucherengine.service
 
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.persistence.model.async.AsyncJob
@@ -43,6 +44,19 @@ class OrderExportService(
 
             val format = parameters["format"] as? String ?: "CSV"
             val filters = parseFilters(parameters)
+            
+            // Extract field selection (per Voucherify spec)
+            @Suppress("UNCHECKED_CAST")
+            val requestedFields = parameters["fields"] as? List<String>
+            val fields = if (requestedFields.isNullOrEmpty()) {
+                // Default fields when empty (per spec: id, source_id, status)
+                listOf("id", "source_id", "status")
+            } else {
+                requestedFields
+            }
+            
+            // Extract sort order (per Voucherify spec)
+            val sortOrder = parameters["order"] as? String
 
             // Count total for progress tracking
             val total = countOrders(tenantName, filters)
@@ -56,8 +70,8 @@ class OrderExportService(
 
             // Generate export file
             val content = when (format.uppercase()) {
-                "CSV" -> generateCsv(tenantName, filters, job)
-                "JSON" -> generateJson(tenantName, filters, job)
+                "CSV" -> generateCsv(tenantName, filters, fields, sortOrder, job)
+                "JSON" -> generateJson(tenantName, filters, fields, sortOrder, job)
                 else -> throw IllegalArgumentException("Unsupported format: $format")
             }
 
@@ -87,11 +101,17 @@ class OrderExportService(
         }
     }
 
-    private fun generateCsv(tenantName: String, filters: OrderFilters, job: AsyncJob): ByteArray {
+    private fun generateCsv(
+        tenantName: String,
+        filters: OrderFilters,
+        fields: List<String>,
+        sortOrder: String?,
+        job: AsyncJob
+    ): ByteArray {
         val output = ByteArrayOutputStream()
         output.bufferedWriter().use { writer ->
-            // CSV Header
-            writer.write("id,source_id,status,amount,initial_amount,discount_amount,customer_id,created_at,updated_at")
+            // CSV Header (use requested fields)
+            writer.write(fields.joinToString(","))
             writer.newLine()
 
             var processedCount = 0
@@ -99,12 +119,12 @@ class OrderExportService(
 
             while (true) {
                 val pageable = PageRequest.of(page, BATCH_SIZE)
-                val orders = fetchOrders(tenantName, filters, pageable)
+                val orders = fetchOrders(tenantName, filters, sortOrder, pageable)
 
                 if (orders.isEmpty()) break
 
                 orders.forEach { order ->
-                    writer.write(toCsvRow(order))
+                    writer.write(toCsvRow(order, fields))
                     writer.newLine()
                 }
 
@@ -119,19 +139,25 @@ class OrderExportService(
         return output.toByteArray()
     }
 
-    private fun generateJson(tenantName: String, filters: OrderFilters, job: AsyncJob): ByteArray {
+    private fun generateJson(
+        tenantName: String,
+        filters: OrderFilters,
+        fields: List<String>,
+        sortOrder: String?,
+        job: AsyncJob
+    ): ByteArray {
         val allOrders = mutableListOf<Map<String, Any?>>()
         var processedCount = 0
         var page = 0
 
         while (true) {
             val pageable = PageRequest.of(page, BATCH_SIZE)
-            val orders = fetchOrders(tenantName, filters, pageable)
+            val orders = fetchOrders(tenantName, filters, sortOrder, pageable)
 
             if (orders.isEmpty()) break
 
             orders.forEach { order ->
-                allOrders.add(toJsonObject(order))
+                allOrders.add(toJsonObject(order, fields))
             }
 
             processedCount += orders.size
@@ -144,46 +170,83 @@ class OrderExportService(
         return objectMapper.writeValueAsBytes(allOrders)
     }
 
-    private fun toCsvRow(order: Order): String {
-        return listOf(
-            order.id.toString(),
-            order.sourceId ?: "",
-            order.status ?: "",
-            order.amount?.toString() ?: "",
-            order.initialAmount?.toString() ?: "",
-            order.discountAmount?.toString() ?: "",
-            order.customer?.id?.toString() ?: "",
-            order.createdAt?.atOffset(ZoneOffset.UTC)?.format(DATE_FORMATTER) ?: "",
-            order.updatedAt?.atOffset(ZoneOffset.UTC)?.format(DATE_FORMATTER) ?: ""
-        ).joinToString(",") { escapeCsv(it) }
-    }
-
-    private fun toJsonObject(order: Order): Map<String, Any?> {
-        return mapOf(
-            "id" to order.id.toString(),
-            "source_id" to order.sourceId,
-            "status" to order.status,
-            "amount" to order.amount,
-            "initial_amount" to order.initialAmount,
-            "discount_amount" to order.discountAmount,
-            "customer_id" to order.customer?.id?.toString(),
-            "created_at" to order.createdAt?.atOffset(ZoneOffset.UTC)?.format(DATE_FORMATTER),
-            "updated_at" to order.updatedAt?.atOffset(ZoneOffset.UTC)?.format(DATE_FORMATTER),
-            "metadata" to order.metadata
-        )
-    }
-
-    private fun escapeCsv(value: String): String {
-        return if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-            "\"${value.replace("\"", "\"\"")}\""
-        } else {
-            value
+    private fun toCsvRow(order: Order, fields: List<String>): String {
+        return fields.joinToString(",") { field ->
+            val value = extractFieldValue(order, field)
+            // Escape commas and quotes in CSV
+            when (value) {
+                null -> ""
+                is String -> "\"${value.replace("\"", "\"\"")}\""
+                else -> value.toString()
+            }
         }
     }
 
-    private fun fetchOrders(tenantName: String, filters: OrderFilters, pageable: PageRequest): List<Order> {
-        // For now, fetch all orders for the tenant. In future, apply filters
-        return orderRepository.findAllByTenantName(tenantName, pageable).content
+    private fun toJsonObject(order: Order, fields: List<String>): Map<String, Any?> {
+        return fields.associateWith { field ->
+            extractFieldValue(order, field)
+        }
+    }
+    
+    /**
+     * Extract field value from order, supporting metadata.X notation (per Voucherify spec).
+     */
+    private fun extractFieldValue(order: Order, field: String): Any? {
+        return when {
+            field.startsWith("metadata.") -> {
+                // Extract specific metadata field (e.g., "metadata.payment_method")
+                val metadataKey = field.substring("metadata.".length)
+                order.metadata?.get(metadataKey)
+            }
+            field == "metadata" -> {
+                // Return full metadata object
+                order.metadata
+            }
+            else -> {
+                // Standard fields
+                when (field) {
+                    "id" -> order.id.toString()
+                    "source_id" -> order.sourceId
+                    "status" -> order.status
+                    "amount" -> order.amount
+                    "initial_amount" -> order.initialAmount
+                    "discount_amount" -> order.discountAmount
+                    "items_discount_amount" -> 0L // Not in our model yet
+                    "total_discount_amount" -> order.discountAmount ?: 0L
+                    "total_amount" -> (order.amount ?: 0L) - (order.discountAmount ?: 0L)
+                    "customer_id" -> order.customer?.id?.toString()
+                    "referrer_id" -> null // Not in our model yet
+                    "created_at" -> order.createdAt?.let { DATE_FORMATTER.format(it.atOffset(ZoneOffset.UTC)) }
+                    "updated_at" -> order.updatedAt?.let { DATE_FORMATTER.format(it.atOffset(ZoneOffset.UTC)) }
+                    else -> null // Unknown field
+                }
+            }
+        }
+    }
+    
+    private fun fetchOrders(tenantName: String, filters: OrderFilters, sortOrder: String?, pageable: Pageable): List<Order> {
+        // Apply sorting if specified (per Voucherify spec: "-field" for descending, "field" for ascending)
+        val sortedPageable = if (sortOrder != null) {
+            val direction = if (sortOrder.startsWith("-")) {
+                org.springframework.data.domain.Sort.Direction.DESC
+            } else {
+                org.springframework.data.domain.Sort.Direction.ASC
+            }
+            val fieldName = sortOrder.removePrefix("-")
+            // Map spec field names to entity field names
+            val entityField = when (fieldName) {
+                "created_at" -> "createdAt"
+                "updated_at" -> "updatedAt"
+                "source_id" -> "sourceId"
+                else -> fieldName
+            }
+            PageRequest.of(pageable.pageNumber, pageable.pageSize, direction, entityField)
+        } else {
+            pageable
+        }
+        
+        // Fetch orders with filters (currently basic filtering)
+        return orderRepository.findAllByTenantName(tenantName, sortedPageable).content
     }
 
     private fun countOrders(tenantName: String, filters: OrderFilters): Int {

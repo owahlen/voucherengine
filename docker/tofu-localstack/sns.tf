@@ -9,8 +9,8 @@
 # without changes.
 ############################################
 
-resource "aws_sns_topic" "voucher_events" {
-  name = "voucher-events"
+resource "aws_sns_topic" "voucherengine_events" {
+  name = "voucherengine-events"
 
   tags = {
     Environment = "local"
@@ -35,7 +35,7 @@ resource "aws_sns_topic" "voucher_events" {
 # resource "aws_sns_topic_subscription" "async_jobs_subscription" {
 #   topic_arn = aws_sns_topic.voucher_events.arn
 #   protocol  = "sqs"
-#   endpoint  = aws_sqs_queue.async_jobs.arn
+#   endpoint  = aws_sqs_queue.queues["voucherengine-async-jobs"].arn
 # }
 
 ############################################

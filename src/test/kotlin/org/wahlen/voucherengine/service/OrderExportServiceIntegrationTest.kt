@@ -89,10 +89,13 @@ class OrderExportServiceIntegrationTest {
 
     @Test
     fun `should export orders to CSV format`() {
-        // Given
+        // Given - Request with specific fields
         val command = OrderExportCommand(
             tenantName = tenant.name!!,
-            parameters = mapOf("format" to "CSV")
+            parameters = mapOf(
+                "format" to "CSV",
+                "fields" to listOf("id", "source_id", "status", "amount")
+            )
         )
 
         // When
