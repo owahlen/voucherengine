@@ -122,7 +122,7 @@ class RedemptionController(
         @Valid @RequestBody body: RollbackRequest
     ): ResponseEntity<RedemptionRollbackResponse> {
         val rollback = voucherService.rollbackRedemption(tenant, id, body) ?: return ResponseEntity.notFound().build()
-        return ResponseEntity.status(HttpStatus.CREATED).body(
+        return ResponseEntity.status(HttpStatus.OK).body(
             RedemptionRollbackResponse(
                 id = rollback.id,
                 redemption_id = rollback.redemption?.id,
@@ -149,7 +149,7 @@ class RedemptionController(
         @Valid @RequestBody body: RollbackRequest
     ): ResponseEntity<RedemptionRollbackResponse> {
         val rollback = voucherService.rollbackRedemption(tenant, parentRedemptionId, body) ?: return ResponseEntity.notFound().build()
-        return ResponseEntity.status(HttpStatus.CREATED).body(
+        return ResponseEntity.status(HttpStatus.OK).body(
             RedemptionRollbackResponse(
                 id = rollback.id,
                 redemption_id = rollback.redemption?.id,

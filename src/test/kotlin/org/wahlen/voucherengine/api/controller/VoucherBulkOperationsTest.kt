@@ -51,7 +51,7 @@ class VoucherBulkOperationsTest @Autowired constructor(
                     .with(tenantJwt(tenantName))
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createBody)
-            ).andExpect(status().isCreated)
+            ).andExpect(status().isOk)
         }
 
         // Bulk update metadata (async - returns job ID)
@@ -90,7 +90,7 @@ class VoucherBulkOperationsTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         // Try to update two, one non-existent (async - returns job ID)
         val bulkBody = """
@@ -126,7 +126,7 @@ class VoucherBulkOperationsTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         // Update only specific metadata fields (async - returns job ID)
         val updateBody = """

@@ -49,7 +49,7 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val redemptionBody = """
             { "redeemables": [ { "object": "voucher", "id": "$code" } ], "customer": { "source_id": "rollback-user" }, "order": { "id": "o-1", "amount": 1000 } }
@@ -85,7 +85,7 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(rollbackBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.redemption_id").value(redemptionId))
     }
 
@@ -101,7 +101,7 @@ class RedemptionControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val redemptionBody = """
             {

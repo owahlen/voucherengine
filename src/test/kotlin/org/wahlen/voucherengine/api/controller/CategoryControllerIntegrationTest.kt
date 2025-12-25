@@ -43,7 +43,7 @@ class CategoryControllerIntegrationTest @Autowired constructor(
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"name":"electronics"}""")
         )
-            .andExpect(status().isCreated)
+            .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("electronics"))
             .andReturn()
 

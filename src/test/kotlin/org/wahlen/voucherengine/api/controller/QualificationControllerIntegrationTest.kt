@@ -46,7 +46,7 @@ class QualificationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val qualificationBody = """
             {
@@ -80,14 +80,14 @@ class QualificationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(firstVoucher)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(secondVoucher)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val firstPageBody = """
             { "options": { "limit": 1 } }
@@ -134,14 +134,14 @@ class QualificationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherLow)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherHigh)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val sortingBody = """
             {
@@ -188,7 +188,7 @@ class QualificationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val ruleBody = """
             {
@@ -208,7 +208,7 @@ class QualificationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(ruleBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
 
         val ruleId = objectMapper.readTree(ruleResult.response.contentAsString).get("id").asString()
@@ -252,7 +252,7 @@ class QualificationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val ruleBody = """
             {
@@ -272,7 +272,7 @@ class QualificationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(ruleBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
 
         val ruleId = objectMapper.readTree(ruleResult.response.contentAsString).get("id").asString()

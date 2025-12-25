@@ -50,7 +50,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(campaignBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
 
         val campaignId = UUID.fromString(objectMapper.readTree(campaignResult.response.contentAsString).get("id").asString())
@@ -65,7 +65,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val customerSource = "customer-${UUID.randomUUID().toString().take(6)}"
         val publicationBody = """
@@ -119,7 +119,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val customerSource = "customer-${UUID.randomUUID().toString().take(6)}"
         val publicationBody = """
@@ -150,7 +150,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val customerSource = "customer-${UUID.randomUUID().toString().take(6)}"
         mockMvc.perform(
@@ -178,7 +178,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(campaignBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
 
         val campaignId = UUID.fromString(objectMapper.readTree(campaignResult.response.contentAsString).get("id").asString())
@@ -194,7 +194,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody("MPUB-${UUID.randomUUID().toString().take(6)}"))
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         mockMvc.perform(
             post("/v1/campaigns/$campaignId/vouchers")
@@ -202,7 +202,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody("MPUB-${UUID.randomUUID().toString().take(6)}"))
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val customerSource = "customer-${UUID.randomUUID().toString().take(6)}"
         val publicationBody = """
@@ -234,7 +234,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val customerSource = "customer-${UUID.randomUUID().toString().take(6)}"
         val publicationBody = """
@@ -274,7 +274,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(campaignBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
 
         val campaignId = UUID.fromString(objectMapper.readTree(campaignResult.response.contentAsString).get("id").asString())
@@ -293,7 +293,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody(voucherCodeOne))
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         mockMvc.perform(
             post("/v1/campaigns/$campaignId/vouchers")
@@ -301,7 +301,7 @@ class PublicationControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody(voucherCodeTwo))
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val customerOne = "customer-${UUID.randomUUID().toString().take(6)}"
         val customerTwo = "customer-${UUID.randomUUID().toString().take(6)}"

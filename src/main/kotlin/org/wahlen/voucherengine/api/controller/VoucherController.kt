@@ -61,7 +61,7 @@ class VoucherController(
         @Valid @RequestBody body: VoucherCreateRequest
     ): ResponseEntity<VoucherResponse> {
         val voucher = voucherService.createVoucher(tenant, body)
-        return ResponseEntity.status(HttpStatus.CREATED).body(voucherService.toVoucherResponse(voucher))
+        return ResponseEntity.status(HttpStatus.OK).body(voucherService.toVoucherResponse(voucher))
     }
 
     @Operation(

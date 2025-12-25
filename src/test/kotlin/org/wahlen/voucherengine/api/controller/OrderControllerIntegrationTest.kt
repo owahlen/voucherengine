@@ -53,7 +53,7 @@ class OrderControllerIntegrationTest @Autowired constructor(
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         )
-            .andExpect(status().isCreated)
+            .andExpect(status().isOk)
             .andExpect(jsonPath("$.source_id").value("order-1"))
             .andExpect(jsonPath("$.customer_id").exists())
             .andExpect(jsonPath("$.customer.object").value("customer"))
@@ -117,14 +117,14 @@ class OrderControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(firstOrder)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
         mockMvc.perform(
             post("/v1/orders")
                 .header("tenant", tenantName)
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(secondOrder)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         mockMvc.perform(
             get("/v1/orders?limit=1&page=1&order=created_at")

@@ -46,7 +46,7 @@ class VoucherE2ETest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value("E2E-10"))
 
         val validateBody = """

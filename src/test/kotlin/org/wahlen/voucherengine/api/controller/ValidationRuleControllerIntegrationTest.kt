@@ -51,7 +51,7 @@ class ValidationRuleControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.object").value("validation_rule"))
             .andExpect(jsonPath("$.conditions.redemptions.per_customer").value(1))
             .andReturn()

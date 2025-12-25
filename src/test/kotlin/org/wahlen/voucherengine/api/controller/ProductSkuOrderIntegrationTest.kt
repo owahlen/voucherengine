@@ -50,7 +50,7 @@ class ProductSkuOrderIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(productBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("Premium Plan"))
             .andReturn()
 
@@ -70,7 +70,7 @@ class ProductSkuOrderIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(skuBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.source_id").value("sku-premium-monthly"))
 
         mockMvc.perform(
@@ -124,7 +124,7 @@ class ProductSkuOrderIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(productBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val skuBody = """
             { "sku": "Starter Monthly", "source_id": "sku-starter-monthly", "price": 5000, "currency": "USD" }
@@ -143,7 +143,7 @@ class ProductSkuOrderIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(skuBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val orderBody = """
             {
@@ -163,7 +163,7 @@ class ProductSkuOrderIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(orderBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.items[0].product_id").value("prod-starter"))
             .andExpect(jsonPath("$.items[0].sku_id").value("sku-starter-monthly"))
             .andExpect(jsonPath("$.items[0].amount").value(5000))
@@ -195,14 +195,14 @@ class ProductSkuOrderIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(firstProduct)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
         mockMvc.perform(
             post("/v1/products")
                 .header("tenant", tenantName)
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(secondProduct)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         mockMvc.perform(
             get("/v1/products?limit=1&page=1&order=created_at")

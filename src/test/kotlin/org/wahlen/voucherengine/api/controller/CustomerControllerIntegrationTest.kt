@@ -113,9 +113,9 @@ class CustomerControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.object").value("list"))
-            .andExpect(jsonPath("$.data_ref").value("segments"))
-            .andExpect(jsonPath("$.segments.length()").value(1))
-            .andExpect(jsonPath("$.segments[0].name").value("Test Segment"))
+            .andExpect(jsonPath("$.data_ref").value("data"))
+            .andExpect(jsonPath("$.data.length()").value(1))
+            .andExpect(jsonPath("$.data[0].name").value("Test Segment"))
     }
 
     @Test

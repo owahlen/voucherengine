@@ -61,7 +61,7 @@ class SegmentControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("VIP Customers"))
             .andExpect(jsonPath("$.type").value("static"))
             .andReturn()
@@ -96,7 +96,7 @@ class SegmentControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("Segment by SourceId"))
 
         val segment = segmentRepository.findAllByTenant_Name(tenantName).first()
@@ -118,7 +118,7 @@ class SegmentControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.type").value("auto-update"))
     }
 

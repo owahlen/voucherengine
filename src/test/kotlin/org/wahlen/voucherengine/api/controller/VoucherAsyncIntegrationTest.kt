@@ -68,7 +68,7 @@ class VoucherAsyncIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody1)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         mockMvc.perform(
             post("/v1/vouchers")
@@ -76,7 +76,7 @@ class VoucherAsyncIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody2)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         // Submit bulk update
         val bulkUpdateBody = """
@@ -150,7 +150,7 @@ class VoucherAsyncIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         // Submit metadata update
         val metadataUpdateBody = """

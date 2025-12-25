@@ -48,7 +48,7 @@ class ExportControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val exportBody = """
             { "exported_object": "voucher" }

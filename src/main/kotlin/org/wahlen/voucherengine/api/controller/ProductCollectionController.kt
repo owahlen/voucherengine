@@ -73,7 +73,7 @@ class ProductCollectionController(
         @RequestHeader("tenant") tenant: String,
         @Valid @org.springframework.web.bind.annotation.RequestBody body: ProductCollectionCreateRequest
     ): ResponseEntity<ProductCollectionResponse> =
-        ResponseEntity.status(HttpStatus.CREATED).body(productCollectionService.create(tenant, body))
+        ResponseEntity.status(HttpStatus.OK).body(productCollectionService.create(tenant, body))
 
     @Operation(
         summary = "Get product collection",

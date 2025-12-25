@@ -171,7 +171,7 @@ class CascadeDeleteIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asString())
     }
@@ -186,7 +186,7 @@ class CascadeDeleteIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asString())
     }
@@ -201,7 +201,7 @@ class CascadeDeleteIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         return UUID.fromString(objectMapper.readTree(response.response.contentAsString).get("id").asString())
     }
@@ -259,7 +259,7 @@ class CascadeDeleteIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(ruleBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val ruleId = objectMapper.readTree(ruleResponse.response.contentAsString).get("id").asString()
 

@@ -51,7 +51,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value(code))
 
         mockMvc.perform(get("/v1/vouchers/$code").header("tenant", tenantName).with(tenantJwt(tenantName)))
@@ -119,7 +119,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         mockMvc.perform(
             post("/v1/vouchers/$code/disable")
@@ -149,7 +149,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val stackBody = """
             {
@@ -188,7 +188,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         mockMvc.perform(get("/v1/vouchers/$code/qr").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)
@@ -210,7 +210,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(categoryBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val categoryId = ObjectMapper()
             .readValue(categoryResult.response.contentAsString, Map::class.java)["id"] as? String
@@ -232,7 +232,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val validationBody = """
             {
@@ -263,7 +263,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val validationBody = """
             {
@@ -300,14 +300,14 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherOne)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherTwo)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val sessionKey = "sess_override"
         val validationOne = """
@@ -387,7 +387,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val ruleBody = """
             {
@@ -402,7 +402,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(ruleBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val ruleId = ObjectMapper()
             .readValue(ruleResult.response.contentAsString, Map::class.java)["id"] as? String
@@ -451,7 +451,7 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(categoryBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val categoryId = ObjectMapper()
             .readValue(categoryResult.response.contentAsString, Map::class.java)["id"] as? String
@@ -471,14 +471,14 @@ class VoucherControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBodyA)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBodyB)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val validationBody = """
             {

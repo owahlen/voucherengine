@@ -49,7 +49,7 @@ class ValidationRuleController(
         @RequestHeader("tenant") tenant: String,
         @Valid @RequestBody body: ValidationRuleCreateRequest
     ): ResponseEntity<ValidationRuleResponse> =
-        ResponseEntity.status(HttpStatus.CREATED).body(validationRuleService.createRule(tenant, body))
+        ResponseEntity.status(HttpStatus.OK).body(validationRuleService.createRule(tenant, body))
 
     @Operation(
         summary = "Assign a validation rule to an object (voucher or campaign)",

@@ -48,7 +48,7 @@ class CategoryController(
         @Valid @RequestBody body: CategoryCreateRequest
     ): ResponseEntity<CategoryResponse> {
         val saved = categoryService.create(tenant, body)
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(saved))
+        return ResponseEntity.status(HttpStatus.OK).body(toResponse(saved))
     }
 
     @Operation(

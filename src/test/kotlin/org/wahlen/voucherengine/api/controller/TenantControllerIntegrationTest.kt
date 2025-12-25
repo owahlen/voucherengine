@@ -37,7 +37,7 @@ class TenantControllerIntegrationTest @Autowired constructor(
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
         )
-            .andExpect(status().isCreated)
+            .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("acme"))
             .andReturn()
 

@@ -55,7 +55,7 @@ class OrderController(
         @Valid @RequestBody body: OrderCreateRequest
     ): ResponseEntity<OrderResponse> {
         val created = orderService.create(tenant, body)
-        return ResponseEntity.status(HttpStatus.CREATED).body(created)
+        return ResponseEntity.status(HttpStatus.OK).body(created)
     }
 
     @Operation(

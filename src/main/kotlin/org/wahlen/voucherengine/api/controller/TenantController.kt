@@ -40,7 +40,7 @@ class TenantController(
         @Valid @RequestBody body: TenantCreateRequest
     ): ResponseEntity<TenantResponse> {
         val created = tenantService.create(tenant, body)
-        return ResponseEntity.status(HttpStatus.CREATED).body(created)
+        return ResponseEntity.status(HttpStatus.OK).body(created)
     }
 
     @Operation(

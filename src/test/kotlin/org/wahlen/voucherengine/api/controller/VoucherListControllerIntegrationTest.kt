@@ -47,7 +47,7 @@ class VoucherListControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         mockMvc.perform(get("/v1/vouchers").header("tenant", tenantName).with(tenantJwt(tenantName)))
             .andExpect(status().isOk)

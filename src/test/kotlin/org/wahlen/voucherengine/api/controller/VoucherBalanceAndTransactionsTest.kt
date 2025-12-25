@@ -53,7 +53,7 @@ class VoucherBalanceAndTransactionsTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val addBalanceBody = """
             { "amount": 5000, "reason": "Customer credit" }
@@ -112,7 +112,7 @@ class VoucherBalanceAndTransactionsTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val addPointsBody = """
             { "amount": 500, "source_id": "order-123", "reason": "Purchase bonus" }
@@ -152,7 +152,7 @@ class VoucherBalanceAndTransactionsTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val removeBody = """
             { "amount": -2000 }
@@ -180,7 +180,7 @@ class VoucherBalanceAndTransactionsTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val balanceBody = """
             { "amount": 1000 }
@@ -208,7 +208,7 @@ class VoucherBalanceAndTransactionsTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val sessionKey = "sess_test_key"
         val validationBody = """

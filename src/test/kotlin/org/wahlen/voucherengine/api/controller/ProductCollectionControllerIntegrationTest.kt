@@ -47,7 +47,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(productBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val productId = objectMapper.readTree(productResult.response.contentAsString).get("id").asString()
 
@@ -60,7 +60,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(skuBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val skuId = objectMapper.readTree(skuResult.response.contentAsString).get("id").asString()
 
@@ -80,7 +80,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(collectionBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("Featured"))
             .andReturn()
         val collectionId = objectMapper.readTree(createCollection.response.contentAsString).get("id").asString()
@@ -137,7 +137,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(productBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val collectionBody = """
             {
@@ -157,7 +157,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(collectionBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.type").value("AUTO_UPDATE"))
             .andReturn()
         val collectionId = objectMapper.readTree(createCollection.response.contentAsString).get("id").asString()
@@ -181,7 +181,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(productBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val productId = objectMapper.readTree(productResult.response.contentAsString).get("id").asString()
 
@@ -194,7 +194,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(skuBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val collectionBody = """
             {
@@ -214,7 +214,7 @@ class ProductCollectionControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(collectionBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val collectionId = objectMapper.readTree(createCollection.response.contentAsString).get("id").asString()
 

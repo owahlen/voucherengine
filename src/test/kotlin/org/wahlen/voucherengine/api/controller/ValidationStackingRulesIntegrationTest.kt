@@ -53,7 +53,7 @@ class ValidationStackingRulesIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val validationBody = """
             {
@@ -84,7 +84,7 @@ class ValidationStackingRulesIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(categoryAlphaBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val categoryBetaResult = mockMvc.perform(
             post("/v1/categories")
@@ -92,7 +92,7 @@ class ValidationStackingRulesIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(categoryBetaBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val categoryAlphaId = ObjectMapper()
             .readValue(categoryAlphaResult.response.contentAsString, Map::class.java)["id"] as? String
@@ -115,14 +115,14 @@ class ValidationStackingRulesIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherAlphaBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBetaBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val validationBody = """
             {
@@ -155,7 +155,7 @@ class ValidationStackingRulesIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val validationBody = """
             {
@@ -187,7 +187,7 @@ class ValidationStackingRulesIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{ "name": "exclusive" }""")
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val jointCategoryResult = mockMvc.perform(
             post("/v1/categories")
@@ -195,7 +195,7 @@ class ValidationStackingRulesIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{ "name": "joint" }""")
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
         val regularCategoryResult = mockMvc.perform(
             post("/v1/categories")
@@ -203,7 +203,7 @@ class ValidationStackingRulesIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{ "name": "regular" }""")
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andReturn()
 
         val exclusiveCategoryId = ObjectMapper()
@@ -234,21 +234,21 @@ class ValidationStackingRulesIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherExclusiveBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherJointBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
         mockMvc.perform(
             post("/v1/vouchers")
                 .header("tenant", tenantName)
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherRegularBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         val validationBody = """
             {

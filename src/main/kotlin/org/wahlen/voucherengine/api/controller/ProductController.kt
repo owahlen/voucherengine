@@ -54,7 +54,7 @@ class ProductController(
         @RequestHeader("tenant") tenant: String,
         @Valid @RequestBody body: ProductCreateRequest
     ): ResponseEntity<ProductResponse> =
-        ResponseEntity.status(HttpStatus.CREATED).body(productService.create(tenant, body))
+        ResponseEntity.status(HttpStatus.OK).body(productService.create(tenant, body))
 
     @Operation(
         summary = "List products",
@@ -168,7 +168,7 @@ class ProductController(
         @Valid @RequestBody body: SkuCreateRequest
     ): ResponseEntity<SkuResponse> {
         val sku = skuService.createForProduct(tenant, productId, body) ?: return ResponseEntity.notFound().build()
-        return ResponseEntity.status(HttpStatus.CREATED).body(sku)
+        return ResponseEntity.status(HttpStatus.OK).body(sku)
     }
 
     @Operation(

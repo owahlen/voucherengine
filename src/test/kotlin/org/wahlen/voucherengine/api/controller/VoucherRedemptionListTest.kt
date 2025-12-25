@@ -48,7 +48,7 @@ class VoucherRedemptionListTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         mockMvc.perform(
             get("/v1/vouchers/$code/redemption")
@@ -77,7 +77,7 @@ class VoucherRedemptionListTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
 
         // Redeem twice
         val redeemBody1 = """

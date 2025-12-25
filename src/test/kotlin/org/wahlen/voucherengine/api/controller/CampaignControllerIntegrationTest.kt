@@ -43,7 +43,7 @@ class CampaignControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.object").value("campaign"))
             .andReturn()
 
@@ -66,7 +66,7 @@ class CampaignControllerIntegrationTest @Autowired constructor(
                 .with(tenantJwt(tenantName))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(voucherBody)
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value("BF2026-0001"))
 
         mockMvc.perform(get("/v1/campaigns/$campaignId/vouchers").header("tenant", tenantName).with(tenantJwt(tenantName)))

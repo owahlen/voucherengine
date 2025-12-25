@@ -49,7 +49,7 @@ class CampaignController(
         @Valid @RequestBody body: CampaignCreateRequest
     ): ResponseEntity<CampaignResponse> {
         val saved = campaignService.create(tenant, body)
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(saved))
+        return ResponseEntity.status(HttpStatus.OK).body(toResponse(saved))
     }
 
     @Operation(
@@ -170,7 +170,7 @@ class CampaignController(
         }
         
         val voucher = voucherService.createVoucher(tenant, body.copy(campaign_id = campaign.id))
-        return ResponseEntity.status(HttpStatus.CREATED).body(voucherService.toVoucherResponse(voucher))
+        return ResponseEntity.status(HttpStatus.OK).body(voucherService.toVoucherResponse(voucher))
     }
 
     @Operation(

@@ -54,7 +54,7 @@ class SegmentController(
         @Valid @RequestBody request: SegmentCreateRequest
     ): ResponseEntity<SegmentResponse> {
         val segment = segmentService.create(tenant, request)
-        return ResponseEntity.status(HttpStatus.CREATED).body(segment)
+        return ResponseEntity.status(HttpStatus.OK).body(segment)
     }
 
     @Operation(
