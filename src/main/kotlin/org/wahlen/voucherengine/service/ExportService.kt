@@ -1,6 +1,5 @@
 package org.wahlen.voucherengine.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
@@ -18,6 +17,7 @@ import org.wahlen.voucherengine.persistence.model.publication.Publication
 import org.wahlen.voucherengine.persistence.model.redemption.Redemption
 import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 import org.wahlen.voucherengine.persistence.repository.CustomerRepository
+import tools.jackson.databind.ObjectMapper
 import org.wahlen.voucherengine.persistence.repository.ExportRepository
 import org.wahlen.voucherengine.persistence.repository.OrderRepository
 import org.wahlen.voucherengine.persistence.repository.ProductRepository

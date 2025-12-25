@@ -1,6 +1,5 @@
 package org.wahlen.voucherengine.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -9,6 +8,7 @@ import org.wahlen.voucherengine.persistence.model.async.AsyncJobStatus
 import org.wahlen.voucherengine.persistence.model.order.Order
 import org.wahlen.voucherengine.persistence.repository.AsyncJobRepository
 import org.wahlen.voucherengine.persistence.repository.OrderRepository
+import tools.jackson.databind.ObjectMapper
 import java.io.ByteArrayOutputStream
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter

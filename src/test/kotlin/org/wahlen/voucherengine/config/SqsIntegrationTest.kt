@@ -1,10 +1,11 @@
 package org.wahlen.voucherengine.config
 
+import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.annotation.AliasFor
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.ContextConfiguration
+import org.wahlen.voucherengine.testinfra.ElasticMqExtension
 
 /**
  * Meta-annotation for integration tests that require ElasticMQ (SQS).
@@ -12,7 +13,7 @@ import org.springframework.test.context.ContextConfiguration
  * This annotation combines:
  * - @SpringBootTest: Loads the full Spring application context with SQS enabled
  * - @ActiveProfiles("test"): Activates the "test" profile
- * - @ContextConfiguration(initializers = [ElasticMQInitializer::class]): Starts ElasticMQ before Spring Boot autoconfiguration
+ * - @ExtendWith(ElasticMqExtension::class): Starts ElasticMQ once per JVM (not per context restart)
  * - @Import(ElasticMQTestConfiguration::class): ElasticMQ queue setup and SQS listener factory
  *
  * Use this annotation for tests that:
@@ -25,12 +26,15 @@ import org.springframework.test.context.ContextConfiguration
  * @SqsIntegrationTest(properties = ["my.property=value"])
  * class MyAsyncTest { ... }
  * ```
+ *
+ * Note: AWS/SQS properties are configured in src/test/resources/application.yml
+ * ElasticMQ is started automatically on a random port by the extension.
  */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @SpringBootTest
 @ActiveProfiles("test")
-@ContextConfiguration(initializers = [ElasticMQInitializer::class])
+@ExtendWith(ElasticMqExtension::class)
 @Import(ElasticMQTestConfiguration::class)
 annotation class SqsIntegrationTest(
     /**
