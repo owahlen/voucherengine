@@ -82,7 +82,7 @@ class ElasticMqExtension : BeforeAllCallback, BeforeEachCallback, AfterAllCallba
          * Can be customized via setInitialQueues() before extension starts.
          */
         @Volatile
-        private var initialQueues: List<String> = listOf("async-jobs")
+        private var initialQueues: List<String> = listOf("voucherengine-async-jobs", "voucherengine-async-jobs-dlq")
 
         /**
          * Set initial queues to create on startup.

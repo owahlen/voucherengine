@@ -99,6 +99,7 @@ class OrderImportService(
             if (itemData is Map<*, *>) {
                 @Suppress("UNCHECKED_CAST")
                 val item = itemData as Map<String, Any?>
+                @Suppress("UNCHECKED_CAST")
                 OrderItemDto(
                     source_id = item["source_id"]?.toString(),
                     product_id = item["product_id"]?.toString(),
@@ -111,6 +112,7 @@ class OrderImportService(
             } else null
         } ?: emptyList()
 
+        @Suppress("UNCHECKED_CAST")
         return OrderCreateRequest(
             source_id = sourceId,
             status = data["status"]?.toString(),

@@ -85,11 +85,9 @@ class OrderControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.status").value("CANCELED"))
             .andExpect(jsonPath("$.discount_amount").value(300))
 
-        mockMvc.perform(delete("/v1/orders/order-1").header("tenant", tenantName).with(tenantJwt(tenantName)))
-            .andExpect(status().isNoContent)
-
         mockMvc.perform(get("/v1/orders/order-1").header("tenant", tenantName).with(tenantJwt(tenantName)))
-            .andExpect(status().isNotFound)
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("CANCELED"))
     }
 
     @Test

@@ -25,7 +25,7 @@ class AsyncJobPublisher(
     private val sqsTemplate: SqsTemplate,
     private val asyncJobRepository: AsyncJobRepository,
     private val objectMapper: ObjectMapper,
-    @Value("\${aws.sqs.queues.async-jobs}") private val queueName: String
+    @Value("\${aws.sqs.queues.voucherengine-async-jobs}") private val queueName: String
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 

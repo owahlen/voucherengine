@@ -112,8 +112,10 @@ class OrderExportControllerTest {
     fun `POST orders-export should create async export job for CSV`() {
         // Given
         val request = mapOf(
-            "format" to "CSV",
-            "status" to "PAID"
+            "parameters" to mapOf(
+                "fields" to listOf("id", "source_id", "status"),
+                "filters" to mapOf("status" to "PAID")
+            )
         )
 
         // When & Then
@@ -126,7 +128,7 @@ class OrderExportControllerTest {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.async_action_id").exists())
-            .andExpect(jsonPath("$.message").value("Export job created for CSV format"))
+            .andExpect(jsonPath("$.message").value("Export job created"))
             .andReturn()
 
         val responseBody = objectMapper.readValue(result.response.contentAsString, Map::class.java)
@@ -155,7 +157,12 @@ class OrderExportControllerTest {
     @Test
     fun `POST orders-export should create async export job for JSON`() {
         // Given
-        val request = mapOf("format" to "JSON")
+        val request = mapOf(
+            "parameters" to mapOf(
+                "fields" to listOf("id", "source_id", "status", "amount"),
+                "format" to "JSON"  // Format can be in parameters
+            )
+        )
 
         // When & Then
         val result = mockMvc.perform(
@@ -167,7 +174,7 @@ class OrderExportControllerTest {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.async_action_id").exists())
-            .andExpect(jsonPath("$.message").value("Export job created for JSON format"))
+            .andExpect(jsonPath("$.message").value("Export job created"))
             .andReturn()
 
         val responseBody = objectMapper.readValue(result.response.contentAsString, Map::class.java)
@@ -201,13 +208,17 @@ class OrderExportControllerTest {
                 .content(objectMapper.writeValueAsString(request))
         )
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.message").value("Export job created for CSV format"))
+            .andExpect(jsonPath("$.message").value("Export job created"))
     }
 
     @Test
     fun `POST orders-export should require authentication`() {
         // Given
-        val request = mapOf("format" to "CSV")
+        val request = mapOf(
+            "parameters" to mapOf(
+                "fields" to listOf("id")
+            )
+        )
 
         // When & Then
         mockMvc.perform(

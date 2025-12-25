@@ -6,6 +6,8 @@ logging:
     org.hibernate.sql: DEBUG # INFO
     org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean: WARN
 spring:
+  profiles:
+    default: test
   datasource:
     url: jdbc:h2:mem:voucherengine;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
@@ -45,11 +47,17 @@ spring:
       s3:
         enabled: true
         endpoint: http://localhost:4566  # Overridden by S3MockPropertyInitializer
-        path-style-access-enabled: true
+        path-style-access-enabled: true # Required for S3Mock, deprecated by AWS for production
         region: eu-central-1
 
+# AWS SQS Queue names and S3 bucket names (same as main application.yml)
 aws:
   sqs:
     queues:
-      async-jobs: async-jobs
-
+      voucherengine-async-jobs: voucherengine-async-jobs
+      voucherengine-async-jobs-dlq: voucherengine-async-jobs-dlq
+  s3:
+    bucket:
+      voucherengine-imports: voucherengine-imports
+      voucherengine-exports: voucherengine-exports
+    presigned-url-duration: PT1H  # 1 hour expiration for download URLs

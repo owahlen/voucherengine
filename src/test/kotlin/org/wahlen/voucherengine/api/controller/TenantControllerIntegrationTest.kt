@@ -19,7 +19,6 @@ import tools.jackson.databind.ObjectMapper
 
 @IntegrationTest
 @AutoConfigureMockMvc
-
 @Transactional
 class TenantControllerIntegrationTest @Autowired constructor(
     private val mockMvc: MockMvc
@@ -29,7 +28,9 @@ class TenantControllerIntegrationTest @Autowired constructor(
 
     @Test
     fun `tenant CRUD endpoints`() {
-        val createBody = """{ "name": "acme" }"""
+        // Use unique tenant name to avoid conflicts with other tests
+        val uniqueTenantName = "acme-tenant-test-${System.currentTimeMillis()}"
+        val createBody = """{ "name": "$uniqueTenantName" }"""
         val createResult = mockMvc.perform(
             post("/v1/tenants")
                 .header("tenant", tenantHeader)
@@ -38,7 +39,7 @@ class TenantControllerIntegrationTest @Autowired constructor(
                 .content(createBody)
         )
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.name").value("acme"))
+            .andExpect(jsonPath("$.name").value(uniqueTenantName))
             .andReturn()
 
         val tenantId = objectMapper.readTree(createResult.response.contentAsString).get("id").asString()
@@ -50,7 +51,7 @@ class TenantControllerIntegrationTest @Autowired constructor(
         mockMvc.perform(get("/v1/tenants").header("tenant", tenantHeader).with(tenantJwt(tenantHeader, "manager")))
             .andExpect(status().isOk)
 
-        val updateBody = """{ "name": "acme-updated" }"""
+        val updateBody = """{ "name": "$uniqueTenantName-updated" }"""
         mockMvc.perform(
             put("/v1/tenants/$tenantId")
                 .header("tenant", tenantHeader)
@@ -59,7 +60,7 @@ class TenantControllerIntegrationTest @Autowired constructor(
                 .content(updateBody)
         )
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.name").value("acme-updated"))
+            .andExpect(jsonPath("$.name").value("$uniqueTenantName-updated"))
 
         mockMvc.perform(delete("/v1/tenants/$tenantId").header("tenant", tenantHeader).with(tenantJwt(tenantHeader, "manager")))
             .andExpect(status().isNoContent)

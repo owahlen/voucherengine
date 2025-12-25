@@ -124,23 +124,6 @@ class OrderController(
     }
 
     @Operation(
-        summary = "Delete order",
-        operationId = "deleteOrder",
-        responses = [
-            ApiResponse(responseCode = "204", description = "Order deleted"),
-            ApiResponse(responseCode = "404", description = "Order not found")
-        ]
-    )
-    @DeleteMapping("/orders/{orderId}")
-    fun deleteOrder(
-        @RequestHeader("tenant") tenant: String,
-        @PathVariable orderId: String
-    ): ResponseEntity<Void> {
-        val deleted = orderService.delete(tenant, orderId)
-        return if (deleted) ResponseEntity.noContent().build() else ResponseEntity.notFound().build()
-    }
-
-    @Operation(
         summary = "Export orders",
         operationId = "exportOrders",
         description = "Asynchronously export orders to CSV or JSON format. Returns async job ID for tracking.",
@@ -157,23 +140,35 @@ class OrderController(
         val tenant = tenantService.getByName(tenantName)
             ?: throw IllegalArgumentException("Tenant not found: $tenantName")
 
-        val parameters = mutableMapOf<String, Any?>(
-            "format" to request.format
-        )
-        request.status?.let { parameters["status"] = it }
-        request.created_after?.let { parameters["created_after"] = it }
-        request.created_before?.let { parameters["created_before"] = it }
+        // Extract parameters from the request
+        val parameters = mutableMapOf<String, Any?>()
+        
+        // Default format to CSV
+        var format = "CSV"
+        
+        request.parameters?.let { params ->
+            params.fields?.let { parameters["fields"] = it }
+            params.order?.let { parameters["order"] = it }
+            params.format?.let { format = it }
+            params.filters?.let { filters ->
+                filters.status?.let { parameters["status"] = it }
+                filters.created_at?.after?.let { parameters["created_after"] = it }
+                filters.created_at?.before?.let { parameters["created_before"] = it }
+                filters.updated_at?.after?.let { parameters["updated_after"] = it }
+                filters.updated_at?.before?.let { parameters["updated_before"] = it }
+            }
+        }
 
         val command = org.wahlen.voucherengine.service.async.command.OrderExportCommand(
             tenantName = tenantName,
-            parameters = parameters
+            parameters = parameters + ("format" to format)
         )
 
         val jobId = asyncJobPublisher.publish(command, tenant)
         return ResponseEntity.ok(
             mapOf(
                 "async_action_id" to jobId.toString(),
-                "message" to "Export job created for ${request.format} format"
+                "message" to "Export job created"
             )
         )
     }
@@ -181,7 +176,7 @@ class OrderController(
     @Operation(
         summary = "Import orders",
         operationId = "importOrders",
-        description = "Asynchronously import multiple orders. Returns async job ID for tracking.",
+        description = "Asynchronously import multiple orders. Request body should be an array of order objects. Returns async job ID for tracking.",
         responses = [
             ApiResponse(responseCode = "200", description = "Import job created"),
             ApiResponse(responseCode = "400", description = "Invalid request body")
@@ -190,12 +185,8 @@ class OrderController(
     @PostMapping("/orders/import")
     fun importOrders(
         @RequestHeader("tenant") tenantName: String,
-        @RequestBody body: Map<String, Any>
+        @RequestBody orders: List<Map<String, Any?>>
     ): ResponseEntity<Map<String, String>> {
-        @Suppress("UNCHECKED_CAST")
-        val orders = body["orders"] as? List<Map<String, Any?>>
-            ?: return ResponseEntity.badRequest().body(mapOf("error" to "Missing 'orders' array in request body"))
-
         if (orders.isEmpty()) {
             return ResponseEntity.badRequest().body(mapOf("error" to "Orders array cannot be empty"))
         }

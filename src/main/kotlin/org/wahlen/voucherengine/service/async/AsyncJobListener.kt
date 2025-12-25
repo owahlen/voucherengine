@@ -23,7 +23,7 @@ class AsyncJobListener(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @SqsListener("\${aws.sqs.queues.async-jobs}")
+    @SqsListener("\${aws.sqs.queues.voucherengine-async-jobs}")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun handleAsyncJob(message: String) {
         try {

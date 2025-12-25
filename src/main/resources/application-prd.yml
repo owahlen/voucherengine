@@ -1,9 +1,12 @@
-# Example production configuration for AWS
-# Copy to application-prod.yml and customize
+logging:
+  level:
+    root: INFO
+    org.wahlen.voucherengine: INFO
+    io.awspring.cloud.sqs: WARN
 
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:rds-endpoint}:5432/voucherengine
+    url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   security:
@@ -11,30 +14,19 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI}
-  # AWS Configuration - Production
+
   cloud:
     aws:
       region:
         static: ${AWS_DEFAULT_REGION:eu-central-1}
       credentials:
-        instance-profile: true  # Use IAM role instead of access keys
-      # NO endpoint override - uses real AWS SQS/SNS
+        instance-profile: true  # Use IAM role instead of access keys XXX
       sqs:
         listener:
           auto-startup: true
           max-concurrent-messages: 10
           max-messages-per-poll: 10
-
-# Queue names - same as local, but on real AWS
-aws:
-  sqs:
-    queues:
-      async-jobs: voucher-async-jobs
-      async-jobs-dlq: voucher-async-jobs-dlq
-
-# Production logging
-logging:
-  level:
-    root: INFO
-    org.wahlen.voucherengine: INFO
-    io.awspring.cloud.sqs: WARN
+        enabled: true
+      s3:
+        enabled: true
+        path-style-access-enabled: false # path-style-access is deprecated by AWS

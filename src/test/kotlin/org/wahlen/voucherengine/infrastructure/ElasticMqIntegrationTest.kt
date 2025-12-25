@@ -38,14 +38,14 @@ class ElasticMqIntegrationTest {
         assertTrue(queueUrls.isNotEmpty(), "At least one queue should exist")
 
         // Verify default queue exists
-        val hasAsyncJobsQueue = queueUrls.any { it.contains("async-jobs") }
-        assertTrue(hasAsyncJobsQueue, "async-jobs queue should be created by default")
+        val hasAsyncJobsQueue = queueUrls.any { it.contains("voucherengine-async-jobs") }
+        assertTrue(hasAsyncJobsQueue, "voucherengine-async-jobs queue should be created by default")
     }
 
     @Test
     fun `should verify queue is accessible`() {
         // Given
-        val queueName = "async-jobs"
+        val queueName = "voucherengine-async-jobs"
 
         // When
         val queueUrl = sqsAsyncClient.getQueueUrl(
@@ -62,7 +62,7 @@ class ElasticMqIntegrationTest {
     @Test
     fun `should get queue attributes`() {
         // Given
-        val queueName = "async-jobs"
+        val queueName = "voucherengine-async-jobs"
         val queueUrl = sqsAsyncClient.getQueueUrl(
             GetQueueUrlRequest.builder()
                 .queueName(queueName)

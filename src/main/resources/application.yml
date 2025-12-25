@@ -1,10 +1,10 @@
-# Production logging
 logging:
   level:
-    io.awspring.cloud.sqs: WARN
-    org.wahlen.voucherengine: INFO
-    root: INFO
-
+    com.zaxxer.hikari: WARN
+    liquibase: INFO
+    org.elasticmq: INFO
+    org.hibernate.sql: INFO # DEBUG
+    org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean: INFO
 spring:
   profiles:
     default: dev
@@ -25,42 +25,41 @@ spring:
       enabled: true
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8180/realms/voucherengine
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/voucherengine}
   # AWS Configuration - LocalStack for local development
-  # For production, remove 'endpoint' and 'credentials' to use real AWS with IAM roles
   cloud:
     aws:
       region:
         static: eu-central-1
       credentials:
-        access-key: ${AWS_ACCESS_KEY_ID:test}
-        secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+        access-key: test
+        secret-key: test
       sqs:
         enabled: true
-        endpoint: ${AWS_ENDPOINT_URL:http://localhost:4566}  # Remove for production (uses real AWS)
+        endpoint: http://localhost:4566  # Remove for production (uses real AWS)
         listener:
           auto-startup: true
           max-concurrent-messages: 10
           max-messages-per-poll: 10
-      sns:
-        endpoint: ${AWS_ENDPOINT_URL:http://localhost:4566}  # Remove for production (uses real AWS)
       s3:
         enabled: true
-        endpoint: ${AWS_ENDPOINT_URL:http://localhost:4566}  # Remove for production (uses real AWS)
-        path-style-access-enabled: true  # Required for LocalStack, remove for production
+        endpoint: http://localhost:4566  # Remove for production (uses real AWS)
+        path-style-access-enabled: true  # Required for LocalStack, deprecated by AWS for production
+        region: eu-central-1
 
 # AWS SQS Queue names (must match docker/tofu-localstack/main.tf)
 aws:
   sqs:
     queues:
-      async-jobs: voucher-async-jobs
-      async-jobs-dlq: voucher-async-jobs-dlq
+      voucherengine-async-jobs: voucherengine-async-jobs
+      voucherengine-async-jobs-dlq: voucherengine-async-jobs-dlq
   s3:
     bucket:
-      exports: voucherengine-exports
-      imports: voucherengine-imports
+      voucherengine-imports: voucherengine-imports
+      voucherengine-exports: voucherengine-exports
     presigned-url-duration: PT1H  # 1 hour expiration for download URLs
