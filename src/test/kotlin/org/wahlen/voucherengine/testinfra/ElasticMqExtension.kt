@@ -4,7 +4,6 @@ import org.elasticmq.rest.sqs.SQSRestServer
 import org.elasticmq.rest.sqs.SQSRestServerBuilder
 import org.junit.jupiter.api.extension.*
 import org.slf4j.LoggerFactory
-import org.springframework.test.context.DynamicPropertyRegistry
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
@@ -18,18 +17,23 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * JUnit 5 extension that starts one embedded ElasticMQ instance once per JVM test run,
- * and optionally clears queues before each test.
+ * creates configured queues, and optionally clears queues before each test.
  *
- * Usage:
+ * Usage - via @SqsIntegrationTest annotation (recommended):
+ *
+ * @SqsIntegrationTest
+ * class MyAsyncTest {
+ *     // ElasticMQ server and queues are automatically set up
+ *     // Properties configured via ElasticMqPropertyInitializer
+ * }
+ *
+ * Usage - direct (advanced):
  *
  * @ExtendWith(ElasticMqExtension::class)
+ * @ContextConfiguration(initializers = [ElasticMqPropertyInitializer::class])
  * @SpringBootTest
  * class SomeIT {
- *   companion object {
- *     @JvmStatic
- *     @DynamicPropertySource
- *     fun props(r: DynamicPropertyRegistry) = ElasticMqExtension.registerSpringProperties(r)
- *   }
+ *     // Custom setup if needed
  * }
  */
 class ElasticMqExtension : BeforeAllCallback, BeforeEachCallback, AfterAllCallback {
@@ -74,15 +78,22 @@ class ElasticMqExtension : BeforeAllCallback, BeforeEachCallback, AfterAllCallba
         private var clearQueuesBeforeEach: Boolean = true
 
         /**
-         * Call from your test class' @DynamicPropertySource to wire Spring to ElasticMQ.
-         * This configures Spring Cloud AWS to use the local ElasticMQ instance.
+         * Initial queues to create when ElasticMQ starts.
+         * Can be customized via setInitialQueues() before extension starts.
+         */
+        @Volatile
+        private var initialQueues: List<String> = listOf("async-jobs")
+
+        /**
+         * Set initial queues to create on startup.
+         * Call this before the extension starts (e.g., in a static initializer).
          */
         @JvmStatic
-        fun registerSpringProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.cloud.aws.sqs.endpoint") { endpoint() }
-            registry.add("spring.cloud.aws.region.static") { region.id() }
-            registry.add("spring.cloud.aws.credentials.access-key") { "test" }
-            registry.add("spring.cloud.aws.credentials.secret-key") { "test" }
+        fun setInitialQueues(queues: List<String>) {
+            if (STARTED.get()) {
+                throw IllegalStateException("Cannot set initial queues after ElasticMQ has started")
+            }
+            initialQueues = queues
         }
 
         /**
@@ -210,6 +221,11 @@ class ElasticMqExtension : BeforeAllCallback, BeforeEachCallback, AfterAllCallba
                         .build()
                     endpoint = endpointString
 
+                    // Create initial queues
+                    initialQueues.forEach { queueName ->
+                        createQueue(sqs!!, queueName)
+                    }
+
                     addShutdownHookOnce()
 
                     STARTED.set(true)
@@ -237,6 +253,15 @@ class ElasticMqExtension : BeforeAllCallback, BeforeEachCallback, AfterAllCallba
                         logger.warn("Error while stopping ElasticMQ during shutdown: {}", e.message)
                     }
                 })
+            }
+        }
+
+        private fun createQueue(client: SqsClient, queueName: String) {
+            try {
+                client.createQueue { it.queueName(queueName) }
+                logger.info("Created queue: {}", queueName)
+            } catch (e: Exception) {
+                logger.warn("Could not create queue {}: {}", queueName, e.message)
             }
         }
 

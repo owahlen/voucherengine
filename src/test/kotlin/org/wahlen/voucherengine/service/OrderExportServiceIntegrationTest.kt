@@ -5,10 +5,8 @@ import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.context.annotation.Import
 import org.springframework.transaction.annotation.Transactional
-import org.wahlen.voucherengine.config.S3MockTestConfiguration
-import org.wahlen.voucherengine.config.SqsIntegrationTest
+import org.wahlen.voucherengine.config.S3IntegrationTest
 import org.wahlen.voucherengine.persistence.model.async.AsyncJobStatus
 import org.wahlen.voucherengine.persistence.model.async.AsyncJobType
 import org.wahlen.voucherengine.persistence.model.customer.Customer
@@ -25,8 +23,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
-@SqsIntegrationTest
-@Import(S3MockTestConfiguration::class)
+@S3IntegrationTest
 class OrderExportServiceIntegrationTest {
 
     @Autowired

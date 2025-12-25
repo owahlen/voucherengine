@@ -1,4 +1,4 @@
-package org.wahlen.voucherengine.infrastructure.s3
+package org.wahlen.voucherengine.infrastructure
 
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

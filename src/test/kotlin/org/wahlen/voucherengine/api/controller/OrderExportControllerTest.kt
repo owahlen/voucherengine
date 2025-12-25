@@ -1,13 +1,12 @@
 package org.wahlen.voucherengine.api.controller
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt
 import org.springframework.test.web.servlet.MockMvc
@@ -15,8 +14,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
-import org.wahlen.voucherengine.config.S3MockTestConfiguration
-import org.wahlen.voucherengine.config.SqsIntegrationTest
+import org.wahlen.voucherengine.config.S3IntegrationTest
 import org.wahlen.voucherengine.persistence.model.async.AsyncJobStatus
 import org.wahlen.voucherengine.persistence.model.customer.Customer
 import org.wahlen.voucherengine.persistence.model.order.Order
@@ -29,9 +27,8 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-@SqsIntegrationTest
+@S3IntegrationTest
 @AutoConfigureMockMvc
-@Import(S3MockTestConfiguration::class)
 class OrderExportControllerTest {
 
     @Autowired

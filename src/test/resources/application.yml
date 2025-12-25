@@ -27,21 +27,26 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: http://localhost:9999/realms/test/protocol/openid-connect/certs
-  # AWS configuration for ElasticMQ (in-memory SQS for testing)
+  # AWS configuration for ElasticMQ (in-memory SQS) and S3Mock (in-memory S3) for testing
   cloud:
     aws:
       region:
         static: eu-central-1
       credentials:
-        access-key: x
-        secret-key: x
+        access-key: test
+        secret-key: test
       sqs:
         enabled: true
-        endpoint: http://localhost:9324
+        endpoint: http://localhost:9324  # Overridden by ElasticMqPropertyInitializer
         listener:
           auto-startup: true  # Enable SQS listeners for async tests
           max-concurrent-messages: 1  # Keep tests simpler with single consumer
           max-messages-per-poll: 1
+      s3:
+        enabled: true
+        endpoint: http://localhost:4566  # Overridden by S3MockPropertyInitializer
+        path-style-access-enabled: true
+        region: eu-central-1
 
 aws:
   sqs:

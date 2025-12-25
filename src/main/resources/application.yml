@@ -48,6 +48,10 @@ spring:
           max-messages-per-poll: 10
       sns:
         endpoint: ${AWS_ENDPOINT_URL:http://localhost:4566}  # Remove for production (uses real AWS)
+      s3:
+        enabled: true
+        endpoint: ${AWS_ENDPOINT_URL:http://localhost:4566}  # Remove for production (uses real AWS)
+        path-style-access-enabled: true  # Required for LocalStack, remove for production
 
 # AWS SQS Queue names (must match docker/tofu-localstack/main.tf)
 aws:
@@ -56,8 +60,6 @@ aws:
       async-jobs: voucher-async-jobs
       async-jobs-dlq: voucher-async-jobs-dlq
   s3:
-    endpoint: ${AWS_ENDPOINT_URL:http://localhost:4566}  # Remove for production (uses real AWS)
-    force-path-style: true  # Required for LocalStack, remove for production
     bucket:
       exports: voucherengine-exports
       imports: voucherengine-imports
