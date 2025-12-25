@@ -27,3 +27,14 @@ output "localstack_endpoint" {
   description = "LocalStack endpoint for AWS services"
   value       = "http://localstack:4566"
 }
+
+output "voucherengine_exports_bucket_name" {
+  description = "Name of the voucherengine exports S3 bucket"
+  value       = aws_s3_bucket.voucherengine_exports.bucket
+}
+
+output "voucherengine_exports_bucket_arn" {
+  description = "ARN of the voucherengine exports S3 bucket"
+  value       = aws_s3_bucket.voucherengine_exports.arn
+}
+

@@ -11,4 +11,5 @@ interface OrderRepository : JpaRepository<Order, UUID> {
     fun findByIdAndTenantName(id: UUID, tenantName: String): Order?
     fun findAllByTenantName(tenantName: String, pageable: Pageable): Page<Order>
     fun findAllByTenantName(tenantName: String): List<Order>
+    fun countByTenantName(tenantName: String): Long
 }

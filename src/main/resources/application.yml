@@ -55,3 +55,10 @@ aws:
     queues:
       async-jobs: voucher-async-jobs
       async-jobs-dlq: voucher-async-jobs-dlq
+  s3:
+    endpoint: ${AWS_ENDPOINT_URL:http://localhost:4566}  # Remove for production (uses real AWS)
+    force-path-style: true  # Required for LocalStack, remove for production
+    bucket:
+      exports: voucherengine-exports
+      imports: voucherengine-imports
+    presigned-url-duration: PT1H  # 1 hour expiration for download URLs

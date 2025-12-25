@@ -33,6 +33,7 @@ dependencies {
 	implementation("com.google.zxing:javase:3.5.3")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
 	implementation("io.awspring.cloud:spring-cloud-aws-starter-sqs:4.0.0-M1")
+	implementation("io.awspring.cloud:spring-cloud-aws-starter-s3:4.0.0-M1")
 
 	runtimeOnly("org.postgresql:postgresql")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -49,6 +50,9 @@ dependencies {
 	testImplementation("org.elasticmq:elasticmq-rest-sqs_2.13:1.6.15") {
 		exclude(group = "ch.qos.logback", module = "logback-classic")
 	}
+	
+	// S3Mock for in-memory S3 testing
+	testImplementation("com.adobe.testing:s3mock-testcontainers:4.11.0")
 
 	testRuntimeOnly("com.h2database:h2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")

@@ -1,0 +1,214 @@
+package org.wahlen.voucherengine.api.controller
+
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.awaitility.Awaitility.await
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.context.annotation.Import
+import org.springframework.http.MediaType
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.config.S3MockTestConfiguration
+import org.wahlen.voucherengine.config.SqsIntegrationTest
+import org.wahlen.voucherengine.persistence.model.async.AsyncJobStatus
+import org.wahlen.voucherengine.persistence.model.customer.Customer
+import org.wahlen.voucherengine.persistence.model.order.Order
+import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.persistence.repository.AsyncJobRepository
+import org.wahlen.voucherengine.persistence.repository.CustomerRepository
+import org.wahlen.voucherengine.persistence.repository.OrderRepository
+import org.wahlen.voucherengine.persistence.repository.TenantRepository
+import java.time.Duration
+import java.util.*
+import java.util.concurrent.TimeUnit
+
+@SqsIntegrationTest
+@AutoConfigureMockMvc
+@Import(S3MockTestConfiguration::class)
+class OrderExportControllerTest {
+
+    @Autowired
+    private lateinit var mockMvc: MockMvc
+
+    @Autowired
+    private lateinit var objectMapper: ObjectMapper
+
+    @Autowired
+    private lateinit var asyncJobRepository: AsyncJobRepository
+
+    @Autowired
+    private lateinit var orderRepository: OrderRepository
+
+    @Autowired
+    private lateinit var customerRepository: CustomerRepository
+
+    @Autowired
+    private lateinit var tenantRepository: TenantRepository
+
+    private lateinit var tenant: Tenant
+
+    @BeforeEach
+    @Transactional
+    fun setup() {
+        asyncJobRepository.deleteAll()
+        orderRepository.deleteAll()
+        customerRepository.deleteAll()
+        tenantRepository.deleteAll()
+
+        tenant = Tenant(name = "acme")
+        tenant = tenantRepository.save(tenant)
+
+        val customer = Customer(
+            sourceId = "cust-001",
+            name = "Test Customer",
+            tenant = tenant
+        )
+        customerRepository.save(customer)
+
+        // Create test orders
+        repeat(3) { i ->
+            val order = Order(
+                sourceId = "order-${i + 1}",
+                status = "PAID",
+                amount = (100 + i * 10).toLong(),
+                customer = customer,
+                tenant = tenant
+            )
+            orderRepository.save(order)
+        }
+    }
+
+    @Test
+    fun `POST orders-export should create async export job for CSV`() {
+        // Given
+        val request = mapOf(
+            "format" to "CSV",
+            "status" to "PAID"
+        )
+
+        // When & Then
+        val result = mockMvc.perform(
+            post("/v1/orders/export")
+                .header("tenant", "acme")
+                .with(jwt().jwt { it.claim("tenants", listOf("acme")).claim("realm_access", mapOf("roles" to listOf("ROLE_TENANT"))) })
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.async_action_id").exists())
+            .andExpect(jsonPath("$.message").value("Export job created for CSV format"))
+            .andReturn()
+
+        val responseBody = objectMapper.readValue(result.response.contentAsString, Map::class.java)
+        val jobId = UUID.fromString(responseBody["async_action_id"] as String)
+
+        // Wait for job to complete
+        await()
+            .atMost(30, TimeUnit.SECONDS)
+            .pollInterval(Duration.ofMillis(500))
+            .untilAsserted {
+                val job = asyncJobRepository.findById(jobId).orElseThrow()
+                assertThat(job.status).isIn(AsyncJobStatus.COMPLETED, AsyncJobStatus.FAILED)
+            }
+
+        // Verify job completed successfully
+        val job = asyncJobRepository.findById(jobId).orElseThrow()
+        assertThat(job.status).isEqualTo(AsyncJobStatus.COMPLETED)
+        assertThat(job.progress).isEqualTo(3)
+        
+        val jobResult = job.result as Map<*, *>
+        assertThat(jobResult["format"]).isEqualTo("CSV")
+        assertThat(jobResult["recordCount"]).isEqualTo(3)
+        assertThat(jobResult["url"]).isNotNull()
+    }
+
+    @Test
+    fun `POST orders-export should create async export job for JSON`() {
+        // Given
+        val request = mapOf("format" to "JSON")
+
+        // When & Then
+        val result = mockMvc.perform(
+            post("/v1/orders/export")
+                .header("tenant", "acme")
+                .with(jwt().jwt { it.claim("tenants", listOf("acme")).claim("realm_access", mapOf("roles" to listOf("ROLE_TENANT"))) })
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.async_action_id").exists())
+            .andExpect(jsonPath("$.message").value("Export job created for JSON format"))
+            .andReturn()
+
+        val responseBody = objectMapper.readValue(result.response.contentAsString, Map::class.java)
+        val jobId = UUID.fromString(responseBody["async_action_id"] as String)
+
+        // Wait and verify
+        await()
+            .atMost(30, TimeUnit.SECONDS)
+            .pollInterval(Duration.ofMillis(500))
+            .untilAsserted {
+                val job = asyncJobRepository.findById(jobId).orElseThrow()
+                assertThat(job.status).isEqualTo(AsyncJobStatus.COMPLETED)
+            }
+
+        val job = asyncJobRepository.findById(jobId).orElseThrow()
+        val jobResult = job.result as Map<*, *>
+        assertThat(jobResult["format"]).isEqualTo("JSON")
+    }
+
+    @Test
+    fun `POST orders-export should use CSV as default format`() {
+        // Given - No format specified
+        val request = mapOf<String, Any>()
+
+        // When & Then
+        mockMvc.perform(
+            post("/v1/orders/export")
+                .header("tenant", "acme")
+                .with(jwt().jwt { it.claim("tenants", listOf("acme")).claim("realm_access", mapOf("roles" to listOf("ROLE_TENANT"))) })
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.message").value("Export job created for CSV format"))
+    }
+
+    @Test
+    fun `POST orders-export should require authentication`() {
+        // Given
+        val request = mapOf("format" to "CSV")
+
+        // When & Then
+        mockMvc.perform(
+            post("/v1/orders/export")
+                .header("tenant", "acme")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    fun `POST orders-export should require valid tenant`() {
+        // Given
+        val request = mapOf("format" to "CSV")
+
+        // When & Then
+        mockMvc.perform(
+            post("/v1/orders/export")
+                .header("tenant", "invalid-tenant")
+                .with(jwt().jwt { it.claim("tenants", listOf("invalid-tenant")).claim("realm_access", mapOf("roles" to listOf("ROLE_TENANT"))) })
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().is4xxClientError)
+    }
+}

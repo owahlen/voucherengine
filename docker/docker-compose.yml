@@ -33,14 +33,14 @@ services:
     ports:
       - "4566:4566"
     environment:
-      SERVICES: sqs,sns
+      SERVICES: s3,sqs,sns
       DEBUG: 1
       PERSISTENCE: 1
       DATA_DIR: /var/lib/localstack/data
     volumes:
       - localstack_data:/var/lib/localstack
     healthcheck:
-      test: ["CMD-SHELL", "awslocal sqs list-queues || exit 1"]
+      test: ["CMD-SHELL", "awslocal s3 ls >/dev/null 2>&1 && awslocal sqs list-queues >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 20

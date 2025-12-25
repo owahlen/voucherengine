@@ -22,6 +22,9 @@ import org.wahlen.voucherengine.api.dto.request.OrderCreateRequest
 import org.wahlen.voucherengine.api.dto.response.OrdersListResponse
 import org.wahlen.voucherengine.api.dto.response.OrderResponse
 import org.wahlen.voucherengine.service.OrderService
+import org.wahlen.voucherengine.service.TenantService
+import org.wahlen.voucherengine.service.async.AsyncJobPublisher
+import org.wahlen.voucherengine.service.async.command.OrderImportCommand
 
 @RestController
 @RequestMapping("/v1")
@@ -33,7 +36,9 @@ import org.wahlen.voucherengine.service.OrderService
     ]
 )
 class OrderController(
-    private val orderService: OrderService
+    private val orderService: OrderService,
+    private val asyncJobPublisher: AsyncJobPublisher,
+    private val tenantService: TenantService
 ) {
 
     @Operation(
@@ -138,32 +143,75 @@ class OrderController(
     @Operation(
         summary = "Export orders",
         operationId = "exportOrders",
+        description = "Asynchronously export orders to CSV or JSON format. Returns async job ID for tracking.",
         responses = [
-            ApiResponse(responseCode = "501", description = "Not implemented - order export not yet supported")
+            ApiResponse(responseCode = "200", description = "Export job created"),
+            ApiResponse(responseCode = "400", description = "Invalid request")
         ]
     )
     @PostMapping("/orders/export")
     fun exportOrders(
-        @RequestHeader("tenant") tenant: String,
-        @RequestBody body: Map<String, Any>
+        @RequestHeader("tenant") tenantName: String,
+        @Valid @RequestBody request: org.wahlen.voucherengine.api.dto.request.OrderExportRequest
     ): ResponseEntity<Map<String, String>> {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-            .body(mapOf("message" to "Order export not yet implemented"))
+        val tenant = tenantService.getByName(tenantName)
+            ?: throw IllegalArgumentException("Tenant not found: $tenantName")
+
+        val parameters = mutableMapOf<String, Any?>(
+            "format" to request.format
+        )
+        request.status?.let { parameters["status"] = it }
+        request.created_after?.let { parameters["created_after"] = it }
+        request.created_before?.let { parameters["created_before"] = it }
+
+        val command = org.wahlen.voucherengine.service.async.command.OrderExportCommand(
+            tenantName = tenantName,
+            parameters = parameters
+        )
+
+        val jobId = asyncJobPublisher.publish(command, tenant)
+        return ResponseEntity.ok(
+            mapOf(
+                "async_action_id" to jobId.toString(),
+                "message" to "Export job created for ${request.format} format"
+            )
+        )
     }
 
     @Operation(
         summary = "Import orders",
         operationId = "importOrders",
+        description = "Asynchronously import multiple orders. Returns async job ID for tracking.",
         responses = [
-            ApiResponse(responseCode = "501", description = "Not implemented - order import not yet supported")
+            ApiResponse(responseCode = "200", description = "Import job created"),
+            ApiResponse(responseCode = "400", description = "Invalid request body")
         ]
     )
     @PostMapping("/orders/import")
     fun importOrders(
-        @RequestHeader("tenant") tenant: String,
+        @RequestHeader("tenant") tenantName: String,
         @RequestBody body: Map<String, Any>
     ): ResponseEntity<Map<String, String>> {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-            .body(mapOf("message" to "Order import not yet implemented"))
+        @Suppress("UNCHECKED_CAST")
+        val orders = body["orders"] as? List<Map<String, Any?>>
+            ?: return ResponseEntity.badRequest().body(mapOf("error" to "Missing 'orders' array in request body"))
+
+        if (orders.isEmpty()) {
+            return ResponseEntity.badRequest().body(mapOf("error" to "Orders array cannot be empty"))
+        }
+
+        val tenant = tenantService.getByName(tenantName) 
+            ?: throw IllegalArgumentException("Tenant not found: $tenantName")
+
+        val command = OrderImportCommand(
+            tenantName = tenantName,
+            orders = orders
+        )
+
+        val jobId = asyncJobPublisher.publish(command, tenant)
+        return ResponseEntity.ok(mapOf(
+            "async_action_id" to jobId.toString(),
+            "message" to "Import job created with ${orders.size} orders"
+        ))
     }
 }
