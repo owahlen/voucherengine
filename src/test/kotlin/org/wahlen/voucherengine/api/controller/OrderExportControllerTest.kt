@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
+import org.wahlen.voucherengine.api.tenantJwt
 import org.wahlen.voucherengine.config.S3IntegrationTest
 import org.wahlen.voucherengine.persistence.model.async.AsyncJobStatus
 import org.wahlen.voucherengine.persistence.model.customer.Customer
@@ -48,15 +49,40 @@ class OrderExportControllerTest {
 
     @Autowired
     private lateinit var tenantRepository: TenantRepository
+    
+    @Autowired
+    private lateinit var redemptionRepository: org.wahlen.voucherengine.persistence.repository.RedemptionRepository
+    
+    @Autowired
+    private lateinit var publicationRepository: org.wahlen.voucherengine.persistence.repository.PublicationRepository
+    
+    @Autowired
+    private lateinit var voucherRepository: org.wahlen.voucherengine.persistence.repository.VoucherRepository
+    
+    @Autowired
+    private lateinit var campaignRepository: org.wahlen.voucherengine.persistence.repository.CampaignRepository
 
     private lateinit var tenant: Tenant
 
     @BeforeEach
     @Transactional
     fun setup() {
+        // Delete in correct order to avoid FK violations
+        // Redemptions first (they reference vouchers and customers)
+        redemptionRepository.deleteAll()
+        // Publications next (they reference vouchers and customers)
+        publicationRepository.deleteAll()
+        // Vouchers (they reference campaigns)
+        voucherRepository.deleteAll()
+        // Campaigns
+        campaignRepository.deleteAll()
+        // Async jobs
         asyncJobRepository.deleteAll()
+        // Orders (they reference customers)
         orderRepository.deleteAll()
+        // Customers
         customerRepository.deleteAll()
+        // Tenants (referenced by everything)
         tenantRepository.deleteAll()
 
         tenant = Tenant(name = "acme")
@@ -94,7 +120,7 @@ class OrderExportControllerTest {
         val result = mockMvc.perform(
             post("/v1/orders/export")
                 .header("tenant", "acme")
-                .with(jwt().jwt { it.claim("tenants", listOf("acme")).claim("realm_access", mapOf("roles" to listOf("ROLE_TENANT"))) })
+                .with(tenantJwt("acme"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
         )
@@ -135,7 +161,7 @@ class OrderExportControllerTest {
         val result = mockMvc.perform(
             post("/v1/orders/export")
                 .header("tenant", "acme")
-                .with(jwt().jwt { it.claim("tenants", listOf("acme")).claim("realm_access", mapOf("roles" to listOf("ROLE_TENANT"))) })
+                .with(tenantJwt("acme"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
         )
@@ -170,7 +196,7 @@ class OrderExportControllerTest {
         mockMvc.perform(
             post("/v1/orders/export")
                 .header("tenant", "acme")
-                .with(jwt().jwt { it.claim("tenants", listOf("acme")).claim("realm_access", mapOf("roles" to listOf("ROLE_TENANT"))) })
+                .with(tenantJwt("acme"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
         )

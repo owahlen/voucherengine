@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RestController
@@ -21,6 +22,7 @@ import org.wahlen.voucherengine.persistence.repository.TenantRepository
 
 @IntegrationTest
 @AutoConfigureMockMvc
+@Transactional
 class GlobalExceptionHandlerIntegrationTest @Autowired constructor(
     private val mockMvc: MockMvc,
     private val tenantRepository: TenantRepository

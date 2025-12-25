@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.tenantJwt
 import org.wahlen.voucherengine.config.IntegrationTest
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
@@ -16,6 +17,7 @@ import org.wahlen.voucherengine.persistence.repository.TenantRepository
 
 @IntegrationTest
 @AutoConfigureMockMvc
+@Transactional
 class VoucherE2ETest @Autowired constructor(
     private val mockMvc: MockMvc,
     private val tenantRepository: TenantRepository
