@@ -1,4 +1,4 @@
-import authenticate.http
+import ../common/authenticate.http
 
 @tenant = acme
 
@@ -110,7 +110,7 @@ tenant: {{tenant}}
 
 > {%
     client.test("campaign created", () => {
-        client.assert(response.status === 201);
+        client.assert(response.status === 200);
         client.assert(!!response.body.id);
         client.assert(response.body.name === client.global.get("campaign_name"));
     });
@@ -138,7 +138,7 @@ tenant: {{tenant}}
 
 > {%
     client.test("campaign voucher 1 created", () => {
-        client.assert(response.status === 201);
+        client.assert(response.status === 200);
         client.assert(response.body.code === client.global.get("voucher_1"));
     });
 %}
@@ -164,7 +164,7 @@ tenant: {{tenant}}
 
 > {%
     client.test("campaign voucher 2 created", () => {
-        client.assert(response.status === 201);
+        client.assert(response.status === 200);
         client.assert(response.body.code === client.global.get("voucher_2"));
     });
 %}

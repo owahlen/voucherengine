@@ -2,6 +2,15 @@
 
 Voucherengine models a focused, API-first subset of Voucherify. It covers the voucher lifecycle (issue, validate, redeem) for two flows described in `docs/PER-CUSTOMER-VOUCHER.md` and `docs/MULTI-USE-VOUCHER.md`, using `docs/voucherify.json` as the contract reference.
 
+Keycloak Admin Console:\
+[http://localhost:8180](http://localhost:8180)
+
+API Documentation:\
+[http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+
+Postgres Database:\
+[jdbc:postgresql://voucherengine:voucherengine@localhost:5432/voucherengine](jdbc:postgresql://voucherengine:voucherengine@localhost:5432/voucherengine)
+
 ## Stack and architecture
 - Kotlin 2.3 + Spring Boot 4 (Web MVC, Data JPA, Bean Validation) with virtual threads enabled.
 - Persistence: PostgreSQL in dev, H2 in tests; JSONB fields mapped through `ToolsJacksonJsonFormatMapper` using Jackson 3 (`tools.jackson.*`).

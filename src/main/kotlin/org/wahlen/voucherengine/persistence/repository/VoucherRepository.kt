@@ -18,6 +18,9 @@ interface VoucherRepository : JpaRepository<Voucher, UUID> {
     fun findAllByCampaignIdAndTenantNameAndHolderIsNull(campaignId: UUID, tenantName: String, pageable: Pageable): List<Voucher>
     fun findAllByCampaignIdAndTenantNameAndHolderId(campaignId: UUID, tenantName: String, holderId: UUID): List<Voucher>
     fun findAllByTenantNameAndHolderId(tenantName: String, holderId: UUID): List<Voucher>
+    fun findAllByCampaignIdInAndTenantName(campaignIds: List<UUID>, tenantName: String, pageable: Pageable): Page<Voucher>
+    fun countByTenantName(tenantName: String): Long
+    fun countByCampaignIdInAndTenantName(campaignIds: List<UUID>, tenantName: String): Long
 
     @Query(
         """

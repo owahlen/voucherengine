@@ -1,4 +1,4 @@
-import authenticate.http
+import ../common/authenticate.http
 
 @tenant = acme
 
@@ -76,7 +76,7 @@ tenant: {{tenant}}
 
 > {%
     client.test("voucher created for customer1", () => {
-        client.assert(response.status === 201);
+        client.assert(response.status === 200);
         client.assert(response.body.code === client.global.get("voucher_code"));
         client.assert(response.body.redemption.quantity === 1);
     });

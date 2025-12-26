@@ -23,10 +23,12 @@ import java.util.UUID
     JsonSubTypes.Type(value = BulkUpdateCommand::class, name = "BULK_VOUCHER_UPDATE"),
     JsonSubTypes.Type(value = MetadataUpdateCommand::class, name = "VOUCHER_METADATA_UPDATE"),
     JsonSubTypes.Type(value = VoucherImportCommand::class, name = "VOUCHER_IMPORT"),
+    JsonSubTypes.Type(value = VoucherExportCommand::class, name = "VOUCHER_EXPORT"),
     JsonSubTypes.Type(value = TransactionExportCommand::class, name = "TRANSACTION_EXPORT"),
     JsonSubTypes.Type(value = CampaignVoucherGenerationCommand::class, name = "CAMPAIGN_VOUCHER_GENERATION"),
     JsonSubTypes.Type(value = OrderImportCommand::class, name = "ORDER_IMPORT"),
-    JsonSubTypes.Type(value = OrderExportCommand::class, name = "ORDER_EXPORT")
+    JsonSubTypes.Type(value = OrderExportCommand::class, name = "ORDER_EXPORT"),
+    JsonSubTypes.Type(value = PlaceholderExportCommand::class, name = "PLACEHOLDER_EXPORT")
 )
 sealed interface AsyncJobCommand {
     var jobId: UUID?

@@ -56,7 +56,12 @@ class SecurityConfig(
     ): SecurityFilterChain {
         http.csrf { it.disable() }
         http.authorizeHttpRequests { auth ->
-            auth.requestMatchers("/v1/tenants/**").hasRole("MANAGER")
+            auth.requestMatchers(
+                "/v3/api-docs/**",
+                "/swagger-ui/**",
+                "/swagger-ui.html"
+            ).permitAll()
+                .requestMatchers("/v1/tenants/**").hasRole("MANAGER")
                 .anyRequest().hasRole("TENANT")
         }
         http.oauth2ResourceServer { oauth ->

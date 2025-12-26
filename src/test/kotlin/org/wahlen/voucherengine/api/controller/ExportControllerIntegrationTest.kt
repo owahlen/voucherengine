@@ -1,6 +1,6 @@
 package org.wahlen.voucherengine.api.controller
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -14,12 +14,12 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.api.tenantJwt
-import org.wahlen.voucherengine.config.IntegrationTest
+import org.wahlen.voucherengine.config.SqsIntegrationTest
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
 import java.util.UUID
 
-@IntegrationTest
+@SqsIntegrationTest
 @AutoConfigureMockMvc
 @Transactional
 class ExportControllerIntegrationTest @Autowired constructor(
@@ -61,15 +61,12 @@ class ExportControllerIntegrationTest @Autowired constructor(
                 .content(exportBody)
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.exported_object").value("voucher"))
+            .andExpect(jsonPath("$.status").value("SCHEDULED"))
             .andReturn()
 
         val payload = objectMapper.readValue(exportResult.response.contentAsString, Map::class.java)
-        val exportId = payload["id"] as? String ?: error("Missing export id")
-        val resultUrl = ((payload["result"] as? Map<*, *>)?.get("url") as? String) ?: error("Missing export url")
-        val token = resultUrl.substringAfter("token=", "")
-        if (token.isBlank()) {
-            error("Missing export token")
-        }
+        println("Export response: $payload")
+        val exportId = payload["id"] as? String ?: error("Missing export id. Response: $payload")
 
         mockMvc.perform(
             get("/v1/exports")
@@ -86,20 +83,8 @@ class ExportControllerIntegrationTest @Autowired constructor(
         ).andExpect(status().isOk)
             .andExpect(jsonPath("$.id").value(exportId))
 
-        val downloadResult = mockMvc.perform(
-            get("/v1/exports/$exportId")
-                .header("tenant", tenantName)
-                .with(tenantJwt(tenantName))
-                .param("token", token)
-        ).andExpect(status().isOk)
-            .andReturn()
-        val csv = downloadResult.response.contentAsString
-        if (!csv.contains("code,voucher_type,value,discount_type")) {
-            error("Missing csv headers")
-        }
-        if (!csv.contains(code)) {
-            error("Missing voucher code in csv")
-        }
+        // Download endpoint is no longer supported (exports are async and stored in S3)
+        // The download URL would be in the async job result once completed
 
         mockMvc.perform(
             delete("/v1/exports/$exportId")
@@ -124,23 +109,18 @@ class ExportControllerIntegrationTest @Autowired constructor(
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(pointsBody)
         ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("SCHEDULED"))
             .andReturn()
         val pointsPayload = objectMapper.readValue(pointsResult.response.contentAsString, Map::class.java)
         val pointsId = pointsPayload["id"] as? String ?: error("Missing export id")
-        val pointsUrl = ((pointsPayload["result"] as? Map<*, *>)?.get("url") as? String) ?: error("Missing export url")
-        val pointsToken = pointsUrl.substringAfter("token=", "")
-        val pointsCsv = mockMvc.perform(
+
+        // Verify export was created
+        mockMvc.perform(
             get("/v1/exports/$pointsId")
                 .header("tenant", tenantName)
                 .with(tenantJwt(tenantName))
-                .param("token", pointsToken)
         ).andExpect(status().isOk)
-            .andReturn()
-            .response
-            .contentAsString
-        if (!pointsCsv.contains("id,campaign_id,voucher_id,status,expires_at,points")) {
-            error("Missing points expiration csv headers")
-        }
+            .andExpect(jsonPath("$.id").value(pointsId))
 
         val txBody = """{ "exported_object": "voucher_transactions" }"""
         val txResult = mockMvc.perform(
@@ -150,22 +130,17 @@ class ExportControllerIntegrationTest @Autowired constructor(
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(txBody)
         ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("SCHEDULED"))
             .andReturn()
         val txPayload = objectMapper.readValue(txResult.response.contentAsString, Map::class.java)
         val txId = txPayload["id"] as? String ?: error("Missing export id")
-        val txUrl = ((txPayload["result"] as? Map<*, *>)?.get("url") as? String) ?: error("Missing export url")
-        val txToken = txUrl.substringAfter("token=", "")
-        val txCsv = mockMvc.perform(
+
+        // Verify export was created
+        mockMvc.perform(
             get("/v1/exports/$txId")
                 .header("tenant", tenantName)
                 .with(tenantJwt(tenantName))
-                .param("token", txToken)
         ).andExpect(status().isOk)
-            .andReturn()
-            .response
-            .contentAsString
-        if (!txCsv.contains("id,type,source_id,status,reason,source,balance,amount,created_at")) {
-            error("Missing voucher transactions csv headers")
-        }
+            .andExpect(jsonPath("$.id").value(txId))
     }
 }

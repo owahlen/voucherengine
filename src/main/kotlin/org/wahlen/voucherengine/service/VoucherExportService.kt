@@ -6,9 +6,9 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.persistence.model.async.AsyncJob
 import org.wahlen.voucherengine.persistence.model.async.AsyncJobStatus
-import org.wahlen.voucherengine.persistence.model.order.Order
+import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 import org.wahlen.voucherengine.persistence.repository.AsyncJobRepository
-import org.wahlen.voucherengine.persistence.repository.OrderRepository
+import org.wahlen.voucherengine.persistence.repository.VoucherRepository
 import tools.jackson.databind.ObjectMapper
 import java.io.ByteArrayOutputStream
 import java.time.ZoneOffset
@@ -16,11 +16,11 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 /**
- * Service for exporting orders to CSV or JSON format.
+ * Service for exporting vouchers to CSV or JSON format.
  */
 @Service
-class OrderExportService(
-    private val orderRepository: OrderRepository,
+class VoucherExportService(
+    private val voucherRepository: VoucherRepository,
     private val asyncJobRepository: AsyncJobRepository,
     private val exportRepository: org.wahlen.voucherengine.persistence.repository.ExportRepository,
     private val s3Service: S3Service,
@@ -33,7 +33,7 @@ class OrderExportService(
     }
 
     /**
-     * Execute order export: query orders, generate file, upload to S3, update Export entity.
+     * Execute voucher export: query vouchers, generate file, upload to S3, update Export entity.
      */
     @Transactional
     fun executeExport(jobId: UUID, tenantName: String, parameters: Map<String, Any?>) {
@@ -51,8 +51,8 @@ class OrderExportService(
             @Suppress("UNCHECKED_CAST")
             val requestedFields = parameters["fields"] as? List<String>
             val fields = if (requestedFields.isNullOrEmpty()) {
-                // Default fields when empty (per spec: id, source_id, status)
-                listOf("id", "source_id", "status")
+                // Default fields when empty (common voucher fields per spec)
+                listOf("code", "voucher_type", "campaign", "active", "created_at")
             } else {
                 requestedFields
             }
@@ -61,7 +61,7 @@ class OrderExportService(
             val sortOrder = parameters["order"] as? String
 
             // Count total for progress tracking
-            val total = countOrders(tenantName, filters)
+            val total = countVouchers(tenantName, filters)
             job.total = total
             asyncJobRepository.save(job)
 
@@ -78,7 +78,7 @@ class OrderExportService(
             }
 
             // Upload to S3
-            val fileName = "orders-${UUID.randomUUID()}.${format.lowercase()}"
+            val fileName = "vouchers-${UUID.randomUUID()}.${format.lowercase()}"
             val contentType = if (format.uppercase() == "CSV") "text/csv" else "application/json"
             val presignedUrl = s3Service.uploadExport(tenantName, fileName, content, contentType)
 
@@ -117,7 +117,7 @@ class OrderExportService(
 
     private fun generateCsv(
         tenantName: String,
-        filters: OrderFilters,
+        filters: VoucherFilters,
         fields: List<String>,
         sortOrder: String?,
         job: AsyncJob
@@ -133,19 +133,19 @@ class OrderExportService(
 
             while (true) {
                 val pageable = PageRequest.of(page, BATCH_SIZE)
-                val orders = fetchOrders(tenantName, filters, sortOrder, pageable)
+                val vouchers = fetchVouchers(tenantName, filters, sortOrder, pageable)
 
-                if (orders.isEmpty()) break
+                if (vouchers.isEmpty()) break
 
-                orders.forEach { order ->
-                    writer.write(toCsvRow(order, fields))
+                vouchers.forEach { voucher ->
+                    writer.write(toCsvRow(voucher, fields))
                     writer.newLine()
                 }
 
-                processedCount += orders.size
+                processedCount += vouchers.size
                 updateProgress(job, processedCount)
 
-                if (orders.size < BATCH_SIZE) break
+                if (vouchers.size < BATCH_SIZE) break
                 page++
             }
         }
@@ -155,38 +155,38 @@ class OrderExportService(
 
     private fun generateJson(
         tenantName: String,
-        filters: OrderFilters,
+        filters: VoucherFilters,
         fields: List<String>,
         sortOrder: String?,
         job: AsyncJob
     ): ByteArray {
-        val allOrders = mutableListOf<Map<String, Any?>>()
+        val allVouchers = mutableListOf<Map<String, Any?>>()
         var processedCount = 0
         var page = 0
 
         while (true) {
             val pageable = PageRequest.of(page, BATCH_SIZE)
-            val orders = fetchOrders(tenantName, filters, sortOrder, pageable)
+            val vouchers = fetchVouchers(tenantName, filters, sortOrder, pageable)
 
-            if (orders.isEmpty()) break
+            if (vouchers.isEmpty()) break
 
-            orders.forEach { order ->
-                allOrders.add(toJsonObject(order, fields))
+            vouchers.forEach { voucher ->
+                allVouchers.add(toJsonObject(voucher, fields))
             }
 
-            processedCount += orders.size
+            processedCount += vouchers.size
             updateProgress(job, processedCount)
 
-            if (orders.size < BATCH_SIZE) break
+            if (vouchers.size < BATCH_SIZE) break
             page++
         }
 
-        return objectMapper.writeValueAsBytes(allOrders)
+        return objectMapper.writeValueAsBytes(allVouchers)
     }
 
-    private fun toCsvRow(order: Order, fields: List<String>): String {
+    private fun toCsvRow(voucher: Voucher, fields: List<String>): String {
         return fields.joinToString(",") { field ->
-            val value = extractFieldValue(order, field)
+            val value = extractFieldValue(voucher, field)
             // Escape commas and quotes in CSV
             when (value) {
                 null -> ""
@@ -196,49 +196,65 @@ class OrderExportService(
         }
     }
 
-    private fun toJsonObject(order: Order, fields: List<String>): Map<String, Any?> {
+    private fun toJsonObject(voucher: Voucher, fields: List<String>): Map<String, Any?> {
         return fields.associateWith { field ->
-            extractFieldValue(order, field)
+            extractFieldValue(voucher, field)
         }
     }
     
     /**
-     * Extract field value from order, supporting metadata.X notation (per Voucherify spec).
+     * Extract field value from voucher, supporting metadata.X notation (per Voucherify spec).
      */
-    private fun extractFieldValue(order: Order, field: String): Any? {
+    private fun extractFieldValue(voucher: Voucher, field: String): Any? {
         return when {
             field.startsWith("metadata.") -> {
-                // Extract specific metadata field (e.g., "metadata.payment_method")
+                // Extract specific metadata field (e.g., "metadata.source")
                 val metadataKey = field.substring("metadata.".length)
-                order.metadata?.get(metadataKey)
+                voucher.metadata?.get(metadataKey)
             }
             field == "metadata" -> {
                 // Return full metadata object
-                order.metadata
+                voucher.metadata
             }
             else -> {
-                // Standard fields
+                // Standard fields per Voucherify spec
                 when (field) {
-                    "id" -> order.id.toString()
-                    "source_id" -> order.sourceId
-                    "status" -> order.status
-                    "amount" -> order.amount
-                    "initial_amount" -> order.initialAmount
-                    "discount_amount" -> order.discountAmount
-                    "items_discount_amount" -> 0L // Not in our model yet
-                    "total_discount_amount" -> order.discountAmount ?: 0L
-                    "total_amount" -> (order.amount ?: 0L) - (order.discountAmount ?: 0L)
-                    "customer_id" -> order.customer?.id?.toString()
-                    "referrer_id" -> null // Not in our model yet
-                    "created_at" -> order.createdAt?.let { DATE_FORMATTER.format(it.atOffset(ZoneOffset.UTC)) }
-                    "updated_at" -> order.updatedAt?.let { DATE_FORMATTER.format(it.atOffset(ZoneOffset.UTC)) }
+                    "id" -> voucher.id.toString()
+                    "code" -> voucher.code
+                    "voucher_type" -> voucher.type?.name
+                    "value" -> voucher.discountJson?.percent_off ?: voucher.discountJson?.amount_off
+                    "discount_type" -> voucher.discountJson?.type?.name
+                    "campaign" -> voucher.campaign?.name
+                    "campaign_id" -> voucher.campaign?.id?.toString()
+                    "category" -> voucher.categories.firstOrNull()?.name
+                    "category_id" -> voucher.categories.firstOrNull()?.id?.toString()
+                    "start_date" -> voucher.startDate?.let { DATE_FORMATTER.format(it.atOffset(ZoneOffset.UTC)) }
+                    "expiration_date" -> voucher.expirationDate?.let { DATE_FORMATTER.format(it.atOffset(ZoneOffset.UTC)) }
+                    "gift_balance" -> voucher.giftJson?.balance
+                    "loyalty_balance" -> voucher.loyaltyCardJson?.balance
+                    "redemption_quantity" -> voucher.redemptionJson?.quantity
+                    "redemption_count" -> voucher.redemptions.size
+                    "active" -> voucher.active
+                    "qr_code" -> voucher.assets?.qrId
+                    "bar_code" -> voucher.assets?.barcodeId
+                    "is_referral_code" -> false // TODO: need referral support
+                    "created_at" -> voucher.createdAt?.let { DATE_FORMATTER.format(it.atOffset(ZoneOffset.UTC)) }
+                    "updated_at" -> voucher.updatedAt?.let { DATE_FORMATTER.format(it.atOffset(ZoneOffset.UTC)) }
+                    "validity_timeframe_interval" -> voucher.validityTimeframe?.interval
+                    "validity_timeframe_duration" -> voucher.validityTimeframe?.duration
+                    "validity_day_of_week" -> voucher.validityDayOfWeek?.joinToString(",")
+                    "discount_amount_limit" -> null // Not in our DiscountDto yet
+                    "additional_info" -> voucher.additionalInfo
+                    "customer_id" -> voucher.holder?.id?.toString()
+                    "discount_unit_type" -> null // Not in our DiscountDto yet
+                    "discount_unit_effect" -> null // Not in our DiscountDto yet
                     else -> null // Unknown field
                 }
             }
         }
     }
     
-    private fun fetchOrders(tenantName: String, filters: OrderFilters, sortOrder: String?, pageable: Pageable): List<Order> {
+    private fun fetchVouchers(tenantName: String, filters: VoucherFilters, sortOrder: String?, pageable: Pageable): List<Voucher> {
         // Apply sorting if specified (per Voucherify spec: "-field" for descending, "field" for ascending)
         val sortedPageable = if (sortOrder != null) {
             val direction = if (sortOrder.startsWith("-")) {
@@ -251,7 +267,9 @@ class OrderExportService(
             val entityField = when (fieldName) {
                 "created_at" -> "createdAt"
                 "updated_at" -> "updatedAt"
-                "source_id" -> "sourceId"
+                "expiration_date" -> "expirationDate"
+                "start_date" -> "startDate"
+                "campaign_id" -> "campaign.id"
                 else -> fieldName
             }
             PageRequest.of(pageable.pageNumber, pageable.pageSize, direction, entityField)
@@ -259,18 +277,46 @@ class OrderExportService(
             pageable
         }
         
-        // Fetch orders with filters (currently basic filtering)
-        return orderRepository.findAllByTenantName(tenantName, sortedPageable).content
+        // Apply campaign filter if specified
+        return if (filters.campaignIds.isNotEmpty()) {
+            voucherRepository.findAllByCampaignIdInAndTenantName(filters.campaignIds, tenantName, sortedPageable).content
+        } else {
+            voucherRepository.findAllByTenantName(tenantName, sortedPageable).content
+        }
     }
 
-    private fun countOrders(tenantName: String, filters: OrderFilters): Int {
-        // For now, count all orders for the tenant
-        return orderRepository.countByTenantName(tenantName).toInt()
+    private fun countVouchers(tenantName: String, filters: VoucherFilters): Int {
+        return if (filters.campaignIds.isNotEmpty()) {
+            voucherRepository.countByCampaignIdInAndTenantName(filters.campaignIds, tenantName).toInt()
+        } else {
+            voucherRepository.countByTenantName(tenantName).toInt()
+        }
     }
 
-    private fun parseFilters(parameters: Map<String, Any?>): OrderFilters {
-        // TODO: Parse filters from parameters (status, date range, etc.)
-        return OrderFilters()
+    private fun parseFilters(parameters: Map<String, Any?>): VoucherFilters {
+        @Suppress("UNCHECKED_CAST")
+        val filters = parameters["filters"] as? Map<String, Any?>
+        
+        // Extract campaign_ids filter (per Voucherify spec)
+        val campaignIds = if (filters != null) {
+            @Suppress("UNCHECKED_CAST")
+            val campaignIdsFilter = filters["campaign_ids"] as? Map<String, Any?>
+            @Suppress("UNCHECKED_CAST")
+            val conditions = campaignIdsFilter?.get("conditions") as? Map<String, Any?>
+            @Suppress("UNCHECKED_CAST")
+            val inList = conditions?.get("\$in") as? List<String>
+            inList?.mapNotNull { 
+                try {
+                    UUID.fromString(it)
+                } catch (e: IllegalArgumentException) {
+                    null
+                }
+            } ?: emptyList()
+        } else {
+            emptyList()
+        }
+        
+        return VoucherFilters(campaignIds = campaignIds)
     }
 
     private fun updateProgress(job: AsyncJob, processedCount: Int) {
@@ -285,17 +331,15 @@ class OrderExportService(
         job.result = mapOf(
             "recordCount" to 0,
             "format" to format,
-            "message" to "No orders found matching the criteria"
+            "message" to "No vouchers found matching the criteria"
         )
         asyncJobRepository.save(job)
     }
 
     /**
-     * Placeholder for future filter support
+     * Filters for voucher export
      */
-    data class OrderFilters(
-        val status: String? = null,
-        val createdAfter: String? = null,
-        val createdBefore: String? = null
+    data class VoucherFilters(
+        val campaignIds: List<UUID> = emptyList()
     )
 }

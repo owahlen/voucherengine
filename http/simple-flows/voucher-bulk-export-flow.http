@@ -1,0 +1,265 @@
+import ../common/authenticate.http
+
+@tenant = acme
+
+### obtain the access_token
+run #authenticate_tenant
+
+### Create sample vouchers for export
+# @name create_sample_voucher_1
+< {%
+    const now = Date.now();
+    client.global.set("test_timestamp", now);
+    client.global.set("voucher_code_1", `EXPORT-TEST-${now}-1`);
+    client.global.set("voucher_code_2", `EXPORT-TEST-${now}-2`);
+    client.global.set("voucher_code_3", `EXPORT-TEST-${now}-3`);
+%}
+POST {{voucherengine_base_url}}/v1/vouchers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "code": "{{voucher_code_1}}",
+  "type": "DISCOUNT_VOUCHER",
+  "discount": {
+    "type": "PERCENT",
+    "percent_off": 10
+  },
+  "category": "Export Test",
+  "metadata": {
+    "test": true,
+    "batch": "export-flow"
+  }
+}
+
+> {%
+    client.test("voucher 1 created", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.code === client.global.get("voucher_code_1"));
+    });
+%}
+
+### Create sample voucher 2
+# @name create_sample_voucher_2
+POST {{voucherengine_base_url}}/v1/vouchers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "code": "{{voucher_code_2}}",
+  "type": "DISCOUNT_VOUCHER",
+  "discount": {
+    "type": "AMOUNT",
+    "amount_off": 500
+  },
+  "category": "Export Test",
+  "metadata": {
+    "test": true,
+    "batch": "export-flow"
+  }
+}
+
+> {%
+    client.test("voucher 2 created", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.code === client.global.get("voucher_code_2"));
+    });
+%}
+
+### Create sample voucher 3 (GIFT)
+# @name create_sample_voucher_3
+POST {{voucherengine_base_url}}/v1/vouchers
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "code": "{{voucher_code_3}}",
+  "type": "GIFT_VOUCHER",
+  "gift": {
+    "balance": 5000
+  },
+  "category": "Export Test",
+  "metadata": {
+    "test": true,
+    "batch": "export-flow"
+  }
+}
+
+> {%
+    client.test("voucher 3 created", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.code === client.global.get("voucher_code_3"));
+    });
+%}
+
+### Create export job for all vouchers
+# @name create_export
+POST {{voucherengine_base_url}}/v1/exports
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "exported_object": "voucher",
+  "parameters": {
+    "order": "-created_at",
+    "fields": [
+      "code",
+      "voucher_type",
+      "discount_type",
+      "value",
+      "category",
+      "active",
+      "redemption_quantity",
+      "redemption_count",
+      "created_at",
+      "updated_at",
+      "metadata"
+    ]
+  }
+}
+
+> {%
+    client.test("export created", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.object === "export");
+        client.assert(response.body.exported_object === "voucher");
+        client.assert(response.body.status === "SCHEDULED" || response.body.status === "IN_PROGRESS" || response.body.status === "DONE");
+        client.global.set("export_id", response.body.id);
+    });
+%}
+
+### Get export status
+# @name get_export
+GET {{voucherengine_base_url}}/v1/exports/{{export_id}}
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("export retrieved", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.object === "export");
+        client.assert(response.body.id === client.global.get("export_id"));
+        if (response.body.status === "DONE") {
+            client.assert(!!response.body.result);
+            client.assert(!!response.body.result.url);
+            client.log("Export completed! Download URL: " + response.body.result.url);
+        } else {
+            client.log("Export status: " + response.body.status);
+        }
+    });
+%}
+
+### List all exports
+# @name list_exports
+GET {{voucherengine_base_url}}/v1/exports?limit=10&order=-created_at
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+> {%
+    client.test("exports listed", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.object === "list");
+        client.assert(response.body.data_ref === "exports");
+        client.assert(Array.isArray(response.body.exports));
+        const ourExport = response.body.exports.find(e => e.id === client.global.get("export_id"));
+        if (ourExport) {
+            client.log("Found our export in list with status: " + ourExport.status);
+        }
+    });
+%}
+
+### Create filtered export (only DISCOUNT_VOUCHER type)
+# @name create_filtered_export
+POST {{voucherengine_base_url}}/v1/exports
+Authorization: Bearer {{tenant_access_token}}
+Content-Type: application/json
+tenant: {{tenant}}
+
+{
+  "exported_object": "voucher",
+  "parameters": {
+    "order": "-created_at",
+    "fields": [
+      "code",
+      "voucher_type",
+      "discount_type",
+      "value",
+      "category"
+    ],
+    "filters": {
+      "voucher_type": "DISCOUNT_VOUCHER"
+    }
+  }
+}
+
+> {%
+    client.test("filtered export created", () => {
+        client.assert(response.status === 200);
+        client.assert(response.body.object === "export");
+        client.assert(response.body.parameters.filters.voucher_type === "DISCOUNT_VOUCHER");
+        client.global.set("filtered_export_id", response.body.id);
+    });
+%}
+
+### Download export file (when ready)
+# @name download_export
+# Note: This will fail until the export status is DONE
+# Check the export status first, then use the URL from the response
+GET {{voucherengine_base_url}}/v1/exports/{{export_id}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+
+> {%
+    client.test("export ready for download", () => {
+        client.assert(response.status === 200);
+        if (response.body.status === "DONE" && response.body.result && response.body.result.url) {
+            client.log("✅ Export ready! Download URL: " + response.body.result.url);
+            client.log("💡 Copy the URL and paste it in your browser or use curl to download the CSV file");
+        } else {
+            client.log("⏳ Export not ready yet. Status: " + response.body.status);
+            client.log("💡 Re-run this request in a few seconds");
+        }
+    });
+%}
+
+### Delete test vouchers (cleanup)
+# @name delete_voucher_1
+DELETE {{voucherengine_base_url}}/v1/vouchers/{{voucher_code_1}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher 1 deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Delete voucher 2
+# @name delete_voucher_2
+DELETE {{voucherengine_base_url}}/v1/vouchers/{{voucher_code_2}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher 2 deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}
+
+### Delete voucher 3
+# @name delete_voucher_3
+DELETE {{voucherengine_base_url}}/v1/vouchers/{{voucher_code_3}}
+Authorization: Bearer {{tenant_access_token}}
+tenant: {{tenant}}
+
+> {%
+    client.test("voucher 3 deleted", () => {
+        client.assert(response.status === 204);
+    });
+%}

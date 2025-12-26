@@ -1,0 +1,63 @@
+### Create vouchers for export testing
+POST http://localhost:8080/v1/campaigns
+tenant: acme
+Content-Type: application/json
+
+{
+  "name": "Export Test Campaign",
+  "category": "test"
+}
+
+> {%
+    client.global.set("campaignId", response.body.id);
+%}
+
+### Create multiple vouchers in the campaign
+POST http://localhost:8080/v1/campaigns/{{campaignId}}/vouchers?vouchers_count=10
+tenant: acme
+Content-Type: application/json
+
+{}
+
+### Export all vouchers (CSV format)
+POST http://localhost:8080/v1/vouchers/exportCSV
+tenant: acme
+Content-Type: application/json
+
+{
+  "parameters": {
+    "fields": ["id", "code", "campaign", "type", "active"]
+  }
+}
+
+> {%
+    client.global.set("voucherExportJobId", response.body.id);
+%}
+
+### Check voucher export job status
+GET http://localhost:8080/v1/async-actions/{{voucherExportJobId}}
+tenant: acme
+
+### Export all vouchers (JSON format)
+POST http://localhost:8080/v1/vouchers/exportCSV
+tenant: acme
+Content-Type: application/json
+
+{
+  "parameters": {
+    "format": "JSON",
+    "fields": ["code", "campaign", "active"]
+  }
+}
+
+> {%
+    client.global.set("voucherExportJobId2", response.body.id);
+%}
+
+### Check second export job status
+GET http://localhost:8080/v1/async-actions/{{voucherExportJobId2}}
+tenant: acme
+
+### Clean up - Delete campaign (and vouchers)
+DELETE http://localhost:8080/v1/campaigns/{{campaignId}}?force=true
+tenant: acme

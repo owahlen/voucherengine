@@ -1,4 +1,4 @@
-import authenticate.http
+import ../common/authenticate.http
 
 ### obtain the access_token
 run #authenticate_tenant

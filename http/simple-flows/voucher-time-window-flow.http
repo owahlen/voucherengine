@@ -1,4 +1,4 @@
-import authenticate.http
+import ../common/authenticate.http
 
 @tenant = acme
 
@@ -37,7 +37,7 @@ tenant: {{tenant}}
 
 > {%
     client.test("valid-window voucher created", () => {
-        client.assert(response.status === 201);
+        client.assert(response.status === 200);
         client.assert(response.body.code === client.global.get("valid_voucher_code"));
     });
 %}
@@ -117,7 +117,7 @@ tenant: {{tenant}}
 
 > {%
     client.test("future-window voucher created", () => {
-        client.assert(response.status === 201);
+        client.assert(response.status === 200);
         client.assert(response.body.code === client.global.get("future_voucher_code"));
     });
 %}

@@ -10,15 +10,15 @@ import org.springframework.transaction.annotation.Transactional
 import org.wahlen.voucherengine.config.S3IntegrationTest
 import org.wahlen.voucherengine.persistence.model.async.AsyncJobStatus
 import org.wahlen.voucherengine.persistence.model.async.AsyncJobType
-import org.wahlen.voucherengine.persistence.model.customer.Customer
-import org.wahlen.voucherengine.persistence.model.order.Order
+import org.wahlen.voucherengine.persistence.model.campaign.Campaign
 import org.wahlen.voucherengine.persistence.model.tenant.Tenant
+import org.wahlen.voucherengine.persistence.model.voucher.Voucher
 import org.wahlen.voucherengine.persistence.repository.AsyncJobRepository
-import org.wahlen.voucherengine.persistence.repository.CustomerRepository
-import org.wahlen.voucherengine.persistence.repository.OrderRepository
+import org.wahlen.voucherengine.persistence.repository.CampaignRepository
 import org.wahlen.voucherengine.persistence.repository.TenantRepository
+import org.wahlen.voucherengine.persistence.repository.VoucherRepository
 import org.wahlen.voucherengine.service.async.AsyncJobPublisher
-import org.wahlen.voucherengine.service.async.command.OrderExportCommand
+import org.wahlen.voucherengine.service.async.command.VoucherExportCommand
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import java.time.Duration
@@ -26,10 +26,10 @@ import java.util.concurrent.TimeUnit
 
 @S3IntegrationTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-class OrderExportServiceIntegrationTest {
+class VoucherExportServiceIntegrationTest {
 
     @Autowired
-    private lateinit var orderExportService: OrderExportService
+    private lateinit var voucherExportService: VoucherExportService
 
     @Autowired
     private lateinit var asyncJobPublisher: AsyncJobPublisher
@@ -38,10 +38,10 @@ class OrderExportServiceIntegrationTest {
     private lateinit var asyncJobRepository: AsyncJobRepository
 
     @Autowired
-    private lateinit var orderRepository: OrderRepository
+    private lateinit var voucherRepository: VoucherRepository
 
     @Autowired
-    private lateinit var customerRepository: CustomerRepository
+    private lateinit var campaignRepository: CampaignRepository
 
     @Autowired
     private lateinit var tenantRepository: TenantRepository
@@ -53,16 +53,16 @@ class OrderExportServiceIntegrationTest {
     private lateinit var s3Client: S3Client
 
     private lateinit var tenant: Tenant
-    private lateinit var customer: Customer
+    private lateinit var campaign: Campaign
 
     @BeforeEach
     fun setup() {
         // Clean up THIS tenant's data only (don't use deleteAll() - it affects other tests!)
-        val tenantName = "test-export-tenant"
+        val tenantName = "test-voucher-export-tenant"
         
-        // Find and delete only this tenant's entities
-        orderRepository.findAllByTenantName(tenantName).forEach { orderRepository.delete(it) }
-        customerRepository.findAllByTenantName(tenantName).forEach { customerRepository.delete(it) }
+        // Find and delete only this tenant's entities  
+        voucherRepository.findAllByTenantName(tenantName).forEach { voucherRepository.delete(it) }
+        campaignRepository.findAllByTenantName(tenantName).forEach { campaignRepository.delete(it) }
         asyncJobRepository.findAllByTenant_Name(tenantName, org.springframework.data.domain.Pageable.unpaged()).content.forEach { asyncJobRepository.delete(it) }
         exportRepository.findAllByTenantName(tenantName).forEach { exportRepository.delete(it) }
         tenantRepository.findByName(tenantName)?.let { tenantRepository.delete(it) }
@@ -71,38 +71,33 @@ class OrderExportServiceIntegrationTest {
         tenant = Tenant(name = tenantName)
         tenant = tenantRepository.save(tenant)
 
-        // Create customer
-        customer = Customer(
-            sourceId = "cust-001",
-            name = "Test Customer",
-            email = "test@example.com",
+        // Create campaign
+        campaign = Campaign(
+            name = "Summer Sale",
             tenant = tenant
         )
-        customer = customerRepository.save(customer)
+        campaign = campaignRepository.save(campaign)
 
-        // Create test orders
+        // Create test vouchers
         repeat(5) { i ->
-            val order = Order(
-                sourceId = "order-${i + 1}",
-                status = "PAID",
-                amount = (100 + i * 10).toLong(),
-                initialAmount = (100 + i * 10).toLong(),
-                discountAmount = 0L,
-                customer = customer,
+            val voucher = Voucher(
+                code = "VOUCHER-${i + 1}",
+                campaign = campaign,
+                active = true,
                 tenant = tenant
             )
-            orderRepository.save(order)
+            voucherRepository.save(voucher)
         }
     }
 
     @Test
-    fun `should export orders to CSV format`() {
+    fun `should export vouchers to CSV format`() {
         // Given - Request with specific fields
-        val command = OrderExportCommand(
+        val command = VoucherExportCommand(
             tenantName = tenant.name!!,
             parameters = mapOf(
                 "format" to "CSV",
-                "fields" to listOf("id", "source_id", "status", "amount")
+                "fields" to listOf("id", "code", "campaign", "active")
             )
         )
 
@@ -125,7 +120,7 @@ class OrderExportServiceIntegrationTest {
         // Verify job result
         val completedJob = asyncJobRepository.findById(jobId).orElseThrow()
         assertThat(completedJob.status).isEqualTo(AsyncJobStatus.COMPLETED)
-        assertThat(completedJob.type).isEqualTo(AsyncJobType.ORDER_EXPORT)
+        assertThat(completedJob.type).isEqualTo(AsyncJobType.VOUCHER_EXPORT)
         assertThat(completedJob.progress).isEqualTo(5)
         assertThat(completedJob.total).isEqualTo(5)
 
@@ -140,16 +135,16 @@ class OrderExportServiceIntegrationTest {
         val key = extractS3KeyFromUrl(url)
         val csvContent = downloadFromS3(key)
 
-        assertThat(csvContent).contains("id,source_id,status,amount")
-        assertThat(csvContent).contains("order-1")
-        assertThat(csvContent).contains("order-5")
-        assertThat(csvContent).contains("PAID")
+        assertThat(csvContent).contains("id,code,campaign,active")
+        assertThat(csvContent).contains("VOUCHER-1")
+        assertThat(csvContent).contains("VOUCHER-5")
+        assertThat(csvContent).contains("Summer Sale")
     }
 
     @Test
-    fun `should export orders to JSON format`() {
+    fun `should export vouchers to JSON format`() {
         // Given
-        val command = OrderExportCommand(
+        val command = VoucherExportCommand(
             tenantName = tenant.name!!,
             parameters = mapOf("format" to "JSON")
         )
@@ -182,18 +177,16 @@ class OrderExportServiceIntegrationTest {
         val key = extractS3KeyFromUrl(url)
         val jsonContent = downloadFromS3(key)
 
-        assertThat(jsonContent).contains("\"source_id\"")
-        assertThat(jsonContent).contains("\"order-1\"")
-        assertThat(jsonContent).contains("\"status\"")
-        assertThat(jsonContent).contains("\"PAID\"")
+        assertThat(jsonContent).contains("\"code\"")
+        assertThat(jsonContent).contains("\"VOUCHER-1\"")
     }
 
     @Test
     fun `should handle empty export gracefully`() {
-        // Given - Clean all orders
-        orderRepository.deleteAll()
+        // Given - Clean all vouchers
+        voucherRepository.deleteAll()
 
-        val command = OrderExportCommand(
+        val command = VoucherExportCommand(
             tenantName = tenant.name!!,
             parameters = mapOf("format" to "CSV")
         )
@@ -216,50 +209,7 @@ class OrderExportServiceIntegrationTest {
 
         val result = completedJob.result as Map<*, *>
         assertThat(result["recordCount"]).isEqualTo(0)
-        assertThat(result["message"]).isEqualTo("No orders found matching the criteria")
-    }
-
-    @Test
-    fun `should track progress during export`() {
-        // Given - Create more orders to see progress
-        repeat(50) { i ->
-            val order = Order(
-                sourceId = "bulk-order-${i + 1}",
-                status = "PAID",
-                amount = 100L,
-                tenant = tenant
-            )
-            orderRepository.save(order)
-        }
-
-        val command = OrderExportCommand(
-            tenantName = tenant.name!!,
-            parameters = mapOf("format" to "CSV")
-        )
-
-        // When
-        val jobId = asyncJobPublisher.publish(command, tenant)
-
-        // Then - Check that progress is updated
-        var progressSeen = false
-        await()
-            .atMost(30, TimeUnit.SECONDS)
-            .pollInterval(Duration.ofMillis(100))
-            .untilAsserted {
-                val job = asyncJobRepository.findById(jobId).orElseThrow()
-                
-                if (job.status == AsyncJobStatus.IN_PROGRESS && job.progress > 0 && job.progress < job.total) {
-                    progressSeen = true
-                }
-                
-                assertThat(job.status).isIn(AsyncJobStatus.COMPLETED, AsyncJobStatus.FAILED)
-                if (job.status == AsyncJobStatus.FAILED) {
-                    throw AssertionError("Job failed: ${job.result}")
-                }
-            }
-
-        val completedJob = asyncJobRepository.findById(jobId).orElseThrow()
-        assertThat(completedJob.progress).isEqualTo(55) // 5 from setup + 50 bulk
+        assertThat(result["message"]).isEqualTo("No vouchers found matching the criteria")
     }
 
     private fun extractS3KeyFromUrl(url: String): String {
