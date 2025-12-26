@@ -16,6 +16,8 @@ import org.wahlen.voucherengine.persistence.repository.ExportRepository
 import org.wahlen.voucherengine.service.async.AsyncJobPublisher
 import org.wahlen.voucherengine.service.async.command.OrderExportCommand
 import org.wahlen.voucherengine.service.async.command.PlaceholderExportCommand
+import org.wahlen.voucherengine.service.async.command.PublicationExportCommand
+import org.wahlen.voucherengine.service.async.command.RedemptionExportCommand
 import org.wahlen.voucherengine.service.async.command.VoucherExportCommand
 import tools.jackson.databind.ObjectMapper
 import java.util.UUID
@@ -61,6 +63,26 @@ class ExportService(
         // Publish async job based on exported object type
         val command = when (exportedObject) {
             "voucher" -> VoucherExportCommand(
+                tenantName = tenantName,
+                parameters = mapOf(
+                    "exportId" to saved.id.toString(),
+                    "format" to "CSV",
+                    "fields" to (request.parameters?.fields ?: emptyList()),
+                    "order" to request.parameters?.order,
+                    "filters" to (request.parameters?.filters ?: emptyMap<String, Any?>())
+                )
+            )
+            "redemption" -> RedemptionExportCommand(
+                tenantName = tenantName,
+                parameters = mapOf(
+                    "exportId" to saved.id.toString(),
+                    "format" to "CSV",
+                    "fields" to (request.parameters?.fields ?: emptyList()),
+                    "order" to request.parameters?.order,
+                    "filters" to (request.parameters?.filters ?: emptyMap<String, Any?>())
+                )
+            )
+            "publication" -> PublicationExportCommand(
                 tenantName = tenantName,
                 parameters = mapOf(
                     "exportId" to saved.id.toString(),
