@@ -26,6 +26,7 @@ import java.util.UUID
     JsonSubTypes.Type(value = VoucherExportCommand::class, name = "VOUCHER_EXPORT"),
     JsonSubTypes.Type(value = RedemptionExportCommand::class, name = "REDEMPTION_EXPORT"),
     JsonSubTypes.Type(value = PublicationExportCommand::class, name = "PUBLICATION_EXPORT"),
+    JsonSubTypes.Type(value = CustomerExportCommand::class, name = "CUSTOMER_EXPORT"),
     JsonSubTypes.Type(value = TransactionExportCommand::class, name = "TRANSACTION_EXPORT"),
     JsonSubTypes.Type(value = CampaignVoucherGenerationCommand::class, name = "CAMPAIGN_VOUCHER_GENERATION"),
     JsonSubTypes.Type(value = OrderImportCommand::class, name = "ORDER_IMPORT"),

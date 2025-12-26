@@ -14,6 +14,7 @@ import org.wahlen.voucherengine.api.dto.response.ExportsListResponse
 import org.wahlen.voucherengine.persistence.model.export.Export
 import org.wahlen.voucherengine.persistence.repository.ExportRepository
 import org.wahlen.voucherengine.service.async.AsyncJobPublisher
+import org.wahlen.voucherengine.service.async.command.CustomerExportCommand
 import org.wahlen.voucherengine.service.async.command.OrderExportCommand
 import org.wahlen.voucherengine.service.async.command.PlaceholderExportCommand
 import org.wahlen.voucherengine.service.async.command.PublicationExportCommand
@@ -83,6 +84,16 @@ class ExportService(
                 )
             )
             "publication" -> PublicationExportCommand(
+                tenantName = tenantName,
+                parameters = mapOf(
+                    "exportId" to saved.id.toString(),
+                    "format" to "CSV",
+                    "fields" to (request.parameters?.fields ?: emptyList()),
+                    "order" to request.parameters?.order,
+                    "filters" to (request.parameters?.filters ?: emptyMap<String, Any?>())
+                )
+            )
+            "customer" -> CustomerExportCommand(
                 tenantName = tenantName,
                 parameters = mapOf(
                     "exportId" to saved.id.toString(),
